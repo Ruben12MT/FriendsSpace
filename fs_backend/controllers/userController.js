@@ -5,10 +5,10 @@ const userService = require("../services/userService");
 class UserController {
   async login(req, res) {
     const emailOrUsername = req.body.emailOrUsername;
-    const password = req.body.password;
+    const passwordLogin = req.body.password;
 
     try {
-      if (!emailOrUsername || !password) {
+      if (!emailOrUsername || !passwordLogin) {
         return res.status(400).json({
           ok: false,
           datos: null,
@@ -16,10 +16,10 @@ class UserController {
         });
       }
 
-      const usuarioExistente =
+      const comprobarUser =
         await userService.getUserByEmailOrUsername(emailOrUsername);
 
-      if (!usuarioExistente) {
+      if (!comprobarUser) {
         return res.status(404).json({
           ok: false,
           datos: null,
@@ -27,10 +27,15 @@ class UserController {
         });
       }
 
-      if (password === usuarioExistente.password) {
+      const usuarioExistente = comprobarUser.toJSON();
+
+      const esCorrecta = await bcrypt.compare(passwordLogin, usuarioExistente.password);
+
+      if (esCorrecta) {
+        const { password, createdAt, ...userSinPrivados } = usuarioExistente;
         return res.status(200).json({
           ok: true,
-          datos: usuarioExistente,
+          datos: userSinPrivados,
           mensaje: "Inicio de sesión exitoso",
         });
       } else {
@@ -123,13 +128,13 @@ class UserController {
 
   async createUser(req, res) {
     try {
-      const { name, email, password } = req.body;
-      if (!name || !email || !password) {
+      const { name, email, passwordLogin } = req.body;
+      if (!name || !email || !passwordLogin) {
         return res
           .status(400)
           .json({ ok: false, mensaje: "Faltan campos obligatorios" });
       } else {
-        const newUser = await userService.createUser({ name, email, password });
+        const newUser = await userService.createUser({ name, email, passwordLogin });
         return res.status(201).json({
           ok: true,
           datos: newUser,

@@ -11,6 +11,7 @@ const models = initModels(sequelize);
 // Recuperar el modelo user
 const user = models.user;
 
+const bcrypt = require('bcrypt');
 class UserService {
   async getAllUsers() {
     // Devuelve todos los usuarios.
@@ -35,11 +36,15 @@ class UserService {
   }
 
   async createUser(userData) {
+    const hash = await bcrypt.hash(userData.password, 10);
+    userData.password = hash;
+
     const result = await user.create(userData);
     return result;
   }
 
   async updateUser(id, userData) {
+    
     const result = await user.update(userData, { where: { id } });
     return result;
   }
