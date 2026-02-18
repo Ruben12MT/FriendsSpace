@@ -1,4 +1,37 @@
 
-### Recuperar todas las notas
+### Recuperar todos los usuarios
 GET http://localhost:3000/api/users
 
+### Recuperar un usuario por ID
+GET http://localhost:3000/api/users/2
+
+### Recuperar un usuario por email o nombre de usuario
+### Buscar por EMAIL (Sin el guion bajo, como está en tu DB)
+GET http://localhost:3000/api/users/search/usuarioprueba@gmail.com
+
+### Buscar por NOMBRE (Con el guion bajo, como está en tu DB)
+GET http://localhost:3000/api/users/search/usuario_prueba
+
+### Ruta para crear un nuevo usuario
+POST http://localhost:3000/api/users
+Content-Type: application/json
+
+{
+  "name": "nuevo_usuario",
+  "email": "nuevo_usuario@example.com",
+  "password": "password123"
+}  
+
+
+### Ruta para actualizar un usuario por ID
+PUT http://localhost:3000/api/users/2
+Content-Type: application/json
+
+{
+  "name": "usuario_actualizado",
+  "email": "usuario_actualizado@example.com",
+  "password": "password123"
+}
+
+### Ruta para eliminar un usuario por ID
+DELETE http://localhost:3000/api/users/2    

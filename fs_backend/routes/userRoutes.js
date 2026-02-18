@@ -2,17 +2,30 @@ const express = require('express');
 const router = express.Router();
 const userController = require('../controllers/userController');
 
-
 //Rutas para el login de usuarios
-// router.post('/login', userController.login);
-// router.post('/register', userController.register);
-// router.post('/logout', userController.logout);
+router.post('/auth/login', userController.login);
+// router.post('/auth/register', userController.register);
+// router.post('/auth/logout', userController.logout);
 
-// Rutas para los users
+// Ruta para sacar todos los users
 router.get('/', userController.getAllUsers);
-// router.post('/', userController.createUser);
-// router.get('/:id', userController.getUserById);
-// router.put('/:id', userController.updateUser);
-// router.delete('/:id', userController.deleteUser);
+
+//Ruta para insertar un nuevo user
+router.post('/', userController.createUser)
+
+//Ruta para sacar un usuario por email u nombre de usuario
+router.get('/search/:emailOrUsername', userController.getUserByEmailOrUsername);
+
+//Ruta para sacar un usuario por id de usuario
+router.get('/:id', userController.getUserById);
+
+//Ruta para actualizar un usuario por id
+router.put('/:id', userController.updateUser);
+
+//Ruta para eliminar un usuario por id
+router.delete('/:id', userController.deleteUser);
+
+//Ruta para bloquear un usuario por id
+// router.post('/:id/block', userController.blockUser);
 
 module.exports = router;
