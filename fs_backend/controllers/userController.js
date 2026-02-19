@@ -1,66 +1,22 @@
 // controllers/userController.js
 const user = require("../src/models/user");
 const userService = require("../services/userService");
+const bcrypt = require('bcrypt');
 
 class UserController {
-  async login(req, res) {
-    const emailOrUsername = req.body.emailOrUsername;
-    const passwordLogin = req.body.password;
-
-    try {
-      if (!emailOrUsername || !passwordLogin) {
-        return res.status(400).json({
-          ok: false,
-          datos: null,
-          mensaje: "Faltan campos obligatorios",
-        });
-      }
-
-      const comprobarUser =
-        await userService.getUserByEmailOrUsername(emailOrUsername);
-
-      if (!comprobarUser) {
-        return res.status(404).json({
-          ok: false,
-          datos: null,
-          mensaje: "Usuario no encontrado",
-        });
-      }
-
-      const usuarioExistente = comprobarUser.toJSON();
-
-      const esCorrecta = await bcrypt.compare(passwordLogin, usuarioExistente.password);
-
-      if (esCorrecta) {
-        const { password, createdAt, ...userSinPrivados } = usuarioExistente;
-        return res.status(200).json({
-          ok: true,
-          datos: userSinPrivados,
-          mensaje: "Inicio de sesión exitoso",
-        });
-      } else {
-        return res.status(401).json({
-          ok: false,
-          datos: null,
-          mensaje: "Credenciales incorrectas",
-        });
-      }
-    } catch (error) {
-      console.error("Error en login:", error);
-      return res.status(500).json({
-        ok: false,
-        datos: null,
-        mensaje: "Error interno al iniciar sesión",
-      });
-    }
-  }
 
   async getAllUsers(req, res) {
     try {
       const users = await userService.getAllUsers();
+
+      const usersLimpios = users.map((user) => {
+        const { password, email, ...datosPublicos } = user.toJSON();
+        return datosPublicos;
+      });
+
       return res.status(200).json({
         ok: true,
-        datos: users,
+        datos: usersLimpios,
         mensaje: "Usuarios recuperados correctamente",
       });
     } catch (err) {
@@ -85,9 +41,13 @@ class UserController {
         });
       }
 
+      const userLimpio = user.toJSON();
+      delete userLimpio.password;
+      delete userLimpio.email;
+
       return res.status(200).json({
         ok: true,
-        datos: user,
+        datos: userLimpio,
         mensaje: "Usuario recuperado correctamente",
       });
     } catch (err) {
@@ -128,13 +88,17 @@ class UserController {
 
   async createUser(req, res) {
     try {
-      const { name, email, passwordLogin } = req.body;
-      if (!name || !email || !passwordLogin) {
+      const { name, email, password } = req.body;
+      if (!name || !email || !password) {
         return res
           .status(400)
           .json({ ok: false, mensaje: "Faltan campos obligatorios" });
       } else {
-        const newUser = await userService.createUser({ name, email, passwordLogin });
+        const newUser = await userService.createUser({
+          name,
+          email,
+          password,
+        });
         return res.status(201).json({
           ok: true,
           datos: newUser,
@@ -154,32 +118,28 @@ class UserController {
   async updateUser(req, res) {
     try {
       const { id } = req.params;
-      const {
-        name,
-        email,
-        password,
-        url_image,
-        bio,
-        role,
-        goals,
-        short_sentece,
-      } = req.body;
+      const datosEditados = req.body;
+
       const user = await userService.getUserById(id);
       if (!user) {
         return res
           .status(404)
           .json({ ok: false, mensaje: "Usuario no encontrado" });
       }
-      const updatedUser = await userService.updateUser(id, {
-        name,
-        email,
-        password,
-        url_image,
-        bio,
-        role,
-        goals,
-        short_sentece,
-      });
+
+      //Evitar que se actualice el email ya que es un campo único y cada cuenta se asocia a un email específico. Si se permite actualizar el email, podría generar conflictos con otras cuentas existentes.
+      if (datosEditados.email) {
+        delete datosEditados.email;
+      }
+
+      if (datosEditados.password) {
+        datosEditados.password = await bcrypt.hash(datosEditados.password, 10);
+      } else {
+        delete datosEditados.password;
+      }
+
+      const updatedUser = await userService.updateUser(id, datosEditados);
+
       return res.status(200).json({
         ok: true,
         datos: updatedUser,

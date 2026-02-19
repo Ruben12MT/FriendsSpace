@@ -7,6 +7,9 @@ const cors = require("cors");
 // Importar librería path, para manejar rutas de ficheros en el servidor
 const path = require("path");
 
+// Importar cookie-parser para manejar cookies
+const cookieParser = require("cookie-parser");
+
 // Importar gestores de rutas
 const userRoutes = require("./routes/userRoutes");
 
@@ -15,8 +18,16 @@ const port = process.env.PORT || 3000;
 
 // Configurar middleware para analizar JSON en las solicitudes
 app.use(express.json());
+
+// Configurar cookie-parser para manejar cookies
+app.use(cookieParser());
+
 // Configurar CORS para admitir cualquier origen
-app.use(cors());
+
+app.use(cors({
+  origin: 'http://localhost:5173', 
+  credentials: true
+}));
 
 // Configurar rutas de la API Rest
 app.use("/api/users", userRoutes);
@@ -28,7 +39,7 @@ app.use(express.static(path.join(__dirname, "public")));
 app.use((req, res) => {
   res.status(404).json({
     ok: false,
-    mensaje: "La ruta solicitada no existe en el servidor"
+    mensaje: "La ruta solicitada no existe en el servidor",
   });
 });
 

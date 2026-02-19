@@ -1,36 +1,41 @@
-
 ### Recuperar todos los usuarios
 GET http://localhost:3000/api/users
 
+
 ### Recuperar un usuario por ID
-GET http://localhost:3000/api/users/2
+GET http://localhost:3000/api/users/1
+
 
 ### Recuperar un usuario por email o nombre de usuario
+
+
 ### Buscar por EMAIL (Sin el guion bajo, como está en tu DB)
 GET http://localhost:3000/api/users/search/usuarioprueba@gmail.com
 
+
 ### Buscar por NOMBRE (Con el guion bajo, como está en tu DB)
 GET http://localhost:3000/api/users/search/usuario_prueba
+
 
 ### Ruta para crear un nuevo usuario
 POST http://localhost:3000/api/users
 Content-Type: application/json
 
 {
+  "email": "nuevousuario@example.com",
   "name": "nuevo_usuario",
-  "password": "password123"
-}  
-
-
-### Ruta para actualizar un usuario por ID
-PUT http://localhost:3000/api/users/2
-Content-Type: application/json
-
-{
-  "name": "usuario_actualizado",
-  "email": "usuario_actualizado@example.com",
   "password": "password123"
 }
 
+
+### Ruta para actualizar un usuario por ID
+PUT http://localhost:3000/api/users/1
+Content-Type: application/json
+
+{
+  "password": "prueba"
+}
+
+
 ### Ruta para eliminar un usuario por ID
-DELETE http://localhost:3000/api/users/2    
+DELETE http://localhost:3000/api/users/2

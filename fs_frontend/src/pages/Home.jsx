@@ -1,12 +1,13 @@
-
 import React from "react";
 import { Outlet } from "react-router";
+import HomeBar from "../components/HomeBar";
 
 function Home() {
+
   return (
     <>
-      <h1>HEADER</h1>
-      <Outlet/>
+      <HomeBar />
+      <Outlet />
     </>
   );
 }
