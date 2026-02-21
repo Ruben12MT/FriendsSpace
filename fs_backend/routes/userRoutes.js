@@ -2,6 +2,15 @@ const express = require('express');
 const router = express.Router();
 const userController = require('../controllers/userController');
 
+//Rutas para login de usuario
+// router.post('/login', userController.login );
+// router.post('/register', userController.register );
+// router.post('/logout', userController.logout );
+
+// router.post('/protected', userController.protected  );
+
+
+
 // Ruta para sacar todos los users
 router.get('/', userController.getAllUsers);
 

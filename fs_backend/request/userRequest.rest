@@ -17,13 +17,66 @@ GET http://localhost:3000/api/users/search/usuarioprueba@gmail.com
 GET http://localhost:3000/api/users/search/usuario_prueba
 
 
-### Ruta para crear un nuevo usuario
+### 1. Caso de ÉXITO (Registro normal)
 POST http://localhost:3000/api/users
 Content-Type: application/json
 
 {
-  "email": "nuevousuario@example.com",
-  "name": "nuevo_usuario",
+  "name": "pedro_dev",
+  "email": "pedro@example.com",
+  "password": "Password123!"
+}
+
+### 2. ERROR: Email con formato inválido
+POST http://localhost:3000/api/users
+Content-Type: application/json
+
+{
+  "name": "usuario_test",
+  "email": "correo-sin-arroba.com",
+  "password": "password123"
+}
+
+### 3. ERROR: Name (Username) con espacios (debería fallar por tu Regex)
+POST http://localhost:3000/api/users
+Content-Type: application/json
+
+{
+  "name": "Juan Perez",
+  "email": "juan@example.com",
+  "password": "password123"
+}
+
+### 4. ERROR: Email duplicado 
+# (Úsalo después de haber corrido la prueba 1 con el mismo email)
+POST http://localhost:3000/api/users
+Content-Type: application/json
+
+{
+  "name": "pedro_otro",
+  "email": "pedro@example.com",
+  "password": "otrapassword"
+}
+
+### 5. ERROR: Name (Username) duplicado
+# (Para probar que tu service detecta el nombre ocupado)
+POST http://localhost:3000/api/users
+Content-Type: application/json
+
+{
+  "name": "pedro_dev",
+  "email": "distinto@example.com",
+  "password": "password123"
+}
+
+### 6. Caso de ÉXITO: Normalización (Mayúsculas y espacios)
+# El sistema debería guardarlo como "marcos@test.com"
+POST http://localhost:3000/api/users
+Content-Type: application/json
+
+{
+  "name": "  MAR  ",
+  "email": "Mar@TEST.com  ",
   "password": "password123"
 }
 

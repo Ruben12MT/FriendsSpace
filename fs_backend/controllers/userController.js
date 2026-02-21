@@ -1,9 +1,11 @@
 // controllers/userController.js
 const user = require("../src/models/user");
 const userService = require("../services/userService");
-const bcrypt = require('bcrypt');
+const bcrypt = require("bcrypt");
+const userValidations = require("../validations/userValidations")
 
 class UserController {
+  async login() {}
 
   async getAllUsers(req, res) {
     try {
@@ -93,18 +95,44 @@ class UserController {
         return res
           .status(400)
           .json({ ok: false, mensaje: "Faltan campos obligatorios" });
-      } else {
-        const newUser = await userService.createUser({
-          name,
-          email,
-          password,
-        });
-        return res.status(201).json({
-          ok: true,
-          datos: newUser,
-          mensaje: "Usuario creado correctamente",
-        });
       }
+
+      const emailValidationMessage = await userValidations.emailValidation(email);
+      
+      if(emailValidationMessage){
+        return res.status(400).json({
+        ok: false,
+        datos: {},
+        mensaje: emailValidationMessage,
+      }); 
+      }
+
+      const userNameValidationMessage = await userValidations.userNameValidation(name);
+      
+      if(userNameValidationMessage){
+        return res.status(400).json({
+        ok: false,
+        datos: {},
+        mensaje: userNameValidationMessage,
+      }); 
+      }
+
+      const emailMinus = email.trim().toLowerCase();
+      const nameLimpio = name.trim();
+      const newUser = await userService.createUser({
+        name: nameLimpio,
+        email: emailMinus,
+        password: password,
+      });
+
+      const { password: passwdOut, ...newUserSinPasswd } = newUser.toJSON();
+
+      return res.status(201).json({
+        ok: true,
+        datos: newUserSinPasswd,
+        mensaje: "Usuario creado correctamente",
+      });
+      
     } catch (err) {
       console.error("Error en createUser:", err);
       return res.status(500).json({
