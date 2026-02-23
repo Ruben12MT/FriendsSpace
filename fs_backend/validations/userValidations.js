@@ -69,7 +69,29 @@ class UserValidations {
   }
 
   // Validacion de password
-  passwordValidation() {}
+  passwordValidation(password) {
+    // 1. Obligatoria
+    if (!password) {
+      return "La contraseña es obligatoria";
+    }
+
+    // 2. Longitud mínima (mínimo 8 caracteres)
+    if (password.length < 8) {
+      return "La contraseña debe tener al menos 8 caracteres";
+    }
+
+    // 3. Complejidad de la passwd, al menos una letra y un número
+    // Esta Regex busca que haya al menos un número y una letra
+    const hasLetter = /[a-zA-Z]/.test(password);
+    const hasNumber = /\d/.test(password);
+
+    if (!hasLetter || !hasNumber) {
+      return "La contraseña debe contener al menos una letra y un número";
+    }
+
+    // Si pasa todo, devolvemos null
+    return null;
+  }
 }
 
 module.exports = new UserValidations();

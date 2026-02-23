@@ -1,5 +1,5 @@
-import { Avatar, Grid, Paper } from "@mui/material";
-import React, { cloneElement } from "react";
+import { Avatar, Grid, IconButton, InputAdornment, Paper } from "@mui/material";
+import React from "react";
 import Card from "@mui/material/Card";
 import CardActions from "@mui/material/CardActions";
 import CardContent from "@mui/material/CardContent";
@@ -8,8 +8,22 @@ import Button from "@mui/material/Button";
 import Typography from "@mui/material/Typography";
 import TextField from "@mui/material/TextField";
 import { Link } from "react-router-dom";
-
+import { useState } from "react";
+import Visibility from '@mui/icons-material/Visibility';
+import VisibilityOff from '@mui/icons-material/VisibilityOff';
 export default function RegisterPage() {
+
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfPassword, setShowConfPassword] = useState(false);
+
+    const handleClickShowPassword = () => {
+      setShowPassword(!showPassword);
+    };
+
+    const handleClickShowConfPassword = () => {
+      setShowConfPassword(!showConfPassword);
+    };
+
   return (
     <Grid
       container
@@ -76,8 +90,24 @@ export default function RegisterPage() {
             name="password"
             label="Contraseña"
             variant="outlined"
-            type="password"
+            type={showPassword ? "text" : "password"}
+            sx={{ marginTop: 2 }}
             fullWidth
+            slotProps={{
+              input: {
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton
+                      aria-label="cambiar visibilidad de contraseña"
+                      onClick={handleClickShowPassword}
+                      edge="end"
+                    >
+                      {showPassword ? <VisibilityOff /> : <Visibility />}
+                    </IconButton>
+                  </InputAdornment>
+                ),
+              },
+            }}
           ></TextField>
 
           <TextField
@@ -85,8 +115,24 @@ export default function RegisterPage() {
             name="confirmPassword"
             label="Confirmar contraseña"
             variant="outlined"
-            type="password"
+            type={showConfPassword ? "text" : "password"}
+            sx={{ marginTop: 2 }}
             fullWidth
+            slotProps={{
+              input: {
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton
+                      aria-label="cambiar visibilidad de contraseña"
+                      onClick={handleClickShowConfPassword}
+                      edge="end"
+                    >
+                      {showConfPassword ? <VisibilityOff /> : <Visibility />}
+                    </IconButton>
+                  </InputAdornment>
+                ),
+              },
+            }}
           ></TextField>
         </Grid>
 

@@ -1,23 +1,63 @@
-### Recuperar todos los usuarios
-GET http://localhost:3000/api/users
+### ============================================================
+### USUARIOS - FRIEND SPACE API (FICHERO DE PRUEBAS COMPLETO)
+### ============================================================
 
+### ------------------------------------------------------------
+### 1. CREACIÓN DE USUARIOS (POST)
+### ------------------------------------------------------------
 
-### Recuperar un usuario por ID
-GET http://localhost:3000/api/users/1
+### A. Éxito: Registro de usuario 1
+POST http://localhost:3000/api/users/register
+Content-Type: application/json
 
+{
+  "name": "admin",
+  "email": "admin@admin.com",
+  "password": "admin123."
+}
 
-### Recuperar un usuario por email o nombre de usuario
+### B. Éxito: Registro de usuario 2 (Prueba de normalización)
+# El sistema debe guardarlo como "marcos_99" y "marcos@test.com"
+POST http://localhost:3000/api/users
+Content-Type: application/json
 
+{
+  "name": "  MARCOS_9999 ",
+  "email": "Marcos@TESssT.com  ",
+  "password": "Password123!"
+}
 
-### Buscar por EMAIL (Sin el guion bajo, como está en tu DB)
-GET http://localhost:3000/api/users/search/usuarioprueba@gmail.com
+### C. Error: Email mal formado
+POST http://localhost:3000/api/users
+Content-Type: application/json
 
+{
+  "name": "user_test",
+  "email": "esto-no-es-un-email",
+  "password": "Password123!"
+}
 
-### Buscar por NOMBRE (Con el guion bajo, como está en tu DB)
-GET http://localhost:3000/api/users/search/usuario_prueba
+### D. Error: Username (name) con espacios o caracteres prohibidos
+POST http://localhost:3000/api/users
+Content-Type: application/json
 
+{
+  "name": "Juan Perez!",
+  "email": "juan@test.com",
+  "password": "Password123!"
+}
 
-### 1. Caso de ÉXITO (Registro normal)
+### E. Error: Password demasiado débil (Corta o sin números)
+POST http://localhost:3000/api/users
+Content-Type: application/json
+
+{
+  "name": "anaa_smith",
+  "email": "anaa@test.com",
+  "password": "abc"
+}
+
+### F. Error: Usuario Duplicado (Repetir Pedro)
 POST http://localhost:3000/api/users
 Content-Type: application/json
 
@@ -27,68 +67,57 @@ Content-Type: application/json
   "password": "Password123!"
 }
 
-### 2. ERROR: Email con formato inválido
-POST http://localhost:3000/api/users
-Content-Type: application/json
+### ------------------------------------------------------------
+### 2. LECTURA DE USUARIOS (GET)
+### ------------------------------------------------------------
 
-{
-  "name": "usuario_test",
-  "email": "correo-sin-arroba.com",
-  "password": "password123"
-}
+### Obtener todos los usuarios
+GET http://localhost:3000/api/users
 
-### 3. ERROR: Name (Username) con espacios (debería fallar por tu Regex)
-POST http://localhost:3000/api/users
-Content-Type: application/json
+### Obtener un usuario por ID (Asegúrate de que el ID 1 exista)
+GET http://localhost:3000/api/users/1
 
-{
-  "name": "Juan Perez",
-  "email": "juan@example.com",
-  "password": "password123"
-}
+### Error: Obtener un usuario que no existe
+GET http://localhost:3000/api/users/9999
 
-### 4. ERROR: Email duplicado 
-# (Úsalo después de haber corrido la prueba 1 con el mismo email)
-POST http://localhost:3000/api/users
-Content-Type: application/json
+### Buscar por EMAIL (Ruta de búsqueda)
+GET http://localhost:3000/api/users/search/pedro@example.com
 
-{
-  "name": "pedro_otro",
-  "email": "pedro@example.com",
-  "password": "otrapassword"
-}
+### Buscar por NAME/USERNAME (Ruta de búsqueda)
+GET http://localhost:3000/api/users/search/marcos_99
 
-### 5. ERROR: Name (Username) duplicado
-# (Para probar que tu service detecta el nombre ocupado)
-POST http://localhost:3000/api/users
-Content-Type: application/json
+### ------------------------------------------------------------
+### 3. ACTUALIZACIÓN DE USUARIOS (PUT)
+### ------------------------------------------------------------
 
-{
-  "name": "pedro_dev",
-  "email": "distinto@example.com",
-  "password": "password123"
-}
-
-### 6. Caso de ÉXITO: Normalización (Mayúsculas y espacios)
-# El sistema debería guardarlo como "marcos@test.com"
-POST http://localhost:3000/api/users
-Content-Type: application/json
-
-{
-  "name": "  MAR  ",
-  "email": "Mar@TEST.com  ",
-  "password": "password123"
-}
-
-
-### Ruta para actualizar un usuario por ID
+### Éxito: Actualizar password de Pedro (ID 1)
 PUT http://localhost:3000/api/users/1
 Content-Type: application/json
 
 {
-  "password": "prueba"
+  "password": "NuevaPasswordValid456"
 }
 
+### Error: Actualizar con password que no cumple requisitos
+PUT http://localhost:3000/api/users/1
+Content-Type: application/json
 
-### Ruta para eliminar un usuario por ID
-DELETE http://localhost:3000/api/users/2
+{
+  "password": "123"
+}
+
+### Error: Intentar actualizar un usuario inexistente
+PUT http://localhost:3000/api/users/8888
+Content-Type: application/json
+
+{
+  "password": "Password123!"
+}
+
+### ------------------------------------------------------------
+### 4. ELIMINACIÓN DE USUARIOS (DELETE)
+### ------------------------------------------------------------
+
+### Éxito: Eliminar a Marcos (ID 2)
+DELETE http://localhost:3000/api/users/4
+
