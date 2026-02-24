@@ -55,9 +55,10 @@ class UserController {
       return res
         .cookie("access_token", token, {
           httpOnly: true,
-          secure: process.env.NODE_ENV === "production",
-          sameSite: "strict",
-          maxAge: 1000 * 60 * 60,
+          secure: false, 
+          sameSite: "lax", // Esto va a permitir que la cookie se mantenga en navegaciones internas
+          path: "/",
+          maxAge: 3600000,
         })
         .status(200)
         .json({
@@ -75,6 +76,28 @@ class UserController {
         mensaje: "Error interno del servidor al intentar iniciar sesión",
       });
     }
+  }
+
+  async logout(req, res) {
+    try {
+      return res.clearCookie("access_token").status(200).json({
+        ok: true,
+        mensaje: "Sesión cerrada correctamente",
+      });
+    } catch (error) {
+      return res.status(500).json({
+        ok: false,
+        mensaje: "Error al intentar cerrar la sesión del usuario",
+        error: error.menssage,
+      });
+    }
+  }
+
+  async checkAuth(req, res) {
+    return res.status(200).json({
+      ok: true,
+      usuario: req.user,
+    });
   }
 
   async getAllUsers(req, res) {

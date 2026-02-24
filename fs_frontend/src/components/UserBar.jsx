@@ -21,11 +21,15 @@ import Button from "@mui/material/Button";
 import Tooltip from "@mui/material/Tooltip";
 import MenuItem from "@mui/material/MenuItem";
 import AdbIcon from "@mui/icons-material/Adb";
+import { useNavigate } from "react-router-dom";
+import api from "../utils/api";
+import NotificationsIcon from '@mui/icons-material/Notifications';
+
 
 const pages = ["Buscar friends", "Anuncios", "Chats"];
-const settings = ["Profile", "Account", "Dashboard", "Logout"];
 
 export default function UserBar() {
+  const navigate = useNavigate();
   const [anchorElNav, setAnchorElNav] = React.useState(null);
   const [anchorElUser, setAnchorElUser] = React.useState(null);
 
@@ -44,6 +48,29 @@ export default function UserBar() {
     setAnchorElUser(null);
   };
 
+  const showUserProfile = () => {
+    handleCloseUserMenu();
+    console.log("MOSTRAR PERFIL DEL USUARIO");
+  };
+
+  const logout = async () => {
+    try {
+      handleCloseUserMenu();
+      console.log("EL USUARIO VA A CERRAR LA SESIÓN");
+
+      const res = await api.post("/users/logout/");
+
+      if (res.ok) {
+        navigate("/");
+        console.log("SE HA CERRADO LA SESIÓN DEL USUARIO");
+      } else {
+        console.log(res.error);
+      }
+    } catch (error) {
+      console.error("Error al cerrar sesión:", error);
+    }
+  };
+
   return (
     <>
       <AppBar position="static" elevation={0}>
@@ -51,13 +78,19 @@ export default function UserBar() {
           <Toolbar disableGutters>
             <Button
               component={Link}
-              to="/me/searchnewfriends/"
+              to="/"
               style={{ textDecoration: "none", color: "inherit" }}
               sx={{ display: { xs: "none", md: "flex" } }}
             >
               <Avatar
                 src="/logo.png"
-                style={{ marginRight: "20px", width: "70px", height: "70px" }}
+                style={{
+                  marginTop: "20px",
+                  marginBottom: "20px",
+                  marginRight: "20px",
+                  width: "70px",
+                  height: "70px",
+                }}
               />
             </Button>
             <Typography
@@ -75,7 +108,7 @@ export default function UserBar() {
                 textDecoration: "none",
               }}
             >
-              Friends Space 1
+              Friends Space
             </Typography>
             <Box sx={{ flexGrow: 1, display: { xs: "flex", md: "none" } }}>
               <IconButton
@@ -113,7 +146,7 @@ export default function UserBar() {
             </Box>
             <Button
               component={Link}
-              to="/me/searchnewfriends/"
+              to="/"
               style={{ textDecoration: "none", color: "inherit" }}
               sx={{ display: { xs: "flex", md: "none" } }}
             >
@@ -140,20 +173,26 @@ export default function UserBar() {
             >
               Friends Space
             </Typography>
-            <Box sx={{ flexGrow: 1, display: { xs: "none", md: "flex" } , justifyContent: "end", margin: 2} }>
+            <Box
+              sx={{
+                flexGrow: 1,
+                display: { xs: "none", md: "flex" },
+                justifyContent: "end",
+                margin: 2,
+              }}
+            >
               {pages.map((page) => (
                 <Button
                   key={page}
                   onClick={handleCloseNavMenu}
                   sx={{ my: 0, color: "white", display: "block" }}
-                  
                 >
                   {page}
                 </Button>
               ))}
             </Box>
             <Box sx={{ flexGrow: 0 }}>
-              <Tooltip title="Open settings">
+              <Tooltip title="Ajustes del Usuario">
                 <IconButton onClick={handleOpenUserMenu} sx={{ p: 0 }}>
                   <Avatar alt="Remy Sharp" src="/static/images/avatar/2.jpg" />
                 </IconButton>
@@ -174,14 +213,20 @@ export default function UserBar() {
                 open={Boolean(anchorElUser)}
                 onClose={handleCloseUserMenu}
               >
-                {settings.map((setting) => (
-                  <MenuItem key={setting} onClick={handleCloseUserMenu}>
-                    <Typography sx={{ textAlign: "center" }}>
-                      {setting}
-                    </Typography>
-                  </MenuItem>
-                ))}
+                <MenuItem key={"userProfile"} onClick={showUserProfile}>
+                  <Typography sx={{ textAlign: "center" }}>
+                    Ver Perfil
+                  </Typography>
+                </MenuItem>
+                <MenuItem key={"logout"} onClick={logout}>
+                  <Typography sx={{ textAlign: "center" }}>
+                    Cerrar Sesión
+                  </Typography>
+                </MenuItem>
               </Menu>
+              <IconButton aria-label="delete" size="large">
+                <NotificationsIcon fontSize="inherit" sx={{color: "white"}}/>
+              </IconButton>
             </Box>
           </Toolbar>
         </Container>

@@ -1,33 +1,31 @@
 import { Avatar, Grid, IconButton, InputAdornment, Paper } from "@mui/material";
-import React from "react";
-import Card from "@mui/material/Card";
-import CardActions from "@mui/material/CardActions";
-import CardContent from "@mui/material/CardContent";
-import CardMedia from "@mui/material/CardMedia";
+import React, { useEffect } from "react";
 import Button from "@mui/material/Button";
 import Typography from "@mui/material/Typography";
 import TextField from "@mui/material/TextField";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import Visibility from "@mui/icons-material/Visibility";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
 import ErrorMessage from "../components/ErrorMessage";
 import api from "../utils/api";
+import { checkSession } from "../utils/checkSession";
+
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const handleClickShowPassword = () => {
     setShowPassword(!showPassword);
   };
-
+  const navigate = useNavigate();
   const [emailOrUsername, setEmailOrUsername] = useState("");
   const [password, setPassword] = useState("");
   const [errorOpen, setErrorOpen] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
-
+  const [checkingAuth, setCheckingAuth] = useState(false);
   const iniciarSesion = async () => {
     try {
       setErrorOpen(false);
-      
+
       console.log(emailOrUsername + " y " + password);
       // Usamos directamente las variables del estado
       const res = await api.post("/users/login/", {
@@ -40,6 +38,7 @@ export default function LoginPage() {
         setErrorMsg(res.mensaje);
       }
 
+      navigate("/me");
       console.log("¡Login exitoso!", res);
     } catch (error) {
       setErrorMsg(error.mensaje || "Error al conectar");
@@ -47,6 +46,14 @@ export default function LoginPage() {
       console.error("Error al loguear:", error);
     }
   };
+
+  useEffect(() => {
+    // Chequeo silencioso: si ya hay sesión, mándalo a /me
+    // Pero no bloqueamos el renderizado del formulario con un 'return null'
+    checkSession().then(res => {
+      if (res && res.isAuth) navigate("/me", { replace: true });
+    });
+  }, [navigate]);
 
   return (
     <Grid

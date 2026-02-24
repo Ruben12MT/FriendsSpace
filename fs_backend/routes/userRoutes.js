@@ -1,11 +1,13 @@
 const express = require('express');
 const router = express.Router();
 const userController = require('../controllers/userController');
-
+const { validarToken } = require('../middlewares/validarToken');
 //Rutas para login y registro de usuarios
 router.post('/login', userController.login );
 router.post('/register', userController.createUser );
-// router.post('/logout', userController.logout );
+router.post('/logout', userController.logout );
+router.get('/check-auth', validarToken, userController.checkAuth );
+
 
 // router.post('/protected', userController.protected  );
 

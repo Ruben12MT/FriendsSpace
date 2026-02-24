@@ -4,12 +4,11 @@ import Home from "./pages/Home";
 import ErrorPage from "./pages/ErrorPage";
 import { RouterProvider } from "react-router-dom";
 import UserPage from "./pages/UserPage";
-import HomeBar from "./components/HomeBar";
 import { CssBaseline } from "@mui/material";
-import LoginForm from "./pages/LoginPage";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import UserBar from "./components/UserBar";
+import ProtectedRoute from "./components/ProtectedRoute";
 const router = createBrowserRouter([
   {
     path: "/",
@@ -20,7 +19,9 @@ const router = createBrowserRouter([
 
   {
     path: "/login",
-    Component: LoginPage,
+    element: (
+        <LoginPage />
+    ),
   },
 
   {
@@ -30,13 +31,15 @@ const router = createBrowserRouter([
 
   {
     path: "/me",
-    element: <UserBar />,
+    element: (
+      <ProtectedRoute>
+        <UserBar />
+      </ProtectedRoute>
+    ),
     children: [
-      { index: true, element: <UserPage/> },
+      { index: true, element: <UserPage /> },
       { path: "searchnewfriends", element: <h3>Buscar nuevos amigos</h3> },
-    
     ],
-
   },
 ]);
 
