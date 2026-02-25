@@ -46,48 +46,15 @@ const api = axios.create({
  * @returns {Object} Los datos normalizados de la respuesta
  */
 api.interceptors.response.use(
-  (response) => {
-    // Si la respuesta es exitosa, retornamos los datos normalizados
-    return response.data;
-  },
+  (response) => response,
   (error) => {
-    // Inicializamos un objeto de error estándar
-    let respuestaError = {
-      ok: false,
-      datos: null,
-      mensaje: "Error desconocido",
-    };
-
-    // Manejo centralizado de errores según su tipo
-    if (error.response) {
-      // El servidor respondió con un código de estado fuera del rango 2xx
-      respuestaError.mensaje =
-        error.response.data?.mensaje ||
-        `Error: ${error.response.status} ${error.response.statusText}`;
-
-      // Registros específicos según el código de estado HTTP
-      if (error.response.status === 404) {
-        console.warn(`Recurso no encontrado (404): ${error.config.url}`);
-      } else if (error.response.status === 400) {
-        console.warn(`Solicitud inválida (400): ${error.config.url}`);
-      } else if (error.response.status >= 500) {
-        console.error(
-          `Error del servidor (${error.response.status}): ${error.config.url}`,
-        );
-      }
-    } else if (error.request) {
-      // La solicitud fue realizada pero el servidor no respondió
-      respuestaError.mensaje =
-        "No hay respuesta del servidor. Verifica tu conexión.";
-      console.error("No hay respuesta del servidor:", error.request);
+    if (error.response?.status === 401) {
+      console.warn("Sesión no válida o expirada.");
     } else {
-      // Algo sucedió al preparar la solicitud (ej: construcción de la URL)
-      respuestaError.mensaje =
-        error.message || "Error al realizar la solicitud";
-      console.error("Error en la preparación de la solicitud:", error.message);
+      // Para otros errores (500), muestra un mensaje genérico
+      console.error("Error de conexión con el servidor.");
     }
-
-    return Promise.reject(respuestaError);
+    return Promise.reject(error);
   },
 );
 

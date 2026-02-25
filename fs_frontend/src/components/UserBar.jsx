@@ -74,7 +74,7 @@ export default function UserBar() {
   return (
     <>
       <AppBar position="static" elevation={0}>
-        <Container maxWidth="xl">
+        <Container maxWidth="100%">
           <Toolbar disableGutters>
             <Button
               component={Link}

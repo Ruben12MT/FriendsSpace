@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import AppBar from "@mui/material/AppBar";
 import Toolbar from "@mui/material/Toolbar";
 import Typography from "@mui/material/Typography";
@@ -6,8 +6,19 @@ import Button from "@mui/material/Button";
 import IconButton from "@mui/material/IconButton";
 import { Avatar } from "@mui/material";
 import { Link } from "react-router-dom";
+import { checkSession } from "../utils/checkSession";
 
 export default function HomeBar() {
+  const [isAuth, setIsAuth] = useState(false);
+
+  useEffect(() => {
+    // Chequeo silencioso al cargar el Home
+    checkSession().then((res) => {
+      if (res.isAuth) {
+        setIsAuth(true);
+      }
+    });
+  }, []);
   return (
     <AppBar position="static" color="default">
       <Toolbar>
@@ -30,14 +41,22 @@ export default function HomeBar() {
           Friends Space
         </Typography>
 
-        <Link to="/login" style={{ textDecoration: "none", color: "inherit" }}>
+        {isAuth ? (
+          // Si hay sesión: Botón "Acceder" a /me
           <Button
-            sx={{ border: "1px solid black", borderRadius: "10px" }}
-            color="inherit"
+            variant="contained"
+            component={Link}
+            to="/me"
+            sx={{ bgcolor: "#50C2AF" }}
           >
+            Acceder a mi cuenta
+          </Button>
+        ) : (
+          // Si no hay sesión: Botón "Iniciar Sesión" a /login
+          <Button variant="outlined" component={Link} to="/login">
             Iniciar sesión
           </Button>
-        </Link>
+        )}
       </Toolbar>
     </AppBar>
   );

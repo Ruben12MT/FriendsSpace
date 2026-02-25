@@ -1,5 +1,6 @@
 const jwt = require("jsonwebtoken");
 const { SECRET_JWT_KEY } = require('../config/config');
+
 const validarToken = (req, res, next) => {
   const token = req.cookies.access_token;
 
@@ -10,13 +11,14 @@ const validarToken = (req, res, next) => {
   try {
     const decoded = jwt.verify(token, SECRET_JWT_KEY); 
     req.user = decoded;
+    console.log(decoded);
     next();
   } catch (error) {
     
     return res.status(401).json({ 
       ok: false, 
       mensaje: "Token inválido",
-      detalles: error.message // "jwt expired", "invalid signature", etc.
+      detalles: error.message 
     });
   }
 };
