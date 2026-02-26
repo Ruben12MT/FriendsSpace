@@ -20,25 +20,26 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [errorOpen, setErrorOpen] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
+  const [errorsBool, setErrorsBool] = useState({
+    emailOrUsername: false,
+    password: false,
+  });
+
   const iniciarSesion = async () => {
     try {
+      setErrorsBool({
+        emailOrUsername: emailOrUsername == "",
+        password: password == ""
+      })
       setErrorOpen(false);
-      const res = await api.post("/users/login/", {
-        emailOrUsername: emailOrUsername,
-        password: password,
+      await api.post("/users/login/", {
+        emailOrUsername,
+        password,
       });
-
-      if (!res.ok) {
-        setErrorOpen(true);
-        setErrorMsg(res.mensaje);
-      }
-
       navigate("/me");
-      console.log("¡Login exitoso!", res);
     } catch (error) {
-      setErrorMsg(error.mensaje || "Error al conectar");
+      setErrorMsg(error.response?.data?.mensaje || "Error al conectar");
       setErrorOpen(true);
-      console.error("Error al loguear:", error);
     }
   };
 
@@ -97,6 +98,7 @@ export default function LoginPage() {
             variant="outlined"
             fullWidth
             value={emailOrUsername}
+            error={errorsBool.emailOrUsername}
             onChange={(e) => setEmailOrUsername(e.target.value)}
           ></TextField>
           <TextField
@@ -109,6 +111,7 @@ export default function LoginPage() {
             fullWidth
             value={password}
             onChange={(e) => setPassword(e.target.value)}
+            error={errorsBool.password}
             slotProps={{
               input: {
                 endAdornment: (

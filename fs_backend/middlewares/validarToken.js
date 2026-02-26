@@ -11,7 +11,6 @@ const validarToken = (req, res, next) => {
   try {
     const decoded = jwt.verify(token, SECRET_JWT_KEY); 
     req.user = decoded;
-    console.log(decoded);
     next();
   } catch (error) {
     

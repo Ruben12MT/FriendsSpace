@@ -23,8 +23,7 @@ import MenuItem from "@mui/material/MenuItem";
 import AdbIcon from "@mui/icons-material/Adb";
 import { useNavigate } from "react-router-dom";
 import api from "../utils/api";
-import NotificationsIcon from '@mui/icons-material/Notifications';
-
+import NotificationsIcon from "@mui/icons-material/Notifications";
 
 const pages = ["Buscar friends", "Anuncios", "Chats"];
 
@@ -58,14 +57,8 @@ export default function UserBar() {
       handleCloseUserMenu();
       console.log("EL USUARIO VA A CERRAR LA SESIÓN");
 
-      const res = await api.post("/users/logout/");
-
-      if (res.ok) {
-        navigate("/");
-        console.log("SE HA CERRADO LA SESIÓN DEL USUARIO");
-      } else {
-        console.log(res.error);
-      }
+      await api.post("/users/logout/");
+      navigate("/");
     } catch (error) {
       console.error("Error al cerrar sesión:", error);
     }
@@ -225,7 +218,7 @@ export default function UserBar() {
                 </MenuItem>
               </Menu>
               <IconButton aria-label="delete" size="large">
-                <NotificationsIcon fontSize="inherit" sx={{color: "white"}}/>
+                <NotificationsIcon fontSize="inherit" sx={{ color: "white" }} />
               </IconButton>
             </Box>
           </Toolbar>

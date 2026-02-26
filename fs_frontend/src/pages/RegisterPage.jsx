@@ -1,28 +1,75 @@
 import { Avatar, Grid, IconButton, InputAdornment, Paper } from "@mui/material";
 import React from "react";
-import Card from "@mui/material/Card";
-import CardActions from "@mui/material/CardActions";
-import CardContent from "@mui/material/CardContent";
-import CardMedia from "@mui/material/CardMedia";
 import Button from "@mui/material/Button";
 import Typography from "@mui/material/Typography";
 import TextField from "@mui/material/TextField";
 import { Link } from "react-router-dom";
 import { useState } from "react";
-import Visibility from '@mui/icons-material/Visibility';
-import VisibilityOff from '@mui/icons-material/VisibilityOff';
-export default function RegisterPage() {
+import Visibility from "@mui/icons-material/Visibility";
+import VisibilityOff from "@mui/icons-material/VisibilityOff";
+import api from "../utils/api";
+import { useNavigate } from "react-router-dom";
+import ErrorMessage from "../components/ErrorMessage";
 
+export default function RegisterPage() {
+  const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfPassword, setShowConfPassword] = useState(false);
+  const [errorOpen, setErrorOpen] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
+  // Estado de los atributos de un nuevo usuario:
+  const [form, setForm] = useState({
+    email: "",
+    username: "",
+    password: "",
+    confirmPassword: "",
+  });
 
-    const handleClickShowPassword = () => {
-      setShowPassword(!showPassword);
-    };
+  const [errorsBool, setErrorsBool] = useState({
+    email: false,
+    username: false,
+    password: false,
+    confirmPassword: false,
+  });
 
-    const handleClickShowConfPassword = () => {
-      setShowConfPassword(!showConfPassword);
-    };
+  const handleChange = (e) => {
+    setForm({ ...form, [e.target.name]: e.target.value });
+  };
+
+  const handleClickShowPassword = () => {
+    setShowPassword(!showPassword);
+  };
+
+  const handleClickShowConfPassword = () => {
+    setShowConfPassword(!showConfPassword);
+  };
+
+  // Llamamos un metodo al pulsar el botón registrar usuario
+  async function registrarUsuario() {
+    try {
+      setErrorsBool({
+        email: form.email == "",
+        username: form.username == "",
+        password: form.password == "",
+        confirmPassword: form.confirmPassword == "",
+      });
+      if (form.password !== form.confirmPassword) {
+        setErrorMsg("La contraseña no coincide");
+        setErrorOpen(true);
+        return;
+      }
+      setErrorOpen(false);
+      await api.post("/users/register/", {
+        email: form.email,
+        name: form.username,
+        password: form.password,
+      });
+      navigate("/login");
+    } catch (error) {
+      setErrorMsg(error.response?.data?.mensaje || "Error al conectar");
+      setErrorOpen(true);
+    }
+  }
 
   return (
     <Grid
@@ -38,7 +85,12 @@ export default function RegisterPage() {
     >
       <Paper
         elevation={4}
-        sx={{ padding: 3, maxWidth: 400, margin: "20px auto" , borderRadius: "20px"}}
+        sx={{
+          padding: 3,
+          maxWidth: 400,
+          margin: "20px auto",
+          borderRadius: "20px",
+        }}
       >
         {
           // Titulo y logo de la pagina
@@ -75,6 +127,9 @@ export default function RegisterPage() {
             label="Nombre de usuario"
             variant="outlined"
             fullWidth
+            required
+            onChange={handleChange}
+            error={errorsBool.username}
           ></TextField>
 
           <TextField
@@ -83,6 +138,9 @@ export default function RegisterPage() {
             label="Correo electrónico"
             variant="outlined"
             fullWidth
+            required
+            onChange={handleChange}
+            error={errorsBool.email}
           ></TextField>
 
           <TextField
@@ -93,6 +151,8 @@ export default function RegisterPage() {
             type={showPassword ? "text" : "password"}
             sx={{ marginTop: 2 }}
             fullWidth
+            required
+            onChange={handleChange}
             slotProps={{
               input: {
                 endAdornment: (
@@ -108,9 +168,11 @@ export default function RegisterPage() {
                 ),
               },
             }}
+            error={errorsBool.password}
           ></TextField>
 
           <TextField
+            required
             id="confirmPassword"
             name="confirmPassword"
             label="Confirmar contraseña"
@@ -118,6 +180,7 @@ export default function RegisterPage() {
             type={showConfPassword ? "text" : "password"}
             sx={{ marginTop: 2 }}
             fullWidth
+            onChange={handleChange}
             slotProps={{
               input: {
                 endAdornment: (
@@ -133,11 +196,31 @@ export default function RegisterPage() {
                 ),
               },
             }}
+            color={
+              form.confirmPassword !== "" &&
+              form.confirmPassword === form.password
+                ? "success"
+                : "primary"
+            }
+            focused={
+              form.confirmPassword !== "" &&
+              form.confirmPassword === form.password
+            }
+            error={errorsBool.confirmPassword}
           ></TextField>
         </Grid>
-
+        <ErrorMessage
+          message={errorMsg}
+          open={errorOpen}
+          setOpen={setErrorOpen}
+        />
         <Grid container justifyContent="center" sx={{ mt: 1 }} spacing={2}>
-          <Button variant="contained" color="primary" sx={{ marginTop: 2 }}>
+          <Button
+            variant="contained"
+            onClick={registrarUsuario}
+            color="primary"
+            sx={{ marginTop: 2 }}
+          >
             Registrar Usuario
           </Button>
         </Grid>
