@@ -24,6 +24,7 @@ import AdbIcon from "@mui/icons-material/Adb";
 import { useNavigate } from "react-router-dom";
 import api from "../utils/api";
 import NotificationsIcon from "@mui/icons-material/Notifications";
+import { Grid } from "@mui/material";
 
 const pages = ["Buscar friends", "Anuncios", "Chats"];
 
@@ -65,8 +66,15 @@ export default function UserBar() {
   };
 
   return (
-    <>
-      <AppBar position="static" elevation={0}>
+    <Grid
+      container
+      direction="column"
+      sx={{
+        minHeight: "100vh",
+        background: "#50C2AF",
+      }}
+    >
+      <AppBar position="static" elevation={0} sx={{ backgroundColor: "white" }}>
         <Container maxWidth="100%">
           <Toolbar disableGutters>
             <Button
@@ -225,6 +233,6 @@ export default function UserBar() {
         </Container>
       </AppBar>
       <Outlet />
-    </>
+    </Grid>
   );
 }

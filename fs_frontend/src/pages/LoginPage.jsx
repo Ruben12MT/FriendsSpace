@@ -1,5 +1,5 @@
 import { Avatar, Grid, IconButton, InputAdornment, Paper } from "@mui/material";
-import React from "react";
+import React, { useRef } from "react";
 import Button from "@mui/material/Button";
 import Typography from "@mui/material/Typography";
 import TextField from "@mui/material/TextField";
@@ -29,8 +29,8 @@ export default function LoginPage() {
     try {
       setErrorsBool({
         emailOrUsername: emailOrUsername == "",
-        password: password == ""
-      })
+        password: password == "",
+      });
       setErrorOpen(false);
       await api.post("/users/login/", {
         emailOrUsername,
@@ -42,6 +42,9 @@ export default function LoginPage() {
       setErrorOpen(true);
     }
   };
+
+  // La referencia a password 
+  const passwordRef = useRef(null);
 
   return (
     <Grid
@@ -67,7 +70,8 @@ export default function LoginPage() {
         {
           // Titulo y logo de la pagina
         }
-        <Grid container justifyContent="center" spacing={2} sx={{ mb: 1 }}>
+        <Grid container justifyContent="center" spacing={2} sx={{ mb: 1 }}
+>
           <Button
             component={Link}
             to="/"
@@ -100,6 +104,9 @@ export default function LoginPage() {
             value={emailOrUsername}
             error={errorsBool.emailOrUsername}
             onChange={(e) => setEmailOrUsername(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") passwordRef.current.focus();
+            }}
           ></TextField>
           <TextField
             id="password"
@@ -126,6 +133,10 @@ export default function LoginPage() {
                   </InputAdornment>
                 ),
               },
+            }}
+            inputRef={passwordRef}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") iniciarSesion();
             }}
           ></TextField>
           <ErrorMessage
