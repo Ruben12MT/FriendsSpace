@@ -50,8 +50,7 @@ api.interceptors.response.use(
   (error) => {
     if (error.response?.status === 401) {
       console.warn("Sesión no válida o expirada.");
-    } else {
-      // Para otros errores (500), muestra un mensaje genérico
+    } else if (error.response?.status === 500) {
       console.error("Error de conexión con el servidor.");
     }
     return Promise.reject(error);

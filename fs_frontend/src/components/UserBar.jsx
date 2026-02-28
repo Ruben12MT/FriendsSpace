@@ -50,7 +50,7 @@ export default function UserBar() {
 
   const showUserProfile = () => {
     handleCloseUserMenu();
-    console.log("MOSTRAR PERFIL DEL USUARIO");
+    navigate("/me")
   };
 
   const logout = async () => {
@@ -74,7 +74,11 @@ export default function UserBar() {
         background: "#50C2AF",
       }}
     >
-      <AppBar position="static" elevation={0} sx={{ backgroundColor: "white" }}>
+      <AppBar
+        position="static"
+        elevation={0}
+        sx={{ backgroundColor: "white", color: "#50C2AF" }}
+      >
         <Container maxWidth="100%">
           <Toolbar disableGutters>
             <Button
@@ -88,7 +92,7 @@ export default function UserBar() {
                 style={{
                   marginTop: "20px",
                   marginBottom: "20px",
-                  marginRight: "20px",
+
                   width: "70px",
                   height: "70px",
                 }}
@@ -155,7 +159,7 @@ export default function UserBar() {
                 src="/logo.png"
                 style={{ margin: "20px", width: "70px", height: "70px" }}
               />
-            </Button>{" "}
+            </Button>
             <Typography
               variant="h5"
               noWrap
@@ -186,7 +190,7 @@ export default function UserBar() {
                 <Button
                   key={page}
                   onClick={handleCloseNavMenu}
-                  sx={{ my: 0, color: "white", display: "block" }}
+                  sx={{ my: 0, color: "#50C2AF", display: "block" }}
                 >
                   {page}
                 </Button>
@@ -226,7 +230,10 @@ export default function UserBar() {
                 </MenuItem>
               </Menu>
               <IconButton aria-label="delete" size="large">
-                <NotificationsIcon fontSize="inherit" sx={{ color: "white" }} />
+                <NotificationsIcon
+                  fontSize="inherit"
+                  sx={{ color: "#50C2AF" }}
+                />
               </IconButton>
             </Box>
           </Toolbar>

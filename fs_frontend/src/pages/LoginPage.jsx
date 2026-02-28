@@ -26,24 +26,25 @@ export default function LoginPage() {
   });
 
   const iniciarSesion = async () => {
-    try {
-      setErrorsBool({
-        emailOrUsername: emailOrUsername == "",
-        password: password == "",
-      });
-      setErrorOpen(false);
-      await api.post("/users/login/", {
-        emailOrUsername,
-        password,
-      });
-      navigate("/me");
-    } catch (error) {
-      setErrorMsg(error.response?.data?.mensaje || "Error al conectar");
-      setErrorOpen(true);
-    }
-  };
+  try {
+    setErrorsBool({
+      emailOrUsername: emailOrUsername === "",
+      password: password === "",
+    });
 
-  // La referencia a password 
+    setErrorOpen(false);
+    await api.post("/users/login/", {
+      emailOrUsername,
+      password,
+    });
+    navigate("/me");
+  } catch (error) {
+    setErrorMsg(error.response?.data?.mensaje || "Error al conectar");
+    setErrorOpen(true);
+  }
+};
+
+  // La referencia a password
   const passwordRef = useRef(null);
 
   return (
@@ -70,8 +71,7 @@ export default function LoginPage() {
         {
           // Titulo y logo de la pagina
         }
-        <Grid container justifyContent="center" spacing={2} sx={{ mb: 1 }}
->
+        <Grid container justifyContent="center" spacing={2} sx={{ mb: 1 }}>
           <Button
             component={Link}
             to="/"

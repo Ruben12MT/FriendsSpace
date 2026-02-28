@@ -34,6 +34,8 @@ export default function RegisterPage() {
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
+    setErrorsBool({ ...errorsBool, [e.target.name]: false });
+
   };
 
   const handleClickShowPassword = () => {
