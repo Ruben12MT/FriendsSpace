@@ -46,7 +46,7 @@ export default function HomeBar() {
           <Button
             variant="contained"
             component={Link}
-            to="/me"
+            to="/app/searchnewfriends"
             sx={{ bgcolor: "#50C2AF" }}
           >
             Acceder a mi cuenta

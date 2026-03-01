@@ -4,14 +4,14 @@ import api from "../utils/api";
 
 export function useUser() {
   const userId = userAuthStore((state) => state.userId);
-  const [user, setUser] = useState({});
+  const [loggedUser, setLoggedUser] = useState({});
 
   useEffect(() => {
     if (!userId) return;
     async function findUser() {
       try {
         const res = await api.get("/users/" + userId);
-        setUser(res.data.datos);
+        setLoggedUser(res.data.datos);
       } catch (error) {
         console.log(error.message);
       }
@@ -19,5 +19,5 @@ export function useUser() {
     findUser();
   }, [userId]);
 
-  return { user };
+  return { loggedUser };
 }

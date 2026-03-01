@@ -25,11 +25,13 @@ import { useNavigate } from "react-router-dom";
 import api from "../utils/api";
 import NotificationsIcon from "@mui/icons-material/Notifications";
 import { Grid } from "@mui/material";
+import { useUser } from "../hooks/useUser";
 
 const pages = ["Buscar friends", "Anuncios", "Chats"];
 
 export default function UserBar() {
   const navigate = useNavigate();
+  const { loggedUser } = useUser();
   const [anchorElNav, setAnchorElNav] = React.useState(null);
   const [anchorElUser, setAnchorElUser] = React.useState(null);
 
@@ -50,7 +52,8 @@ export default function UserBar() {
 
   const showUserProfile = () => {
     handleCloseUserMenu();
-    navigate("/me")
+    console.log(loggedUser);
+    navigate("/app/" + loggedUser.id)
   };
 
   const logout = async () => {
@@ -75,7 +78,7 @@ export default function UserBar() {
       }}
     >
       <AppBar
-        position="static"
+        position="sticky"
         elevation={0}
         sx={{ backgroundColor: "white", color: "#50C2AF" }}
       >

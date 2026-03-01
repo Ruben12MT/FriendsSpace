@@ -138,7 +138,6 @@ class UserController {
 
       const userLimpio = user.toJSON();
       delete userLimpio.password;
-      delete userLimpio.email;
 
       return res.status(200).json({
         ok: true,

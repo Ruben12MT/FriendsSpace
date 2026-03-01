@@ -37,7 +37,7 @@ export default function LoginPage() {
       emailOrUsername,
       password,
     });
-    navigate("/me");
+    navigate("/app/searchnewfriends");
   } catch (error) {
     setErrorMsg(error.response?.data?.mensaje || "Error al conectar");
     setErrorOpen(true);

@@ -1,11 +1,49 @@
 import { Avatar, Button, Grid, Typography } from "@mui/material";
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { useUser } from "../hooks/useUser";
 import InterestItem from "../components/interestItem";
+import { useNavigate, useParams } from "react-router-dom";
+import api from "../utils/api";
 
 export default function UserPage() {
+  const navigate = useNavigate();
   const { loggedUser } = useUser();
+  const userIdParam = useParams("id");
+  const userIdAct = userIdParam.id;
+  const isLoggedUser = loggedUser.id == userIdAct;
 
+  const [visitedUser, setVisitedUser] = useState({});
+
+  useEffect(() => {
+    async function fetchUser() {
+      try {
+        if (isLoggedUser) return;
+        const res = await api.get("/users/" + userIdAct);
+        setVisitedUser(res.data.datos);
+      } catch (error) {
+        console.log(error.message);
+      }
+    }
+    fetchUser();
+  }, []);
+
+  const userToShow = isLoggedUser ? loggedUser : visitedUser;
+
+  const [userInterests, setUserInterests] = useState([]);
+
+  useEffect(() => {
+    async function fetchUserInterest() {
+      try {
+        const res = await api.get("/userInterests/" + userIdAct + "/interests");
+        setUserInterests(res.data.datos);
+      } catch (error) {
+        console.log(error.message);
+      }
+    }
+    fetchUserInterest();
+  }, []);
+
+  if (!userToShow.email) return null;
   return (
     <Grid
       container
@@ -84,10 +122,10 @@ export default function UserPage() {
                   minHeight: "100px",
                 }}
               >
-                <Typography>Nombre del Usuario</Typography>
+                <Typography>{userToShow.name}</Typography>
                 {
                   //Si el usuario es el mismo que el que está logueado el email se muestra.
-                  true && <Typography>Email del usuario</Typography>
+                  isLoggedUser && <Typography>{loggedUser.email}</Typography>
                 }
                 <Typography>100 Friends</Typography>
               </Grid>
@@ -107,13 +145,21 @@ export default function UserPage() {
                 borderBottomRightRadius: 3,
               }}
             >
-              <Typography>Miembro desde (Fecha)</Typography>
-              {true && (
+              <Typography>
+                {" "}
+                Miembro desde{" "}
+                {new Date(userToShow.created_at).toLocaleDateString("es-ES", {
+                  day: "numeric",
+                  month: "long",
+                  year: "numeric",
+                })}
+              </Typography>
+              {isLoggedUser && (
                 <Button
                   variant="contained"
                   color="primary"
                   sx={{}}
-                  onClick={() => {}}
+                  onClick={() => {navigate("/app/"+userIdAct+"/edit")}}
                 >
                   Editar Perfil
                 </Button>
@@ -122,7 +168,7 @@ export default function UserPage() {
             {
               //Fila: (Si tiene) Información "Sobre Mi"
             }
-            {true && (
+            {userToShow.bio && userToShow.bio.trim() !== "" && (
               <Grid
                 spacing={0}
                 container
@@ -172,15 +218,22 @@ export default function UserPage() {
               </Typography>
 
               <Grid container spacing={1}>
-                <InterestItem color="orange" title={"Cocina"} />
-                <InterestItem color="green" title={"Botánica"} />
+                {userInterests.map((interestRec) => {
+                  return (
+                    <InterestItem
+                      key={interestRec.interest_id}
+                      color={interestRec.interest.color}
+                      title={interestRec.interest.name}
+                    />
+                  );
+                })}
               </Grid>
             </Grid>
           )
         }
         {
           // (Si tiene) Objetivos personales del usuario
-          true && (
+          userToShow.goals && userToShow.goals.trim() !== "" && (
             <Grid
               container
               spacing={1}
@@ -204,7 +257,9 @@ export default function UserPage() {
                   px: 4,
                 }}
               >
-                <Typography sx={{}}>Descripción de los objetivos</Typography>
+                <Typography sx={{ whiteSpace: "pre-wrap" }}>
+                  {userToShow.goals}
+                </Typography>
               </Grid>
             </Grid>
           )
@@ -212,34 +267,35 @@ export default function UserPage() {
 
         {
           // (Si tiene) Frase pública del usuario
-          true && (
-            <Grid
-              container
-              spacing={1}
-              sx={{
-                width: "100%",
-                borderRadius: 1000,
-              }}
-            >
-              <Typography sx={{ fontWeight: "bold", px: 4 }}>
-                Frase pública
-              </Typography>
+          userToShow.short_sentece &&
+            userToShow.short_sentece.trim() !== "" && (
               <Grid
                 container
-                direction={"column"}
                 spacing={1}
                 sx={{
-                  background: "#ffffff",
                   width: "100%",
                   borderRadius: 1000,
-                  py: 3,
-                  px: 4,
                 }}
               >
-                <Typography sx={{}}>Frase pública si tiene</Typography>
+                <Typography sx={{ fontWeight: "bold", px: 4 }}>
+                  Frase pública
+                </Typography>
+                <Grid
+                  container
+                  direction={"column"}
+                  spacing={1}
+                  sx={{
+                    background: "#ffffff",
+                    width: "100%",
+                    borderRadius: 1000,
+                    py: 3,
+                    px: 4,
+                  }}
+                >
+                  <Typography sx={{}}>{userToShow.short_sentece}</Typography>
+                </Grid>
               </Grid>
-            </Grid>
-          )
+            )
         }
       </Grid>
     </Grid>

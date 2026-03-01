@@ -9,6 +9,7 @@ import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import UserBar from "./components/UserBar";
 import ProtectedRoute from "./components/ProtectedRoute";
+import EditUserPage from "./pages/EditUserPage";
 const router = createBrowserRouter([
   {
     path: "/",
@@ -19,9 +20,7 @@ const router = createBrowserRouter([
 
   {
     path: "/login",
-    element: (
-        <LoginPage />
-    ),
+    element: <LoginPage />,
   },
 
   {
@@ -30,15 +29,16 @@ const router = createBrowserRouter([
   },
 
   {
-    path: "/me",
+    path: "/app",
     element: (
       <ProtectedRoute>
         <UserBar />
       </ProtectedRoute>
     ),
     children: [
-      { index: true, element: <UserPage /> },
       { path: "searchnewfriends", element: <h3>Buscar nuevos amigos</h3> },
+      { path: ":id", element: <UserPage /> },
+      { path: ":id/edit", element: <EditUserPage /> },
     ],
   },
 ]);

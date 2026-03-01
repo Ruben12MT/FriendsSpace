@@ -11,6 +11,10 @@ module.exports = function(sequelize, DataTypes) {
       type: DataTypes.STRING(50),
       allowNull: false,
       unique: "name"
+    },
+    color: {
+      type: DataTypes.STRING(50),
+      allowNull: true
     }
   }, {
     sequelize,
