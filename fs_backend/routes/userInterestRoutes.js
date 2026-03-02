@@ -5,6 +5,7 @@ const { validarToken } = require('../middlewares/validarToken');
 
 router.get('/:userId/interests', validarToken, userInterestController.getUserInterests);
 router.post('/:userId/interests', validarToken, userInterestController.addInterestToUser);
+router.delete('/:userId/interests', validarToken, userInterestController.removeAllUserInterests);
 router.delete('/:userId/interests/:interestId', validarToken, userInterestController.removeInterestFromUser);
 
 module.exports = router;

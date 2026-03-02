@@ -32,6 +32,12 @@ class UserInterestService {
     });
     return !!result;
   }
+
+  async removeAllUserInterests(userId) {
+    return await user_interest.destroy({
+      where: { user_id: userId },
+    });
+  }
 }
 
 module.exports = new UserInterestService();

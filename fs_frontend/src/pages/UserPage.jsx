@@ -25,7 +25,7 @@ export default function UserPage() {
       }
     }
     fetchUser();
-  }, []);
+  }, [isLoggedUser, userIdAct]);
 
   const userToShow = isLoggedUser ? loggedUser : visitedUser;
 
@@ -41,7 +41,7 @@ export default function UserPage() {
       }
     }
     fetchUserInterest();
-  }, []);
+  }, [userIdAct]);
 
   if (!userToShow.email) return null;
   return (
@@ -49,7 +49,6 @@ export default function UserPage() {
       container
       width={"100%"}
       height={"100%"}
-      sx={{ px: 7 }}
       justifyContent={"center"}
     >
       <Grid
@@ -57,12 +56,14 @@ export default function UserPage() {
         spacing={3}
         justifyContent={"center"}
         alignContent="flex-start"
+                        size={{xs:5}}
+
         sx={{
           p: 3,
-          mt: "20px",
+          my: "20px",
           borderRadius: 2,
           background: "#d7fcf6",
-          width: "75%",
+          
         }}
       >
         {
@@ -122,7 +123,11 @@ export default function UserPage() {
                   minHeight: "100px",
                 }}
               >
-                <Typography>{userToShow.name}</Typography>
+                <Typography sx={{
+                      fontWeight: "bold",
+                      fontSize: "1.5rem",
+                      color: "#50C2AF",
+                    }}>{"@"+userToShow.name}</Typography>
                 {
                   //Si el usuario es el mismo que el que está logueado el email se muestra.
                   isLoggedUser && <Typography>{loggedUser.email}</Typography>
@@ -200,7 +205,7 @@ export default function UserPage() {
 
         {
           // Intereses del usuario
-          true && (
+          userInterests.length > 0 && (
             <Grid
               container
               direction={"column"}
