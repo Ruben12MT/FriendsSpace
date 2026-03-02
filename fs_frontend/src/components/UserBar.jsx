@@ -98,6 +98,7 @@ export default function UserBar() {
 
                   width: "70px",
                   height: "70px",
+                  marginRight: "15px"
                 }}
               />
             </Button>

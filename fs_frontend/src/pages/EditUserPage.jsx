@@ -201,7 +201,7 @@ export default function EditUserPage() {
                       color: "#50C2AF",
                     }}
                   >
-                    {editedUser.name}
+                    {"@"+editedUser.name}
                   </Typography>
                 </Grid>
                 <Grid>
