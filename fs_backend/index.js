@@ -1,3 +1,6 @@
+//.env
+require('dotenv').config();
+
 // Importar librería express --> web server
 const express = require("express");
 
@@ -29,6 +32,8 @@ app.use(cors({
   origin: 'http://localhost:5173', 
   credentials: true
 }));
+
+
 
 // Configurar rutas de la API Rest
 app.use("/api/users", userRoutes);

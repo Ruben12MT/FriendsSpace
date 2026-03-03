@@ -22,6 +22,7 @@ class UserService {
   async getUserById(id) {
     // Devuelve un usuario por su ID.
     const result = await user.findByPk(id);
+    
     return result;
   }
 

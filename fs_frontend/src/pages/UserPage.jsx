@@ -13,6 +13,7 @@ export default function UserPage() {
   const isLoggedUser = loggedUser.id == userIdAct;
 
   const [visitedUser, setVisitedUser] = useState({});
+  const [userInterests, setUserInterests] = useState([]);
 
   useEffect(() => {
     async function fetchUser() {
@@ -27,10 +28,6 @@ export default function UserPage() {
     fetchUser();
   }, [isLoggedUser, userIdAct]);
 
-  const userToShow = isLoggedUser ? loggedUser : visitedUser;
-
-  const [userInterests, setUserInterests] = useState([]);
-
   useEffect(() => {
     async function fetchUserInterest() {
       try {
@@ -43,265 +40,127 @@ export default function UserPage() {
     fetchUserInterest();
   }, [userIdAct]);
 
+  const userToShow = isLoggedUser ? loggedUser : visitedUser;
+
   if (!userToShow.email) return null;
+
   return (
-    <Grid
-      container
-      width={"100%"}
-      height={"100%"}
-      justifyContent={"center"}
-    >
+    // Fondo exterior
+    <Grid container width="100%" justifyContent="center" sx={{ py: 3, px: 4, minHeight: "100%" }}>
+
+      {/* Columna central con fondo mas claro */}
       <Grid
         container
-        spacing={3}
-        justifyContent={"center"}
-        alignContent="flex-start"
-                        size={{xs:5}}
-
-        sx={{
-          p: 3,
-          my: "20px",
-          borderRadius: 2,
-          background: "#d7fcf6",
-          
-        }}
+        direction="column"
+        spacing={2}
+        size={{ xs: 12, md: 7 }}
+        sx={{ background: "#79DECE", borderRadius: 3, p: 3 }}
       >
-        {
-          //Info del usuario básica (Foto, Nombre, NumConexiones, Desde cuando es miembro)
-        }
-        <Grid size={{ xs: 12 }}>
-          <Grid
-            sx={{
-              background: "#50c2af",
-              width: "100%",
-              height: "30px",
-              borderRadius: { borderTopLeftRadius: 3, borderTopRightRadius: 3 },
-            }}
-          ></Grid>
 
-          <Grid
-            container
-            spacing={2}
-            sx={{
-              background: "#ffffff",
-              width: "100%",
-              minHeight: "100px",
-              borderRadius: {
-                borderBottomLeftRadius: 3,
-                borderBottomRightRadius: 3,
-              },
-              p: 3,
-            }}
-          >
-            {
-              //Columna 1: Foto de perfil, Nombre, Correo (solo si es él mismo)
-            }
-            <Grid
-              container
-              direction={"row"}
-              size={{ xs: 6 }}
-              sx={{
-                minHeight: "100px",
-                borderRadius: {
-                  borderBottomLeftRadius: 3,
-                  borderBottomRightRadius: 3,
-                },
-              }}
-            >
-              <Grid size={{ xs: 4 }}>
+        {/* Tarjeta principal de info */}
+        <Grid size={{ xs: 12 }}>
+          <Grid sx={{ background: "#50C2AF", borderRadius: "12px 12px 0 0", height: "12px" }} />
+          <Grid container spacing={2} sx={{ background: "#FFFFFF", borderRadius: "0 0 12px 12px", p: 3 }}>
+
+            {/* Avatar y datos principales */}
+            <Grid container direction="row" size={{ xs: 12 }} spacing={2} alignItems="flex-start">
+              <Grid>
                 <Avatar
-                  src="/logo.png"
-                  style={{ width: "100%", height: "100%" }}
+                  src={userToShow.url_image ?? "/no_user_avatar_image.png"}
+                  sx={{ width: 90, height: 90, border: "#50C2AF solid 3px"}}
+                  
                 />
               </Grid>
-              <Grid
-                container
-                justifyContent={"space-between"}
-                direction="column"
-                size={{ xs: 8 }}
-                sx={{
-                  minHeight: "100px",
-                }}
-              >
-                <Typography sx={{
-                      fontWeight: "bold",
-                      fontSize: "1.5rem",
-                      color: "#50C2AF",
-                    }}>{"@"+userToShow.name}</Typography>
-                {
-                  //Si el usuario es el mismo que el que está logueado el email se muestra.
-                  isLoggedUser && <Typography>{loggedUser.email}</Typography>
-                }
-                <Typography>100 Friends</Typography>
+              <Grid container direction="column" justifyContent="center" size={{ xs: "grow" }} spacing={0.5}>
+                <Typography sx={{ fontWeight: "bold", fontSize: "1.4rem", color: "#50C2AF" }}>
+                  {"@" + userToShow.name}
+                </Typography>
+                {isLoggedUser && (
+                  <Typography sx={{ color: "#888", fontSize: "0.9rem" }}>
+                    {loggedUser.email}
+                  </Typography>
+                )}
+                <Typography sx={{ color: "#555", fontSize: "0.9rem" }}>
+                  13 Conexiones
+                </Typography>
+              </Grid>
+              <Grid container direction="column" alignItems="flex-end" justifyContent="space-between" size={{ xs: "grow" }}>
+                <Typography sx={{ color: "#50C2AF", fontSize: "0.85rem", fontWeight: "bold" }}>
+                  Miembro desde{" "}
+                  {new Date(userToShow.created_at).toLocaleDateString("es-ES", {
+                    day: "numeric", month: "long", year: "numeric",
+                  })}
+                </Typography>
+                {isLoggedUser && (
+                  <Button
+                    variant="contained"
+                    sx={{ mt: 1, background: "#50C2AF", "&:hover": { background: "#79DECE" }, borderRadius: 2 }}
+                    onClick={() => navigate("/app/" + userIdAct + "/edit")}
+                  >
+                    Editar perfil
+                  </Button>
+                )}
               </Grid>
             </Grid>
-            {
-              //Columna 2: Fecha de registro, botón de editar perfil (solo si es él mismo)
-            }
-            <Grid
-              container
-              direction="column"
-              justifyContent="space-between"
-              alignItems="flex-end"
-              size={{ xs: 6 }}
-              sx={{
-                minHeight: "100px",
-                borderBottomLeftRadius: 3,
-                borderBottomRightRadius: 3,
-              }}
-            >
-              <Typography>
-                {" "}
-                Miembro desde{" "}
-                {new Date(userToShow.created_at).toLocaleDateString("es-ES", {
-                  day: "numeric",
-                  month: "long",
-                  year: "numeric",
-                })}
-              </Typography>
-              {isLoggedUser && (
-                <Button
-                  variant="contained"
-                  color="primary"
-                  sx={{}}
-                  onClick={() => {navigate("/app/"+userIdAct+"/edit")}}
-                >
-                  Editar Perfil
-                </Button>
-              )}
-            </Grid>
-            {
-              //Fila: (Si tiene) Información "Sobre Mi"
-            }
+
+            {/* Sobre mi */}
             {userToShow.bio && userToShow.bio.trim() !== "" && (
-              <Grid
-                spacing={0}
-                container
-                direction={"column"}
-                size={{ xs: 12 }}
-                sx={{
-                  minHeight: "100px",
-                  borderRadius: {
-                    borderBottomLeftRadius: 3,
-                    borderBottomRightRadius: 3,
-                  },
-                }}
-              >
-                <Typography sx={{ fontWeight: "bold" }}>Sobre mí:</Typography>{" "}
-                <Grid
-                  sx={{
-                    background: "#d8d8d8",
-                    minHeight: "60px",
-                    p: 2,
-                    borderRadius: 4,
-                  }}
-                >
-                  Pues soy un usuario creativo
+              <Grid size={{ xs: 12 }}>
+                <Typography sx={{ fontWeight: "bold", mb: 1 }}>Sobre mí:</Typography>
+                <Grid sx={{ background: "#F5F5F5", p: 2, borderRadius: 3 }}>
+                  <Typography sx={{ whiteSpace: "pre-wrap", color: "#333" }}>
+                    {userToShow.bio}
+                  </Typography>
                 </Grid>
               </Grid>
             )}
           </Grid>
         </Grid>
 
-        {
-          // Intereses del usuario
-          userInterests.length > 0 && (
-            <Grid
-              container
-              direction={"column"}
-              spacing={1}
-              size={{ xs: 12 }}
-              sx={{
-                background: "#50c2af",
-                borderRadius: 1000,
-                py: 3,
-                px: 4,
-              }}
-            >
-              <Typography sx={{ fontWeight: "bold", color: "white" }}>
+        {/* Intereses */}
+        {userInterests.length > 0 && (
+          <Grid size={{ xs: 12 }}>
+            <Grid container direction="column" spacing={1} sx={{ background: "#50C2AF", borderRadius: 1000, py: 3, px: 4 }}>
+              <Typography sx={{ fontWeight: "bold", color: "#FFFFFF", mb: 1 }}>
                 Intereses
               </Typography>
-
               <Grid container spacing={1}>
-                {userInterests.map((interestRec) => {
-                  return (
-                    <InterestItem
-                      key={interestRec.interest_id}
-                      color={interestRec.interest.color}
-                      title={interestRec.interest.name}
-                    />
-                  );
-                })}
+                {userInterests.map((interestRec) => (
+                  <InterestItem
+                    key={interestRec.interest_id}
+                    color={interestRec.interest.color}
+                    title={interestRec.interest.name}
+                  />
+                ))}
               </Grid>
             </Grid>
-          )
-        }
-        {
-          // (Si tiene) Objetivos personales del usuario
-          userToShow.goals && userToShow.goals.trim() !== "" && (
-            <Grid
-              container
-              spacing={1}
-              size={{ xs: 12 }}
-              sx={{
-                borderRadius: 1000,
-              }}
-            >
-              <Typography sx={{ fontWeight: "bold", px: 4 }}>
-                Objetivos personales
-              </Typography>
-              <Grid
-                container
-                direction={"column"}
-                spacing={1}
-                size={{ xs: 12 }}
-                sx={{
-                  background: "#ffffff",
-                  borderRadius: 1000,
-                  py: 3,
-                  px: 4,
-                }}
-              >
-                <Typography sx={{ whiteSpace: "pre-wrap" }}>
-                  {userToShow.goals}
-                </Typography>
-              </Grid>
-            </Grid>
-          )
-        }
+          </Grid>
+        )}
 
-        {
-          // (Si tiene) Frase pública del usuario
-          userToShow.short_sentece &&
-            userToShow.short_sentece.trim() !== "" && (
-              <Grid
-                container
-                spacing={1}
-                sx={{
-                  width: "100%",
-                  borderRadius: 1000,
-                }}
-              >
-                <Typography sx={{ fontWeight: "bold", px: 4 }}>
-                  Frase pública
-                </Typography>
-                <Grid
-                  container
-                  direction={"column"}
-                  spacing={1}
-                  sx={{
-                    background: "#ffffff",
-                    width: "100%",
-                    borderRadius: 1000,
-                    py: 3,
-                    px: 4,
-                  }}
-                >
-                  <Typography sx={{}}>{userToShow.short_sentece}</Typography>
-                </Grid>
-              </Grid>
-            )
-        }
+        {/* Objetivos personales */}
+        {userToShow.goals && userToShow.goals.trim() !== "" && (
+          <Grid size={{ xs: 12 }}>
+            <Typography sx={{ fontWeight: "bold", mb: 1, color: "#FFFFFF" }}>Objetivos personales</Typography>
+            <Grid sx={{ background: "#FFFFFF", borderRadius: 3, py: 2, px: 3 }}>
+              <Typography sx={{ whiteSpace: "pre-wrap", color: "#333" }}>
+                {userToShow.goals}
+              </Typography>
+            </Grid>
+          </Grid>
+        )}
+
+        {/* Frase publica */}
+        {userToShow.short_sentece && userToShow.short_sentece.trim() !== "" && (
+          <Grid size={{ xs: 12 }}>
+            <Typography sx={{ fontWeight: "bold", mb: 1, color: "#FFFFFF" }}>Frase pública</Typography>
+            <Grid sx={{ background: "#FFFFFF", borderRadius: 3, py: 2, px: 3 }}>
+              <Typography sx={{ color: "#333" }}>
+                {userToShow.short_sentece}
+              </Typography>
+            </Grid>
+          </Grid>
+        )}
+
       </Grid>
     </Grid>
   );

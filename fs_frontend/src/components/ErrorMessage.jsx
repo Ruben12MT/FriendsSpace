@@ -3,7 +3,7 @@ import { Alert, Collapse, Box } from '@mui/material';
 
 export default function ErrorMessage({ message, open = false, setOpen }) {
   return (
-    <Box sx={{ width: '100%', mt: 2, mb: 2 }}>
+    <Box display={open ? 'flex':'none'} sx={{ width: '100%', mt: 2, mb: 2 }}>
       <Collapse in={open}>
         <Alert 
           severity="error" 

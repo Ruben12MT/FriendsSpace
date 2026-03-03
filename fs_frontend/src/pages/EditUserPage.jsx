@@ -6,7 +6,7 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useUser } from "../hooks/useUser";
 import { useNavigate } from "react-router-dom";
 import api from "../utils/api";
@@ -15,23 +15,53 @@ import CheckIcon from "@mui/icons-material/Check";
 import { IconButton } from "@mui/material";
 import ErrorMessage from "../components/ErrorMessage";
 import InterestItem from "../components/interestItem";
+import ImageIcon from "@mui/icons-material/Image";
 
 export default function EditUserPage() {
+  // Error general (botón guardar)
   const [errorOpen, setErrorOpen] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
+
+  // Error del nombre de usuario
+  const [nameErrorOpen, setNameErrorOpen] = useState(false);
+  const [nameErrorMsg, setNameErrorMsg] = useState("");
+
   const { loggedUser } = useUser();
   const navigate = useNavigate();
+
+  // Lista de todos los intereses disponibles
   const [allInterests, setAllInterests] = useState([]);
+
+  // Datos del usuario que se están editando
   const [editedUser, setEditedUser] = useState({});
+
+  // Intereses seleccionados por el usuario
   const [editedUserInterests, setEditedUserInterests] = useState([]);
+
+  // Control del modo edición del nombre
   const [editingName, setEditingName] = useState(false);
 
+  // Control del hover del avatar
+  const [avatarHovered, setAvatarHovered] = useState(false);
+
+  // Referencia al input de archivo oculto
+  const fileInputRef = useRef(null);
+
+  // Archivo de imagen seleccionado y su preview local
+  const [avatarFile, setAvatarFile] = useState(null);
+  const [avatarPreview, setAvatarPreview] = useState(null);
+
+  // Control del botón de guardar para evitar doble click
+  const [loading, setLoading] = useState(false);
+
+  // Cuando loggedUser carga, inicializamos el formulario con sus datos
   useEffect(() => {
     if (loggedUser?.id) {
-      setEditedUser({ ...loggedUser });
+      setEditedUser({ ...loggedUser, first_login: 0 });
     }
   }, [loggedUser]);
 
+  // Cargamos todos los intereses disponibles al montar el componente
   useEffect(() => {
     async function fetchAllInterests() {
       try {
@@ -44,6 +74,7 @@ export default function EditUserPage() {
     fetchAllInterests();
   }, []);
 
+  // Cargamos los intereses del usuario cuando tenemos su id
   useEffect(() => {
     if (!loggedUser.id) return;
     async function fetchUserInterests() {
@@ -60,21 +91,23 @@ export default function EditUserPage() {
     fetchUserInterests();
   }, [loggedUser.id]);
 
+  // Actualiza el campo correspondiente del formulario al escribir
   const handleChange = (e) => {
     setEditedUser({ ...editedUser, [e.target.name]: e.target.value });
   };
 
+  // Valida el nombre de usuario y comprueba si ya existe
   const handleUsernameExist = async () => {
     if (editedUser.name.trim() === "") {
-      setErrorMsg("El nombre de usuario no puede estar vacío");
-      setErrorOpen(true);
+      setNameErrorMsg("El nombre de usuario no puede estar vacío");
+      setNameErrorOpen(true);
       return;
     }
     if (/[^a-zA-Z0-9_]/.test(editedUser.name)) {
-      setErrorMsg(
+      setNameErrorMsg(
         "El nombre solo puede contener letras, números y guiones bajos.",
       );
-      setErrorOpen(true);
+      setNameErrorOpen(true);
       return;
     }
     try {
@@ -84,46 +117,93 @@ export default function EditUserPage() {
         editedUser.name.toLowerCase() === loggedUser.name.toLowerCase()
       ) {
         setEditingName(false);
+        setNameErrorOpen(false);
       } else {
-        setErrorMsg("Ese nombre ya existe, ponga otro.");
-        setErrorOpen(true);
+        setNameErrorMsg("Ese nombre ya existe, ponga otro.");
+        setNameErrorOpen(true);
       }
     } catch (error) {
+      // 404 significa que el nombre no existe, podemos usarlo
       setEditingName(false);
-      setErrorOpen(false);
+      setNameErrorOpen(false);
     }
   };
 
+  // Añade un interés a la lista si no está ya
   function anyadirInteres(interest) {
     if (!editedUserInterests.find((i) => i.id === interest.id)) {
       setEditedUserInterests([...editedUserInterests, interest]);
     }
   }
 
+  // Elimina un interés de la lista
   function quitarInteres(interestId) {
     setEditedUserInterests(
       editedUserInterests.filter((i) => i.id !== interestId),
     );
   }
 
+  // Guarda todos los cambios: datos del usuario, avatar e intereses
   const editarUsuario = async () => {
     if (editingName) {
       setErrorMsg("Confirma el nombre de usuario antes de guardar.");
       setErrorOpen(true);
+      setLoading(false);
       return;
     }
     try {
-      await api.put("/users/" + loggedUser.id, editedUser);
-      await api.delete("/userinterests/" + loggedUser.id + "/interests");
+      if (!loggedUser?.id) throw new Error("Sesión no válida");
+
+      // Eliminamos campos que no deben enviarse al la modificación del usuario
+      const {
+        id,
+        url_image,
+        created_at,
+        createdAt,
+        role,
+        password,
+        email,
+        ...datosPermitidos
+      } = editedUser;
+
+      //IMPORTANTE SEGUIR EL ORDEN.
+      // 1. Actualizamos los datos del usuario
+      await api.put("/users/" + loggedUser.id, datosPermitidos);
+
+      
+      // 2. Si hay una nueva imagen la subimos a Cloudinary
+      if (avatarFile) {
+        const formData = new FormData();
+        formData.append("avatar", avatarFile);
+        await api.put("/users/" + loggedUser.id + "/avatar", formData, {
+          headers: { "Content-Type": "multipart/form-data" },
+        });
+      }
+
+      // 3. Reemplazamos los intereses del usuario
+      await api.delete(`/userinterests/${loggedUser.id}/interests`);
       const interestIds = editedUserInterests.map((i) => i.id);
-      await api.post("/userinterests/" + loggedUser.id + "/interests", {
-        interestIds,
-      });
+      if (interestIds.length > 0) {
+        await api.post(`/userinterests/${loggedUser.id}/interests`, {
+          interestIds,
+        });
+      }
+
       navigate("/app/" + loggedUser.id);
     } catch (error) {
+      console.error("Error detallado:", error);
       setErrorMsg(error.response?.data?.mensaje || "Error al guardar cambios");
       setErrorOpen(true);
+      setLoading(false);
     }
+  };
+
+  // Guarda el archivo seleccionado y genera una preview local
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setAvatarFile(file);
+    setAvatarPreview(URL.createObjectURL(file));
   };
 
   return (
@@ -153,8 +233,55 @@ export default function EditUserPage() {
           alignItems="center"
           sx={{ width: "100%" }}
         >
-          <Avatar src="/logo.png" style={{ width: "150px", height: "150px" }} />
+          {/* Avatar con overlay al hacer hover */}
+          <Grid
+            sx={{
+              position: "relative",
+              width: "150px",
+              height: "150px",
+              cursor: "pointer",
+              borderRadius: "50%",
+            }}
+            onMouseEnter={() => setAvatarHovered(true)}
+            onMouseLeave={() => setAvatarHovered(false)}
+            onClick={() => fileInputRef.current.click()}
+          >
+            <Avatar
+              src={
+                avatarPreview ||
+                editedUser.url_image ||
+                "/no_user_avatar_image.png"
+              }
+              style={{ width: "150px", height: "150px" }}
+            />
+            {avatarHovered && (
+              <Grid
+                sx={{
+                  position: "absolute",
+                  top: 0,
+                  left: 0,
+                  width: "100%",
+                  height: "100%",
+                  borderRadius: "50%",
+                  background: "rgba(0,0,0,0.4)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <ImageIcon sx={{ color: "white", fontSize: "2rem" }} />
+              </Grid>
+            )}
+            <input
+              type="file"
+              accept="image/*"
+              ref={fileInputRef}
+              style={{ display: "none" }}
+              onChange={handleImageChange}
+            />
+          </Grid>
 
+          {/* Nombre de usuario editable */}
           <Grid
             container
             alignItems="center"
@@ -185,10 +312,11 @@ export default function EditUserPage() {
                     <CheckIcon />
                   </IconButton>
                 </Grid>
+                {/* Error especifico del nombre */}
                 <ErrorMessage
-                  message={errorMsg}
-                  open={errorOpen}
-                  setOpen={setErrorOpen}
+                  message={nameErrorMsg}
+                  open={nameErrorOpen}
+                  setOpen={setNameErrorOpen}
                 />
               </>
             ) : (
@@ -201,7 +329,7 @@ export default function EditUserPage() {
                       color: "#50C2AF",
                     }}
                   >
-                    {"@"+editedUser.name}
+                    {"@" + editedUser.name}
                   </Typography>
                 </Grid>
                 <Grid>
@@ -216,6 +344,7 @@ export default function EditUserPage() {
             )}
           </Grid>
 
+          {/* Descripcion */}
           <Grid container spacing={1} sx={{ width: "100%", mt: 1 }}>
             <Typography sx={{ fontWeight: "bold", mb: 0.5, color: "#50C2AF" }}>
               Descripción
@@ -237,6 +366,7 @@ export default function EditUserPage() {
             />
           </Grid>
 
+          {/* Frase corta */}
           <Grid container spacing={1} sx={{ width: "100%", mt: 1 }}>
             <Typography sx={{ fontWeight: "bold", mb: 0.5, color: "#50C2AF" }}>
               Frase Corta
@@ -258,6 +388,7 @@ export default function EditUserPage() {
             />
           </Grid>
 
+          {/* Objetivos */}
           <Grid container spacing={1} sx={{ width: "100%", mt: 1 }}>
             <Typography sx={{ fontWeight: "bold", mb: 0.5, color: "#50C2AF" }}>
               Objetivos
@@ -279,6 +410,7 @@ export default function EditUserPage() {
             />
           </Grid>
 
+          {/* Seccion de intereses */}
           <Grid
             container
             spacing={2}
@@ -325,6 +457,7 @@ export default function EditUserPage() {
                 )}
               />
             </Grid>
+            {/* Lista de intereses seleccionados */}
             {editedUserInterests.length > 0 && (
               <Grid
                 container
@@ -344,28 +477,42 @@ export default function EditUserPage() {
             )}
           </Grid>
 
+          {/* Error general al guardar */}
+          <ErrorMessage
+            message={errorMsg}
+            open={errorOpen}
+            setOpen={setErrorOpen}
+          />
+
+          {/* Botones de accion */}
           <Grid
             container
-            justifyContent="space-between"
-            sx={{ pt: 4, width: "100%" }}
+            justifyContent= {loggedUser.first_login == 1 ? "end" :"space-between"}
+            sx={{ pt: 2, width: "100%" }}
           >
+            {loggedUser && loggedUser.first_login == 0 && (
+              <Button
+                variant="contained"
+                sx={{
+                  background: "#50C2AF",
+                  "&:hover": { background: "#79DECE" },
+                }}
+                onClick={() => navigate("/app/" + loggedUser.id)}
+              >
+                Volver
+              </Button>
+            )}
             <Button
+              disabled={loading}
               variant="contained"
               sx={{
                 background: "#50C2AF",
                 "&:hover": { background: "#79DECE" },
               }}
-              onClick={() => navigate("/app/" + loggedUser.id)}
-            >
-              Volver
-            </Button>
-            <Button
-              variant="contained"
-              sx={{
-                background: "#50C2AF",
-                "&:hover": { background: "#79DECE" },
+              onClick={() => {
+                setLoading(true);
+                editarUsuario();
               }}
-              onClick={editarUsuario}
             >
               Aplicar cambios
             </Button>

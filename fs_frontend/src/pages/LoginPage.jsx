@@ -26,23 +26,28 @@ export default function LoginPage() {
   });
 
   const iniciarSesion = async () => {
-  try {
-    setErrorsBool({
-      emailOrUsername: emailOrUsername === "",
-      password: password === "",
-    });
+    try {
+      setErrorsBool({
+        emailOrUsername: emailOrUsername === "",
+        password: password === "",
+      });
 
-    setErrorOpen(false);
-    await api.post("/users/login/", {
-      emailOrUsername,
-      password,
-    });
-    navigate("/app/searchnewfriends");
-  } catch (error) {
-    setErrorMsg(error.response?.data?.mensaje || "Error al conectar");
-    setErrorOpen(true);
-  }
-};
+      setErrorOpen(false);
+      const res = await api.post("/users/login/", {
+        emailOrUsername,
+        password,
+      });
+
+      if (res.data.user.first_login == 0) {
+        navigate("/app/searchnewfriends");
+      } else {
+        navigate("/app/" + res.data.user.id + "/edit");
+      }
+    } catch (error) {
+      setErrorMsg(error.response?.data?.mensaje || "Error al conectar");
+      setErrorOpen(true);
+    }
+  };
 
   // La referencia a password
   const passwordRef = useRef(null);

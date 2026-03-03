@@ -203,7 +203,7 @@ export default function UserBar() {
             <Box sx={{ flexGrow: 0 }}>
               <Tooltip title="Ajustes del Usuario">
                 <IconButton onClick={handleOpenUserMenu} sx={{ p: 0 }}>
-                  <Avatar alt="Remy Sharp" src="/static/images/avatar/2.jpg" />
+                  <Avatar alt="Foto del usuario" sx={{border: "#50C2AF solid 1px"}} src= {loggedUser.url_image || "/no_user_avatar_image.png"} />
                 </IconButton>
               </Tooltip>
               <Menu

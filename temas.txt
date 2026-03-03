@@ -1,0 +1,14 @@
+COLOR A: #50C2AF
+Color usado para contraste, fondos con profundidad y texto destacado.
+
+COLOR B: #79DECE
+Alternativa más clara al color A, usada para algunos fondos.
+
+COLOR C: #A7F1E5
+De momento sin uso identificado.
+
+COLOR D: #D9FCF6
+Segundo fondo para poner componentes encima, sensación de pantalla no vacía.
+
+COLOR E: #FFFFFF
+Blanco puro para navBars y letras sobre fondo oscuro.

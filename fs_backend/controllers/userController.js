@@ -55,7 +55,7 @@ class UserController {
       return res
         .cookie("access_token", token, {
           httpOnly: true,
-          secure: false, 
+          secure: false,
           sameSite: "lax", // Esto va a permitir que la cookie se mantenga en navegaciones internas
           path: "/",
           maxAge: 3600000,
@@ -94,10 +94,16 @@ class UserController {
   }
 
   async checkAuth(req, res) {
-    return res.status(200).json({
-      ok: true,
-      usuario: req.user,
-    });
+    try {
+      const usuario = await userService.getUserById(req.user.id);
+      const usuarioLimpio = usuario.toJSON();
+      delete usuarioLimpio.password;
+      return res.status(200).json({ ok: true, usuario: usuarioLimpio });
+    } catch (err) {
+      return res
+        .status(500)
+        .json({ ok: false, mensaje: "Error al verificar sesión" });
+    }
   }
 
   async getAllUsers(req, res) {
@@ -338,6 +344,26 @@ class UserController {
     } catch (err) {
       console.error("Error en deleteUser:", err);
       return res.status(500).json({ ok: false, mensaje: "Error al eliminar" });
+    }
+  }
+
+  async updateAvatar(req, res) {
+    try {
+      const { id } = req.params;
+      const url_image = req.file.path;
+
+      await userService.updateUser(id, { url_image: url_image });
+
+      return res.status(200).json({
+        ok: true,
+        datos: { url_image },
+        mensaje: "Avatar actualizado correctamente",
+      });
+    } catch (err) {
+      console.error("Error completo:", JSON.stringify(err, null, 2));
+      return res
+        .status(500)
+        .json({ ok: false, mensaje: "Error al actualizar avatar" });
     }
   }
 }
