@@ -1,7 +1,7 @@
 // Este componente sera una appbar para los usuarios registrados en la app
 // Incluye logo, nombre de la app y botones de navegación.
 
-import React from "react";
+import React, { useEffect } from "react";
 import { Link, Outlet } from "react-router-dom";
 import AppBar from "@mui/material/AppBar";
 import Box from "@mui/material/Box";
@@ -20,15 +20,17 @@ import { Grid } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import api from "../utils/api";
 import { useUser } from "../hooks/useUser";
+import { useFirstLogin } from "../hooks/useFirstLogin";
 
 const pages = ["Buscar friends", "Anuncios", "Chats"];
 
 export default function UserBar() {
   const navigate = useNavigate();
-  const { loggedUser } = useUser();
-
+  const { loggedUser } = useUser();  
   const [anchorElNav, setAnchorElNav] = React.useState(null);
   const [anchorElUser, setAnchorElUser] = React.useState(null);
+
+  useFirstLogin();
 
   const handleOpenNavMenu = (event) => setAnchorElNav(event.currentTarget);
   const handleOpenUserMenu = (event) => setAnchorElUser(event.currentTarget);

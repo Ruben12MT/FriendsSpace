@@ -30,7 +30,7 @@ export default function EditUserPage() {
   const { loggedUser, setLoggedUser } = useUser();
   const navigate = useNavigate();
   const fileInputRef = useRef(null);
-
+  const [edited, setEdited] = useState(false);
   const [state, setState] = useState({
     errorOpen: false,
     errorMsg: "",
@@ -88,6 +88,7 @@ export default function EditUserPage() {
 
   const handleChange = (e) => {
     setEditedUser({ ...editedUser, [e.target.name]: e.target.value });
+    setEdited(true);
   };
 
   const handleUsernameExist = async () => {
@@ -189,9 +190,7 @@ export default function EditUserPage() {
 
   const CustomField = ({ label, name, value }) => (
     <Grid container spacing={1} sx={{ width: "100%", mt: 1 }}>
-      <Typography
-        sx={{ fontWeight: "bold", mb: 0.5, color: "#50C2AF" }}
-      >
+      <Typography sx={{ fontWeight: "bold", mb: 0.5, color: "#50C2AF" }}>
         {label}
       </Typography>
       <TextField
@@ -339,9 +338,7 @@ export default function EditUserPage() {
             }}
           >
             <Grid item xs={12}>
-              <Typography
-                sx={{ fontWeight: "bold", color: "#fff" }}
-              >
+              <Typography sx={{ fontWeight: "bold", color: "#fff" }}>
                 Añadir intereses
               </Typography>
             </Grid>
@@ -356,10 +353,7 @@ export default function EditUserPage() {
                 setEditedUserInterests([...editedUserInterests, v])
               }
               renderInput={(p) => (
-                <TextField
-                  {...p}
-                  sx={{ ...inputStyle, borderRadius: 100 }}
-                />
+                <TextField {...p} sx={{ ...inputStyle, borderRadius: 100 }} />
               )}
             />
 
@@ -371,7 +365,7 @@ export default function EditUserPage() {
                   color={i.color}
                   onDelete={() =>
                     setEditedUserInterests(
-                      editedUserInterests.filter((x) => x.id !== i.id)
+                      editedUserInterests.filter((x) => x.id !== i.id),
                     )
                   }
                 />
@@ -381,13 +375,18 @@ export default function EditUserPage() {
 
           <Grid
             container
-            justifyContent="space-between"
+            justifyContent={
+              loggedUser.first_login == 1 ? "end" : "space-between"
+            }
             sx={{ mt: 3, width: "100%" }}
           >
             <Button
               variant="contained"
               onClick={() => navigate("/app/" + loggedUser.id)}
-              sx={{ background: "#50C2AF" }}
+              sx={{
+                background: "#50C2AF",
+                display: loggedUser.first_login == 1 ? "none" : "flex",
+              }}
             >
               Volver
             </Button>
@@ -398,7 +397,9 @@ export default function EditUserPage() {
               onClick={editarUsuario}
               sx={{ background: "#50C2AF" }}
             >
-              Aplicar cambios
+              {loggedUser.first_login == 1 && !edited
+                ? "Saltar"
+                : "Aplicar cambios"}
             </Button>
           </Grid>
         </Grid>
