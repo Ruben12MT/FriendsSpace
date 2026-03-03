@@ -1,10 +1,5 @@
 // Este componente sera una appbar para los usuarios registrados en la app
-//Incluirá logo, nombre de la app y botones:
-// - Buscar usuarios (Llevará a una página de búsqueda de usuarios)
-// - Anuncios (Llevará a una página de anuncios que publicaran los usuarios)
-// - Conexiones (Llevará a una página de conexiones, donde el usuario podrá ver sus chats que son las conexiones que tiene con otros usuarios  y podrá conversar con ellos en un chat privado)
-// - Perfil (Llevará a la página de perfil del usuario, donde podrá ver su información y editarla)
-// - Notificaciones que saldrá una lista de notificaciones que el usuario tenga como barra lateral derecha, y se podrá cerrar para que no moleste.
+// Incluye logo, nombre de la app y botones de navegación.
 
 import React from "react";
 import { Link, Outlet } from "react-router-dom";
@@ -20,11 +15,10 @@ import Avatar from "@mui/material/Avatar";
 import Button from "@mui/material/Button";
 import Tooltip from "@mui/material/Tooltip";
 import MenuItem from "@mui/material/MenuItem";
-import AdbIcon from "@mui/icons-material/Adb";
-import { useNavigate } from "react-router-dom";
-import api from "../utils/api";
 import NotificationsIcon from "@mui/icons-material/Notifications";
 import { Grid } from "@mui/material";
+import { useNavigate } from "react-router-dom";
+import api from "../utils/api";
 import { useUser } from "../hooks/useUser";
 
 const pages = ["Buscar friends", "Anuncios", "Chats"];
@@ -32,35 +26,23 @@ const pages = ["Buscar friends", "Anuncios", "Chats"];
 export default function UserBar() {
   const navigate = useNavigate();
   const { loggedUser } = useUser();
+
   const [anchorElNav, setAnchorElNav] = React.useState(null);
   const [anchorElUser, setAnchorElUser] = React.useState(null);
 
-  const handleOpenNavMenu = (event) => {
-    setAnchorElNav(event.currentTarget);
-  };
-  const handleOpenUserMenu = (event) => {
-    setAnchorElUser(event.currentTarget);
-  };
-
-  const handleCloseNavMenu = () => {
-    setAnchorElNav(null);
-  };
-
-  const handleCloseUserMenu = () => {
-    setAnchorElUser(null);
-  };
+  const handleOpenNavMenu = (event) => setAnchorElNav(event.currentTarget);
+  const handleOpenUserMenu = (event) => setAnchorElUser(event.currentTarget);
+  const handleCloseNavMenu = () => setAnchorElNav(null);
+  const handleCloseUserMenu = () => setAnchorElUser(null);
 
   const showUserProfile = () => {
     handleCloseUserMenu();
-    console.log(loggedUser);
-    navigate("/app/" + loggedUser.id)
+    navigate("/app/" + loggedUser.id);
   };
 
   const logout = async () => {
     try {
       handleCloseUserMenu();
-      console.log("EL USUARIO VA A CERRAR LA SESIÓN");
-
       await api.post("/users/logout/");
       navigate("/");
     } catch (error) {
@@ -68,6 +50,39 @@ export default function UserBar() {
     }
   };
 
+  // PROTECCIÓN CRÍTICA:
+  // Mientras loggedUser es null (al refrescar la página), renderizamos una barra mínima
+  if (!loggedUser) {
+    return (
+      <Grid
+        container
+        direction="column"
+        sx={{
+          minHeight: "100vh",
+          background: "#50C2AF",
+        }}
+      >
+        <AppBar
+          position="sticky"
+          elevation={0}
+          sx={{ backgroundColor: "white", color: "#50C2AF" }}
+        >
+          <Container maxWidth="100%">
+            <Toolbar disableGutters>
+              <Avatar
+                src="/no_user_avatar_image.png"
+                sx={{ width: 45, height: 45, border: "#50C2AF solid 1px" }}
+              />
+            </Toolbar>
+          </Container>
+        </AppBar>
+
+        <Outlet />
+      </Grid>
+    );
+  }
+
+  // RENDER NORMAL CUANDO loggedUser YA EXISTE
   return (
     <Grid
       container
@@ -95,13 +110,13 @@ export default function UserBar() {
                 style={{
                   marginTop: "20px",
                   marginBottom: "20px",
-
                   width: "70px",
                   height: "70px",
-                  marginRight: "15px"
+                  marginRight: "15px",
                 }}
               />
             </Button>
+
             <Typography
               variant="h6"
               noWrap
@@ -119,10 +134,11 @@ export default function UserBar() {
             >
               Friends Space
             </Typography>
+
             <Box sx={{ flexGrow: 1, display: { xs: "flex", md: "none" } }}>
               <IconButton
                 size="large"
-                aria-label="account of current user"
+                aria-label="menu"
                 aria-controls="menu-appbar"
                 aria-haspopup="true"
                 onClick={handleOpenNavMenu}
@@ -130,18 +146,13 @@ export default function UserBar() {
               >
                 <MenuIcon />
               </IconButton>
+
               <Menu
                 id="menu-appbar"
                 anchorEl={anchorElNav}
-                anchorOrigin={{
-                  vertical: "bottom",
-                  horizontal: "left",
-                }}
+                anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
                 keepMounted
-                transformOrigin={{
-                  vertical: "top",
-                  horizontal: "left",
-                }}
+                transformOrigin={{ vertical: "top", horizontal: "left" }}
                 open={Boolean(anchorElNav)}
                 onClose={handleCloseNavMenu}
                 sx={{ display: { xs: "block", md: "none" } }}
@@ -153,6 +164,7 @@ export default function UserBar() {
                 ))}
               </Menu>
             </Box>
+
             <Button
               component={Link}
               to="/"
@@ -164,6 +176,7 @@ export default function UserBar() {
                 style={{ margin: "20px", width: "70px", height: "70px" }}
               />
             </Button>
+
             <Typography
               variant="h5"
               noWrap
@@ -182,6 +195,7 @@ export default function UserBar() {
             >
               Friends Space
             </Typography>
+
             <Box
               sx={{
                 flexGrow: 1,
@@ -200,25 +214,25 @@ export default function UserBar() {
                 </Button>
               ))}
             </Box>
+
             <Box sx={{ flexGrow: 0 }}>
               <Tooltip title="Ajustes del Usuario">
                 <IconButton onClick={handleOpenUserMenu} sx={{ p: 0 }}>
-                  <Avatar alt="Foto del usuario" sx={{border: "#50C2AF solid 1px"}} src= {loggedUser.url_image || "/no_user_avatar_image.png"} />
+                  <Avatar
+                    alt="Foto del usuario"
+                    sx={{ border: "#50C2AF solid 1px" }}
+                    src={loggedUser.url_image || "/no_user_avatar_image.png"}
+                  />
                 </IconButton>
               </Tooltip>
+
               <Menu
                 sx={{ mt: "45px" }}
                 id="menu-appbar"
                 anchorEl={anchorElUser}
-                anchorOrigin={{
-                  vertical: "top",
-                  horizontal: "right",
-                }}
+                anchorOrigin={{ vertical: "top", horizontal: "right" }}
                 keepMounted
-                transformOrigin={{
-                  vertical: "top",
-                  horizontal: "right",
-                }}
+                transformOrigin={{ vertical: "top", horizontal: "right" }}
                 open={Boolean(anchorElUser)}
                 onClose={handleCloseUserMenu}
               >
@@ -227,13 +241,15 @@ export default function UserBar() {
                     Ver Perfil
                   </Typography>
                 </MenuItem>
+
                 <MenuItem key={"logout"} onClick={logout}>
                   <Typography sx={{ textAlign: "center" }}>
                     Cerrar Sesión
                   </Typography>
                 </MenuItem>
               </Menu>
-              <IconButton aria-label="delete" size="large">
+
+              <IconButton aria-label="notificaciones" size="large">
                 <NotificationsIcon
                   fontSize="inherit"
                   sx={{ color: "#50C2AF" }}
@@ -243,6 +259,7 @@ export default function UserBar() {
           </Toolbar>
         </Container>
       </AppBar>
+
       <Outlet />
     </Grid>
   );

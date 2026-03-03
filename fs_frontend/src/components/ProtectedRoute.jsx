@@ -1,36 +1,61 @@
 import React, { useEffect, useState } from "react";
-import { Navigate, useLocation } from "react-router-dom";
+import { Navigate } from "react-router-dom";
 import { checkSession } from "../utils/checkSession";
 import { CircularProgress, Box } from "@mui/material";
 import userAuthStore from "../store/useAuthStore";
 
- const ProtectedRoute = ({ children }) => {
-  const [auth, setAuth] = useState({ loading: true, isAuth: false, user: null });
-  const setUserId = userAuthStore
-  ((state) => state.setUserId);
-  const location = useLocation();
+const ProtectedRoute = ({ children }) => {
+  const [loading, setLoading] = useState(true);
+  const [isAuth, setIsAuth] = useState(false);
+
+  const setUserId = userAuthStore((state) => state.setUserId);
+  const userId = userAuthStore((state) => state.userId);
 
   useEffect(() => {
-    checkSession().then((res) => {
-      setAuth({ loading: false, isAuth: res.isAuth, user: res.user });
-      if (res.user) setUserId(res.user.id);
-    });
-  }, [setUserId]);
+    async function validate() {
+      // Si Zustand ya tiene userId → guardarlo en localStorage
+      if (userId) {
+        localStorage.setItem("userId", userId);
+        setIsAuth(true);
+        setLoading(false);
+        return;
+      }
 
-  if (auth.loading) {
+      // Si NO hay userId → validar sesión
+      try {
+        const res = await checkSession();
+
+        if (!res.isAuth) {
+          setIsAuth(false);
+          setLoading(false);
+          return;
+        }
+
+        // Guardar id en Zustand y localStorage
+        setUserId(res.user.id);
+        localStorage.setItem("userId", res.user.id);
+
+        setIsAuth(true);
+        setLoading(false);
+
+      } catch (err) {
+        setIsAuth(false);
+        setLoading(false);
+      }
+    }
+
+    validate();
+  }, [userId, setUserId]);
+
+  if (loading) {
     return (
-      <Box sx={{ minHeight: "100vh", display: "flex", justifyContent: "center", alignItems: "center", backgroundColor: "#f5f5f5" }}>
+      <Box sx={{ minHeight: "100vh", display: "flex", justifyContent: "center", alignItems: "center" }}>
         <CircularProgress sx={{ color: "#50C2AF" }} />
       </Box>
     );
   }
 
-  if (!auth.isAuth) return <Navigate to="/login" replace />;
-
-  // Si first_login es 1 y no estamos ya en /edit, redirigimos
-  if (auth.user?.first_login == 1 && !location.pathname.endsWith("/edit")) {
-    return <Navigate to={"/app/" + auth.user.id + "/edit"} replace />;
-  }
+  if (!isAuth) return <Navigate to="/login" replace />;
 
   return children;
 };

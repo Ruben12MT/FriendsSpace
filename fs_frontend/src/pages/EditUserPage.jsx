@@ -5,156 +5,143 @@ import {
   Grid,
   TextField,
   Typography,
+  IconButton,
 } from "@mui/material";
 import React, { useEffect, useRef, useState } from "react";
 import { useUser } from "../hooks/useUser";
 import { useNavigate } from "react-router-dom";
 import api from "../utils/api";
-import EditIcon from "@mui/icons-material/Edit";
-import CheckIcon from "@mui/icons-material/Check";
-import { IconButton } from "@mui/material";
+import {
+  Edit as EditIcon,
+  Check as CheckIcon,
+  Image as ImageIcon,
+} from "@mui/icons-material";
 import ErrorMessage from "../components/ErrorMessage";
 import InterestItem from "../components/interestItem";
-import ImageIcon from "@mui/icons-material/Image";
+
+const inputStyle = {
+  background: "#FFFFFF",
+  borderRadius: 2,
+  "& .MuiOutlinedInput-root": { borderRadius: 2 },
+  "& .MuiOutlinedInput-notchedOutline": { border: "none" },
+};
 
 export default function EditUserPage() {
-  // Error general (botón guardar)
-  const [errorOpen, setErrorOpen] = useState(false);
-  const [errorMsg, setErrorMsg] = useState("");
-
-  // Error del nombre de usuario
-  const [nameErrorOpen, setNameErrorOpen] = useState(false);
-  const [nameErrorMsg, setNameErrorMsg] = useState("");
-
-  const { loggedUser } = useUser();
+  const { loggedUser, setLoggedUser } = useUser();
   const navigate = useNavigate();
-
-  // Lista de todos los intereses disponibles
-  const [allInterests, setAllInterests] = useState([]);
-
-  // Datos del usuario que se están editando
-  const [editedUser, setEditedUser] = useState({});
-
-  // Intereses seleccionados por el usuario
-  const [editedUserInterests, setEditedUserInterests] = useState([]);
-
-  // Control del modo edición del nombre
-  const [editingName, setEditingName] = useState(false);
-
-  // Control del hover del avatar
-  const [avatarHovered, setAvatarHovered] = useState(false);
-
-  // Referencia al input de archivo oculto
   const fileInputRef = useRef(null);
 
-  // Archivo de imagen seleccionado y su preview local
-  const [avatarFile, setAvatarFile] = useState(null);
-  const [avatarPreview, setAvatarPreview] = useState(null);
+  const [state, setState] = useState({
+    errorOpen: false,
+    errorMsg: "",
+    nameErrorOpen: false,
+    nameErrorMsg: "",
+  });
 
-  // Control del botón de guardar para evitar doble click
-  const [loading, setLoading] = useState(false);
+  const [allInterests, setAllInterests] = useState([]);
+  const [editedUser, setEditedUser] = useState({});
+  const [editedUserInterests, setEditedUserInterests] = useState([]);
 
-  // Cuando loggedUser carga, inicializamos el formulario con sus datos
+  const [ui, setUi] = useState({
+    editingName: false,
+    avatarHovered: false,
+    loading: false,
+  });
+
+  const [avatar, setAvatar] = useState({
+    file: null,
+    preview: null,
+  });
+
+  // Hook 1: copiar loggedUser cuando llega
   useEffect(() => {
     if (loggedUser?.id) {
       setEditedUser({ ...loggedUser, first_login: 0 });
     }
   }, [loggedUser]);
 
-  // Cargamos todos los intereses disponibles al montar el componente
+  // Hook 2: cargar intereses
   useEffect(() => {
-    async function fetchAllInterests() {
+    if (!loggedUser?.id) return;
+
+    async function load() {
       try {
-        const res = await api.get("/interests");
-        setAllInterests(res.data.datos);
-      } catch (error) {
-        console.log(error.message);
+        const [resInt, resUserInt] = await Promise.all([
+          api.get("/interests"),
+          api.get(`/userInterests/${loggedUser.id}/interests`),
+        ]);
+
+        setAllInterests(resInt.data.datos);
+        setEditedUserInterests(resUserInt.data.datos.map((r) => r.interest));
+      } catch (e) {
+        console.log(e.message);
       }
     }
-    fetchAllInterests();
-  }, []);
 
-  // Cargamos los intereses del usuario cuando tenemos su id
-  useEffect(() => {
-    if (!loggedUser.id) return;
-    async function fetchUserInterests() {
-      try {
-        const res = await api.get(
-          "/userInterests/" + loggedUser.id + "/interests",
-        );
-        const array = res.data.datos.map((r) => r.interest);
-        setEditedUserInterests(array);
-      } catch (error) {
-        console.log(error.message);
-      }
-    }
-    fetchUserInterests();
-  }, [loggedUser.id]);
+    load();
+  }, [loggedUser?.id]);
 
-  // Actualiza el campo correspondiente del formulario al escribir
+  // Protección después de los hooks
+  if (!loggedUser) {
+    return <div>Cargando usuario...</div>;
+  }
+
   const handleChange = (e) => {
     setEditedUser({ ...editedUser, [e.target.name]: e.target.value });
   };
 
-  // Valida el nombre de usuario y comprueba si ya existe
   const handleUsernameExist = async () => {
-    if (editedUser.name.trim() === "") {
-      setNameErrorMsg("El nombre de usuario no puede estar vacío");
-      setNameErrorOpen(true);
-      return;
+    const name = editedUser.name?.trim();
+
+    if (!name) {
+      return setState({
+        ...state,
+        nameErrorMsg: "El nombre no puede estar vacío",
+        nameErrorOpen: true,
+      });
     }
-    if (/[^a-zA-Z0-9_]/.test(editedUser.name)) {
-      setNameErrorMsg(
-        "El nombre solo puede contener letras, números y guiones bajos.",
-      );
-      setNameErrorOpen(true);
-      return;
+
+    if (/[^a-zA-Z0-9_]/.test(name)) {
+      return setState({
+        ...state,
+        nameErrorMsg: "Caracteres inválidos",
+        nameErrorOpen: true,
+      });
     }
+
     try {
-      const res = await api.get("/users/search/" + editedUser.name);
+      const res = await api.get("/users/search/" + name);
+
       if (
-        !res.data.datos ||
-        editedUser.name.toLowerCase() === loggedUser.name.toLowerCase()
+        res.data.datos &&
+        name.toLowerCase() !== loggedUser.name.toLowerCase()
       ) {
-        setEditingName(false);
-        setNameErrorOpen(false);
-      } else {
-        setNameErrorMsg("Ese nombre ya existe, ponga otro.");
-        setNameErrorOpen(true);
+        throw new Error();
       }
-    } catch (error) {
-      // 404 significa que el nombre no existe, podemos usarlo
-      setEditingName(false);
-      setNameErrorOpen(false);
+
+      setUi({ ...ui, editingName: false });
+      setState({ ...state, nameErrorOpen: false });
+    } catch {
+      setState({
+        ...state,
+        nameErrorMsg: "Ese nombre ya existe",
+        nameErrorOpen: true,
+      });
     }
   };
 
-  // Añade un interés a la lista si no está ya
-  function anyadirInteres(interest) {
-    if (!editedUserInterests.find((i) => i.id === interest.id)) {
-      setEditedUserInterests([...editedUserInterests, interest]);
-    }
-  }
-
-  // Elimina un interés de la lista
-  function quitarInteres(interestId) {
-    setEditedUserInterests(
-      editedUserInterests.filter((i) => i.id !== interestId),
-    );
-  }
-
-  // Guarda todos los cambios: datos del usuario, avatar e intereses
   const editarUsuario = async () => {
-    if (editingName) {
-      setErrorMsg("Confirma el nombre de usuario antes de guardar.");
-      setErrorOpen(true);
-      setLoading(false);
-      return;
+    if (ui.editingName) {
+      return setState({
+        ...state,
+        errorMsg: "Confirma el nombre antes de guardar",
+        errorOpen: true,
+      });
     }
-    try {
-      if (!loggedUser?.id) throw new Error("Sesión no válida");
 
-      // Eliminamos campos que no deben enviarse al la modificación del usuario
+    setUi({ ...ui, loading: true });
+
+    try {
       const {
         id,
         url_image,
@@ -163,98 +150,97 @@ export default function EditUserPage() {
         role,
         password,
         email,
-        ...datosPermitidos
+        ...data
       } = editedUser;
 
-      //IMPORTANTE SEGUIR EL ORDEN.
-      // 1. Actualizamos los datos del usuario
-      await api.put("/users/" + loggedUser.id, datosPermitidos);
+      await api.put("/users/" + loggedUser.id, data);
 
-      
-      // 2. Si hay una nueva imagen la subimos a Cloudinary
-      if (avatarFile) {
-        const formData = new FormData();
-        formData.append("avatar", avatarFile);
-        await api.put("/users/" + loggedUser.id + "/avatar", formData, {
+      if (avatar.file) {
+        const form = new FormData();
+        form.append("avatar", avatar.file);
+
+        await api.put(`/users/${loggedUser.id}/avatar`, form, {
           headers: { "Content-Type": "multipart/form-data" },
         });
       }
 
-      // 3. Reemplazamos los intereses del usuario
       await api.delete(`/userinterests/${loggedUser.id}/interests`);
-      const interestIds = editedUserInterests.map((i) => i.id);
-      if (interestIds.length > 0) {
+
+      if (editedUserInterests.length) {
         await api.post(`/userinterests/${loggedUser.id}/interests`, {
-          interestIds,
+          interestIds: editedUserInterests.map((i) => i.id),
         });
       }
 
+      // Recargar usuario actualizado
+      const res = await api.get("/users/" + loggedUser.id);
+      setLoggedUser(res.data.datos);
+
       navigate("/app/" + loggedUser.id);
-    } catch (error) {
-      console.error("Error detallado:", error);
-      setErrorMsg(error.response?.data?.mensaje || "Error al guardar cambios");
-      setErrorOpen(true);
-      setLoading(false);
+    } catch (e) {
+      setState({
+        ...state,
+        errorMsg: e.response?.data?.mensaje || "Error al guardar cambios",
+        errorOpen: true,
+      });
+      setUi({ ...ui, loading: false });
     }
   };
 
-  // Guarda el archivo seleccionado y genera una preview local
-  const handleImageChange = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    setAvatarFile(file);
-    setAvatarPreview(URL.createObjectURL(file));
-  };
+  const CustomField = ({ label, name, value }) => (
+    <Grid container spacing={1} sx={{ width: "100%", mt: 1 }}>
+      <Typography
+        sx={{ fontWeight: "bold", mb: 0.5, color: "#50C2AF" }}
+      >
+        {label}
+      </Typography>
+      <TextField
+        name={name}
+        fullWidth
+        multiline
+        value={value ?? ""}
+        onChange={handleChange}
+        sx={inputStyle}
+      />
+    </Grid>
+  );
 
   return (
-    <Grid
-      container
-      width="100%"
-      height="100%"
-      sx={{ px: 7 }}
-      justifyContent="center"
-    >
+    <Grid container sx={{ px: 7, py: 3 }} justifyContent="center">
       <Grid
         container
         spacing={3}
         justifyContent="center"
-        alignContent="flex-start"
         sx={{
           p: 3,
-          mt: "20px",
+          mt: 3,
           borderRadius: 2,
           background: "#D9FCF6",
           width: "75%",
         }}
       >
-        <Grid
-          container
-          direction="column"
-          alignItems="center"
-          sx={{ width: "100%" }}
-        >
-          {/* Avatar con overlay al hacer hover */}
+        <Grid container direction="column" alignItems="center">
           <Grid
             sx={{
               position: "relative",
-              width: "150px",
-              height: "150px",
+              width: 150,
+              height: 150,
               cursor: "pointer",
-              borderRadius: "50%",
             }}
-            onMouseEnter={() => setAvatarHovered(true)}
-            onMouseLeave={() => setAvatarHovered(false)}
             onClick={() => fileInputRef.current.click()}
+            onMouseEnter={() => setUi({ ...ui, avatarHovered: true })}
+            onMouseLeave={() => setUi({ ...ui, avatarHovered: false })}
           >
             <Avatar
               src={
-                avatarPreview ||
+                avatar.preview ||
                 editedUser.url_image ||
                 "/no_user_avatar_image.png"
               }
-              style={{ width: "150px", height: "150px" }}
+              sx={{ width: 150, height: 150 }}
             />
-            {avatarHovered && (
+
+            {ui.avatarHovered && (
               <Grid
                 sx={{
                   position: "absolute",
@@ -269,256 +255,166 @@ export default function EditUserPage() {
                   justifyContent: "center",
                 }}
               >
-                <ImageIcon sx={{ color: "white", fontSize: "2rem" }} />
+                <ImageIcon sx={{ color: "white" }} />
               </Grid>
             )}
+
             <input
               type="file"
-              accept="image/*"
               ref={fileInputRef}
               style={{ display: "none" }}
-              onChange={handleImageChange}
+              onChange={(e) =>
+                setAvatar({
+                  file: e.target.files[0],
+                  preview: URL.createObjectURL(e.target.files[0]),
+                })
+              }
             />
           </Grid>
 
-          {/* Nombre de usuario editable */}
           <Grid
             container
             alignItems="center"
             justifyContent="center"
-            spacing={1}
+            sx={{ mt: 2 }}
           >
-            {editingName ? (
-              <>
-                <Grid>
-                  <TextField
-                    name="name"
-                    value={editedUser.name ?? ""}
-                    onChange={handleChange}
-                    size="small"
-                    sx={{
-                      background: "#FFFFFF",
-                      borderRadius: 2,
-                      "& .MuiOutlinedInput-root": { borderRadius: 2 },
-                      "& .MuiOutlinedInput-notchedOutline": { border: "none" },
-                    }}
-                  />
-                </Grid>
-                <Grid>
-                  <IconButton
-                    onClick={handleUsernameExist}
-                    sx={{ color: "#50C2AF" }}
-                  >
-                    <CheckIcon />
-                  </IconButton>
-                </Grid>
-                {/* Error especifico del nombre */}
-                <ErrorMessage
-                  message={nameErrorMsg}
-                  open={nameErrorOpen}
-                  setOpen={setNameErrorOpen}
+            {ui.editingName ? (
+              <Grid sx={{ display: "flex", alignItems: "center" }}>
+                <TextField
+                  name="name"
+                  value={editedUser.name ?? ""}
+                  onChange={handleChange}
+                  size="small"
+                  sx={inputStyle}
                 />
-              </>
+                <IconButton
+                  onClick={handleUsernameExist}
+                  sx={{ color: "#50C2AF" }}
+                >
+                  <CheckIcon />
+                </IconButton>
+              </Grid>
             ) : (
               <>
-                <Grid>
-                  <Typography
-                    sx={{
-                      fontWeight: "bold",
-                      fontSize: "1.5rem",
-                      color: "#50C2AF",
-                    }}
-                  >
-                    {"@" + editedUser.name}
-                  </Typography>
-                </Grid>
-                <Grid>
-                  <IconButton
-                    onClick={() => setEditingName(true)}
-                    sx={{ color: "#50C2AF" }}
-                  >
-                    <EditIcon />
-                  </IconButton>
-                </Grid>
+                <Typography
+                  sx={{
+                    fontWeight: "bold",
+                    fontSize: "1.5rem",
+                    color: "#50C2AF",
+                  }}
+                >
+                  @{editedUser.name}
+                </Typography>
+                <IconButton
+                  onClick={() => setUi({ ...ui, editingName: true })}
+                  sx={{ color: "#50C2AF" }}
+                >
+                  <EditIcon />
+                </IconButton>
               </>
             )}
           </Grid>
 
-          {/* Descripcion */}
-          <Grid container spacing={1} sx={{ width: "100%", mt: 1 }}>
-            <Typography sx={{ fontWeight: "bold", mb: 0.5, color: "#50C2AF" }}>
-              Descripción
-            </Typography>
-            <TextField
-              id="bio"
-              name="bio"
-              variant="outlined"
-              fullWidth
-              multiline
-              value={editedUser.bio ?? ""}
-              onChange={handleChange}
-              sx={{
-                background: "#FFFFFF",
-                borderRadius: 2,
-                "& .MuiOutlinedInput-root": { borderRadius: 2 },
-                "& .MuiOutlinedInput-notchedOutline": { border: "none" },
-              }}
-            />
-          </Grid>
+          <CustomField label="Descripción" name="bio" value={editedUser.bio} />
+          <CustomField
+            label="Frase Corta"
+            name="short_sentece"
+            value={editedUser.short_sentece}
+          />
+          <CustomField
+            label="Objetivos"
+            name="goals"
+            value={editedUser.goals}
+          />
 
-          {/* Frase corta */}
-          <Grid container spacing={1} sx={{ width: "100%", mt: 1 }}>
-            <Typography sx={{ fontWeight: "bold", mb: 0.5, color: "#50C2AF" }}>
-              Frase Corta
-            </Typography>
-            <TextField
-              id="short_sentece"
-              name="short_sentece"
-              variant="outlined"
-              fullWidth
-              multiline
-              value={editedUser.short_sentece ?? ""}
-              onChange={handleChange}
-              sx={{
-                background: "#FFFFFF",
-                borderRadius: 2,
-                "& .MuiOutlinedInput-root": { borderRadius: 2 },
-                "& .MuiOutlinedInput-notchedOutline": { border: "none" },
-              }}
-            />
-          </Grid>
-
-          {/* Objetivos */}
-          <Grid container spacing={1} sx={{ width: "100%", mt: 1 }}>
-            <Typography sx={{ fontWeight: "bold", mb: 0.5, color: "#50C2AF" }}>
-              Objetivos
-            </Typography>
-            <TextField
-              id="goals"
-              name="goals"
-              variant="outlined"
-              fullWidth
-              multiline
-              value={editedUser.goals ?? ""}
-              onChange={handleChange}
-              sx={{
-                background: "#FFFFFF",
-                borderRadius: 2,
-                "& .MuiOutlinedInput-root": { borderRadius: 2 },
-                "& .MuiOutlinedInput-notchedOutline": { border: "none" },
-              }}
-            />
-          </Grid>
-
-          {/* Seccion de intereses */}
           <Grid
             container
             spacing={2}
             sx={{
               width: "100%",
-              mt: 1,
+              mt: 2,
               background: "#50C2AF",
               borderRadius: 2,
               p: 2,
             }}
           >
-            <Grid size={{ xs: 12 }}>
+            <Grid item xs={12}>
               <Typography
-                sx={{ fontWeight: "bold", mb: 0.5, color: "#FFFFFF" }}
+                sx={{ fontWeight: "bold", color: "#fff" }}
               >
                 Añadir intereses
               </Typography>
             </Grid>
-            <Grid size={{ xs: 12 }}>
-              <Autocomplete
-                options={allInterests}
-                getOptionLabel={(option) => option.name}
-                onChange={(event, value) => {
-                  if (value) anyadirInteres(value);
-                }}
-                renderInput={(params) => (
-                  <TextField
-                    {...params}
-                    placeholder="Buscar interés"
-                    sx={{
-                      background: "#FFFFFF",
-                      borderRadius: 1000,
-                      "& .MuiOutlinedInput-root": { borderRadius: 1000 },
-                      "& .MuiOutlinedInput-notchedOutline": {
-                        borderColor: "#50C2AF",
-                      },
-                      "&:hover .MuiOutlinedInput-notchedOutline": {
-                        borderColor: "#79DECE",
-                      },
-                      "& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline":
-                        { borderColor: "#50C2AF" },
-                    }}
-                  />
-                )}
-              />
+
+            <Autocomplete
+              fullWidth
+              options={allInterests}
+              getOptionLabel={(o) => o.name}
+              onChange={(_, v) =>
+                v &&
+                !editedUserInterests.find((i) => i.id === v.id) &&
+                setEditedUserInterests([...editedUserInterests, v])
+              }
+              renderInput={(p) => (
+                <TextField
+                  {...p}
+                  sx={{ ...inputStyle, borderRadius: 100 }}
+                />
+              )}
+            />
+
+            <Grid container spacing={1} sx={{ mt: 1 }}>
+              {editedUserInterests.map((i) => (
+                <InterestItem
+                  key={i.id}
+                  title={i.name}
+                  color={i.color}
+                  onDelete={() =>
+                    setEditedUserInterests(
+                      editedUserInterests.filter((x) => x.id !== i.id)
+                    )
+                  }
+                />
+              ))}
             </Grid>
-            {/* Lista de intereses seleccionados */}
-            {editedUserInterests.length > 0 && (
-              <Grid
-                container
-                spacing={2}
-                size={{ xs: 12 }}
-                sx={{ p: 2, borderRadius: 2 }}
-              >
-                {editedUserInterests.map((interest) => (
-                  <InterestItem
-                    key={interest.id}
-                    title={interest.name}
-                    color={interest.color}
-                    onDelete={() => quitarInteres(interest.id)}
-                  />
-                ))}
-              </Grid>
-            )}
           </Grid>
 
-          {/* Error general al guardar */}
-          <ErrorMessage
-            message={errorMsg}
-            open={errorOpen}
-            setOpen={setErrorOpen}
-          />
-
-          {/* Botones de accion */}
           <Grid
             container
-            justifyContent= {loggedUser.first_login == 1 ? "end" :"space-between"}
-            sx={{ pt: 2, width: "100%" }}
+            justifyContent="space-between"
+            sx={{ mt: 3, width: "100%" }}
           >
-            {loggedUser && loggedUser.first_login == 0 && (
-              <Button
-                variant="contained"
-                sx={{
-                  background: "#50C2AF",
-                  "&:hover": { background: "#79DECE" },
-                }}
-                onClick={() => navigate("/app/" + loggedUser.id)}
-              >
-                Volver
-              </Button>
-            )}
             <Button
-              disabled={loading}
               variant="contained"
-              sx={{
-                background: "#50C2AF",
-                "&:hover": { background: "#79DECE" },
-              }}
-              onClick={() => {
-                setLoading(true);
-                editarUsuario();
-              }}
+              onClick={() => navigate("/app/" + loggedUser.id)}
+              sx={{ background: "#50C2AF" }}
+            >
+              Volver
+            </Button>
+
+            <Button
+              disabled={ui.loading}
+              variant="contained"
+              onClick={editarUsuario}
+              sx={{ background: "#50C2AF" }}
             >
               Aplicar cambios
             </Button>
           </Grid>
         </Grid>
       </Grid>
+
+      <ErrorMessage
+        message={state.nameErrorMsg || state.errorMsg}
+        open={state.errorOpen || state.nameErrorOpen}
+        setOpen={() =>
+          setState({
+            ...state,
+            errorOpen: false,
+            nameErrorOpen: false,
+          })
+        }
+      />
     </Grid>
   );
 }

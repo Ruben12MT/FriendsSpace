@@ -1,23 +1,25 @@
 import { useEffect, useState } from "react";
-import userAuthStore from "../store/useAuthStore";
 import api from "../utils/api";
+import userAuthStore from "../store/useAuthStore";
 
 export function useUser() {
   const userId = userAuthStore((state) => state.userId);
-  const [loggedUser, setLoggedUser] = useState({});
+  const [loggedUser, setLoggedUser] = useState(null);
 
   useEffect(() => {
-    if (!userId) return;
-    async function findUser() {
+    async function loadUser() {
+      if (!userId) return;
+
       try {
         const res = await api.get("/users/" + userId);
         setLoggedUser(res.data.datos);
-      } catch (error) {
-        console.log(error.message);
+      } catch (err) {
+        setLoggedUser(null);
       }
     }
-    findUser();
+
+    loadUser();
   }, [userId]);
 
-  return { loggedUser };
+  return { loggedUser, setLoggedUser };
 }

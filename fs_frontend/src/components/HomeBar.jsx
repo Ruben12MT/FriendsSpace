@@ -12,13 +12,15 @@ export default function HomeBar() {
   const [isAuth, setIsAuth] = useState(false);
 
   useEffect(() => {
-    // Chequeo silencioso al cargar el Home
-    checkSession().then((res) => {
-      if (res.isAuth) {
-        setIsAuth(true);
-      }
-    });
+    async function check() {
+      const res = await checkSession();
+      console.log(res);
+      setIsAuth(res.isAuth);
+    }
+
+    check();
   }, []);
+
   return (
     <AppBar position="static" color="default">
       <Toolbar>

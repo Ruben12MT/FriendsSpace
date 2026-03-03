@@ -67,6 +67,8 @@ class UserController {
           user: {
             email: usuarioBuscado.email,
             name: usuarioBuscado.name,
+            first_login: usuarioBuscado.first_login,
+
           },
         });
     } catch (err) {
@@ -239,6 +241,7 @@ class UserController {
         name: nameLimpio,
         email: emailMinus,
         password: passwordLimpia,
+        first_login: 1,
       });
 
       const { password: passwdOut, ...newUserSinPasswd } = newUser.toJSON();

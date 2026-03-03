@@ -9,6 +9,7 @@ import Visibility from "@mui/icons-material/Visibility";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
 import ErrorMessage from "../components/ErrorMessage";
 import api from "../utils/api";
+import userAuthStore from "../store/useAuthStore";
 
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
@@ -25,6 +26,8 @@ export default function LoginPage() {
     password: false,
   });
 
+  const setUserId = userAuthStore((state) => state.setUserId);
+
   const iniciarSesion = async () => {
     try {
       setErrorsBool({
@@ -38,10 +41,13 @@ export default function LoginPage() {
         password,
       });
 
+      // Guardar el id en Zustand
+      setUserId(res.data.user.id);
+
       if (res.data.user.first_login == 0) {
         navigate("/app/searchnewfriends");
       } else {
-        navigate("/app/" + res.data.user.id + "/edit");
+        navigate("/app/user/edit");
       }
     } catch (error) {
       setErrorMsg(error.response?.data?.mensaje || "Error al conectar");
