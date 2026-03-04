@@ -353,7 +353,7 @@ export default function EditUserPage() {
                 setEditedUserInterests([...editedUserInterests, v])
               }
               renderInput={(p) => (
-                <TextField {...p} sx={{ ...inputStyle, borderRadius: 100 }} />
+                <TextField placeholder="Buscar intereses" {...p} sx={{ ...inputStyle, borderRadius: 100 }} />
               )}
             />
 
