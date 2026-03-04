@@ -131,7 +131,7 @@ export default function UserPage() {
         {/* Intereses */}
         {userInterests.length > 0 && (
           <Grid size={{ xs: 12 }}>
-            <Grid container direction="column" spacing={1} sx={{ background: "#50C2AF", borderRadius: 1000, py: 3, px: 4 }}>
+            <Grid container direction="column" spacing={1} sx={{ background: "#50C2AF", borderRadius: 12, py: 3, px: 4 }}>
               <Typography sx={{ fontWeight: "bold", color: "#FFFFFF", mb: 1 }}>
                 Intereses
               </Typography>

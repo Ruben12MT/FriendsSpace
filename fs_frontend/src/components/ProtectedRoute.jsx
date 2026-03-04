@@ -3,8 +3,11 @@ import { Navigate } from "react-router-dom";
 import { checkSession } from "../utils/checkSession";
 import { CircularProgress, Box } from "@mui/material";
 import userAuthStore from "../store/useAuthStore";
+import { useFirstLogin } from "../hooks/useFirstLogin";
 
 const ProtectedRoute = ({ children }) => {
+  useFirstLogin();
+
   const [loading, setLoading] = useState(true);
   const [isAuth, setIsAuth] = useState(false);
 
