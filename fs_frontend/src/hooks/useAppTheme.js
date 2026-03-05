@@ -1,6 +1,7 @@
 import themeAppStore from "../store/appThemeStore";
 const themes = {
     default: {
+      name: "default",
       fieldsText: "#1d1300",
       primaryText: "#76520eff",
       secondaryText: "#a89879",
@@ -12,6 +13,8 @@ const themes = {
       links: "#c9a227",
     },
     dark: {
+            name: "dark",
+
       fieldsText: "#d1d1d1",
       primaryText: "#fcf1c7", 
       secondaryText: "#c9a227", 
@@ -23,6 +26,7 @@ const themes = {
       links: "#c9a227",
     },
     aquamarine: {
+      name: "aquamarine",
       fieldsText: "#dbfff8",
       primaryText: "#b3fff0", 
       secondaryText: "#184e43", 

@@ -4,14 +4,13 @@ import Typography from "@mui/material/Typography";
 import Button from "@mui/material/Button";
 import ContrastIcon from "@mui/icons-material/Contrast";
 import { Grid, IconButton, Box, Tooltip } from "@mui/material";
-import CircleIcon from "@mui/icons-material/Circle";
+import SentimentVerySatisfiedTwoToneIcon from "@mui/icons-material/SentimentVerySatisfiedTwoTone";
+import SentimentSatisfiedAltTwoToneIcon from "@mui/icons-material/SentimentSatisfiedAltTwoTone";
 import themes, { useAppTheme } from "../hooks/useAppTheme";
 import appThemeStore from "../store/appThemeStore";
 
 export default function ThemeToggler() {
   const [anchorEl, setAnchorEl] = React.useState(null);
-;
-
   const handleClick = (event) => {
     setAnchorEl(event.currentTarget);
   };
@@ -38,9 +37,8 @@ export default function ThemeToggler() {
         aria-describedby={id}
         aria-label="Cambiar tema"
         onClick={handleClick}
-        
       >
-        <Tooltip title={open ? "": "Cambiar el tema de la app"}>
+        <Tooltip title={open ? "" : "Cambiar el tema de la app"}>
           <ContrastIcon sx={{ color: theme.fieldsText }} />
         </Tooltip>
       </IconButton>
@@ -51,11 +49,11 @@ export default function ThemeToggler() {
         onClose={handleClose}
         anchorOrigin={{
           vertical: "bottom",
-          horizontal: "right",  
+          horizontal: "right",
         }}
         transformOrigin={{
           vertical: "top",
-          horizontal: "right", 
+          horizontal: "right",
         }}
       >
         <Grid>
@@ -67,11 +65,18 @@ export default function ThemeToggler() {
                   aria-label="Cambiar tema"
                   onClick={() => {
                     setAppTheme(key);
-                    handleClose();
                   }}
-                  sx={{}} 
+                  sx={{}}
                 >
-                  <CircleIcon sx={{ color: value.primaryBack }} />
+                  {key === theme.name ? (
+                    <SentimentVerySatisfiedTwoToneIcon
+                      sx={{ color: value.primaryBack , fontSize: "30px" , borderRadius: 1000}}
+                    />
+                  ) : (
+                    <SentimentSatisfiedAltTwoToneIcon
+                      sx={{ color: value.primaryBack }}
+                    />
+                  )}
                 </IconButton>
               </Tooltip>
             );
