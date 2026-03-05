@@ -44,7 +44,6 @@ export default function LoginPage() {
         password,
       });
 
-      // Guardar el id en Zustand
       setUserId(res.data.user.id);
 
       if (res.data.user.first_login == 0) {
@@ -58,7 +57,6 @@ export default function LoginPage() {
     }
   };
 
-  // La referencia a password
   const passwordRef = useRef(null);
 
   return (
@@ -125,50 +123,66 @@ export default function LoginPage() {
             fullWidth
             value={emailOrUsername}
             error={errorsBool.emailOrUsername}
-            onChange={(e) => setEmailOrUsername(e.target.value)}
+            onChange={(e) => {
+              setEmailOrUsername(e.target.value);
+              setErrorsBool({ ...errorsBool, emailOrUsername: false });
+            }}
             onKeyDown={(e) => {
               if (e.key === "Enter") passwordRef.current.focus();
             }}
             sx={{
               marginTop: 2,
-              // Fondo general del componente
               background: theme.tertiaryBack,
-              borderRadius: "4px", // Para que el fondo no se salga de los bordes redondeados
+              borderRadius: "4px",
 
-              // 1. Estilos del INPUT y AUTOFILL
               "& .MuiInputBase-input": {
-                color: theme.fieldsText,
+                color: errorsBool.emailOrUsername ? "red" : theme.fieldsText,
                 "&:-webkit-autofill": {
-                  WebkitBoxShadow: `0 0 0 1000px ${theme.tertiaryBack} inset`, // "Tapa" el blanco del navegador
-                  WebkitTextFillColor: theme.fieldsText, // Color del texto autocompletado
-                  transition: "background-color 5000s ease-in-out 0s", // Evita el parpadeo de color
+                  WebkitBoxShadow: `0 0 0 1000px ${theme.tertiaryBack} inset`,
+                  WebkitTextFillColor: errorsBool.emailOrUsername
+                    ? "red"
+                    : theme.fieldsText,
+                  transition: "background-color 5000s ease-in-out 0s",
+                },
+                "&:-webkit-autofill:hover": {
+                  WebkitTextFillColor: errorsBool.emailOrUsername
+                    ? "red"
+                    : theme.fieldsText,
+                },
+                "&:-webkit-autofill:focus": {
+                  WebkitTextFillColor: errorsBool.emailOrUsername
+                    ? "red"
+                    : theme.fieldsText,
                 },
               },
 
-              // 2. Estilos de la ETIQUETA (Label)
               "& .MuiInputLabel-root": {
-                color: theme.fieldsText,
+                color: errorsBool.emailOrUsername ? "red" : theme.fieldsText,
               },
               "& .MuiInputLabel-root.Mui-focused": {
-                color: theme.fieldsText,
+                color: errorsBool.emailOrUsername ? "red" : theme.primaryText,
               },
 
-              // 3. Estilos del BORDE (OutlinedInput)
               "& .MuiOutlinedInput-root": {
                 "& fieldset": {
-                  borderColor: theme.fieldsText,
+                  borderColor: errorsBool.emailOrUsername
+                    ? "red"
+                    : theme.fieldsText,
                 },
                 "&:hover fieldset": {
-                  borderColor: theme.primaryText,
+                  borderColor: errorsBool.emailOrUsername
+                    ? "red"
+                    : theme.primaryText,
                 },
                 "&.Mui-focused fieldset": {
-                  borderColor: theme.primaryText,
+                  borderColor: errorsBool.emailOrUsername
+                    ? "red"
+                    : theme.primaryText,
                 },
               },
 
-              // 4. Color de ICONOS (si los hubiera, como el de visibilidad)
               "& .MuiIconButton-root": {
-                color: theme.primaryText,
+                color: errorsBool.emailOrUsername ? "red" : theme.primaryText,
               },
             }}
           />
@@ -180,40 +194,37 @@ export default function LoginPage() {
             type={showPassword ? "text" : "password"}
             sx={{
               marginTop: 2,
-              // Fondo del campo
               background: theme.tertiaryBack,
-              // Color del texto que escribe el usuario
               "& .MuiInputBase-input": {
-                color: theme.fieldsText,
+                color: errorsBool.password ? "red" : theme.fieldsText,
               },
-              // Color de la etiqueta (Label) cuando no está enfocada
               "& .MuiInputLabel-root": {
-                color: theme.fieldsText,
+                color: errorsBool.password ? "red" : theme.fieldsText,
               },
-              // Color de la etiqueta cuando está enfocada (shrink)
               "& .MuiInputLabel-root.Mui-focused": {
-                color: theme.fieldsText,
+                color: errorsBool.password ? "red" : theme.primaryText,
               },
-              // Estilos del borde (OutlinedInput)
               "& .MuiOutlinedInput-root": {
                 "& fieldset": {
-                  borderColor: theme.fieldsText, // Borde normal
+                  borderColor: errorsBool.password ? "red" : theme.fieldsText,
                 },
                 "&:hover fieldset": {
-                  borderColor: theme.primaryText, // Borde al pasar el mouse
+                  borderColor: errorsBool.password ? "red" : theme.primaryText,
                 },
                 "&.Mui-focused fieldset": {
-                  borderColor: theme.primaryText, // Borde al hacer click
+                  borderColor: errorsBool.password ? "red" : theme.primaryText,
                 },
               },
-              // Color del icono de visibilidad
               "& .MuiIconButton-root": {
                 color: theme.primaryText,
               },
             }}
             fullWidth
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            onChange={(e) => {
+              setPassword(e.target.value);
+              setErrorsBool({ ...errorsBool, password: false });
+            }}
             error={errorsBool.password}
             slotProps={{
               input: {

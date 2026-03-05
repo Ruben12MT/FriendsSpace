@@ -38,7 +38,7 @@ export default function ThemeToggler() {
         aria-describedby={id}
         aria-label="Cambiar tema"
         onClick={handleClick}
-        sx={{}} // Para que combine con tu paleta
+        
       >
         <Tooltip title={open ? "": "Cambiar el tema de la app"}>
           <ContrastIcon sx={{ color: theme.fieldsText }} />
@@ -51,11 +51,11 @@ export default function ThemeToggler() {
         onClose={handleClose}
         anchorOrigin={{
           vertical: "bottom",
-          horizontal: "right", // Se alinea al borde derecho del botón
+          horizontal: "right",  
         }}
         transformOrigin={{
           vertical: "top",
-          horizontal: "right", // Crece hacia la izquierda para no salirse de la pantalla
+          horizontal: "right", 
         }}
       >
         <Grid>
@@ -69,7 +69,7 @@ export default function ThemeToggler() {
                     setAppTheme(key);
                     handleClose();
                   }}
-                  sx={{}} // Para que combine con tu paleta
+                  sx={{}} 
                 >
                   <CircleIcon sx={{ color: value.primaryBack }} />
                 </IconButton>

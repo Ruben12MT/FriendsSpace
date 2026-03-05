@@ -10,14 +10,16 @@ import VisibilityOff from "@mui/icons-material/VisibilityOff";
 import api from "../utils/api";
 import { useNavigate } from "react-router-dom";
 import ErrorMessage from "../components/ErrorMessage";
+import ThemeToggler from "../components/themeToggler";
+import { useAppTheme } from "../hooks/useAppTheme";
 
 export default function RegisterPage() {
+  const theme = useAppTheme();
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfPassword, setShowConfPassword] = useState(false);
   const [errorOpen, setErrorOpen] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
-  // Estado de los atributos de un nuevo usuario:
   const [form, setForm] = useState({
     email: "",
     username: "",
@@ -35,7 +37,6 @@ export default function RegisterPage() {
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
     setErrorsBool({ ...errorsBool, [e.target.name]: false });
-
   };
 
   const handleClickShowPassword = () => {
@@ -46,14 +47,13 @@ export default function RegisterPage() {
     setShowConfPassword(!showConfPassword);
   };
 
-  // Llamamos un metodo al pulsar el botón registrar usuario
   async function registrarUsuario() {
     try {
       setErrorsBool({
-        email: form.email == "",
-        username: form.username == "",
-        password: form.password == "",
-        confirmPassword: form.confirmPassword == "",
+        email: form.email === "",
+        username: form.username === "",
+        password: form.password === "",
+        confirmPassword: form.confirmPassword === "",
       });
       if (form.password !== form.confirmPassword) {
         setErrorMsg("La contraseña no coincide");
@@ -81,10 +81,12 @@ export default function RegisterPage() {
       alignItems="center"
       style={{
         minHeight: "100vh",
-        backgroundImage: "url(/background.png)",
+        backgroundImage: "url(" + theme.backgroundImage + ")",
         backgroundSize: "cover",
       }}
     >
+      <ThemeToggler />
+
       <Paper
         elevation={4}
         sx={{
@@ -92,12 +94,9 @@ export default function RegisterPage() {
           maxWidth: 400,
           margin: "20px auto",
           borderRadius: "20px",
+          background: theme.secondaryBack,
         }}
       >
-        {
-          // Titulo y logo de la pagina
-        }
-
         <Grid container justifyContent="center" spacing={2} sx={{ mb: 1 }}>
           <Button
             component={Link}
@@ -115,13 +114,12 @@ export default function RegisterPage() {
             variant="h5"
             component="div"
             gutterBottom
-            sx={{ color: "#C9A227" }}
+            sx={{ color: theme.primaryText }}
           >
             Registrar nueva cuenta
           </Typography>
         </Grid>
 
-        {/* Formulario de registro */}
         <Grid container spacing={2}>
           <TextField
             id="username"
@@ -132,8 +130,38 @@ export default function RegisterPage() {
             required
             onChange={handleChange}
             error={errorsBool.username}
-          ></TextField>
-
+            sx={{
+              marginTop: 2,
+              background: theme.tertiaryBack,
+              "& .MuiInputBase-input": {
+                color: errorsBool.username ? "red" : theme.fieldsText,
+                "&:-webkit-autofill": {
+                  WebkitBoxShadow: `0 0 0 1000px ${theme.tertiaryBack} inset`,
+                  WebkitTextFillColor: errorsBool.username
+                    ? "red"
+                    : theme.fieldsText,
+                  transition: "background-color 5000s ease-in-out 0s",
+                },
+              },
+              "& .MuiInputLabel-root": {
+                color: errorsBool.username ? "red" : theme.fieldsText,
+              },
+              "& .MuiInputLabel-root.Mui-focused": {
+                color: errorsBool.username ? "red" : theme.primaryText,
+              },
+              "& .MuiOutlinedInput-root": {
+                "& fieldset": {
+                  borderColor: errorsBool.username ? "red" : theme.fieldsText,
+                },
+                "&:hover fieldset": {
+                  borderColor: errorsBool.username ? "red" : theme.primaryText,
+                },
+                "&.Mui-focused fieldset": {
+                  borderColor: errorsBool.username ? "red" : theme.primaryText,
+                },
+              },
+            }}
+          />
           <TextField
             id="email"
             name="email"
@@ -143,7 +171,38 @@ export default function RegisterPage() {
             required
             onChange={handleChange}
             error={errorsBool.email}
-          ></TextField>
+            sx={{
+              marginTop: 2,
+              background: theme.tertiaryBack,
+              "& .MuiInputBase-input": {
+                color: errorsBool.email ? "red" : theme.fieldsText,
+                "&:-webkit-autofill": {
+                  WebkitBoxShadow: `0 0 0 1000px ${theme.tertiaryBack} inset`,
+                  WebkitTextFillColor: errorsBool.email
+                    ? "red"
+                    : theme.fieldsText,
+                  transition: "background-color 5000s ease-in-out 0s",
+                },
+              },
+              "& .MuiInputLabel-root": {
+                color: errorsBool.email ? "red" : theme.fieldsText,
+              },
+              "& .MuiInputLabel-root.Mui-focused": {
+                color: errorsBool.email ? "red" : theme.primaryText,
+              },
+              "& .MuiOutlinedInput-root": {
+                "& fieldset": {
+                  borderColor: errorsBool.email ? "red" : theme.fieldsText,
+                },
+                "&:hover fieldset": {
+                  borderColor: errorsBool.email ? "red" : theme.primaryText,
+                },
+                "&.Mui-focused fieldset": {
+                  borderColor: errorsBool.email ? "red" : theme.primaryText,
+                },
+              },
+            }}
+          />
 
           <TextField
             id="password"
@@ -151,46 +210,75 @@ export default function RegisterPage() {
             label="Contraseña"
             variant="outlined"
             type={showPassword ? "text" : "password"}
-            sx={{ marginTop: 2 }}
             fullWidth
             required
             onChange={handleChange}
+            error={errorsBool.password}
+            sx={{
+              marginTop: 2,
+              background: theme.tertiaryBack,
+              "& .MuiInputBase-input": {
+                color: errorsBool.password ? "red" : theme.fieldsText,
+              },
+              "& .MuiInputLabel-root": {
+                color: errorsBool.password ? "red" : theme.fieldsText,
+              },
+              "& .MuiInputLabel-root.Mui-focused": {
+                color: errorsBool.password ? "red" : theme.primaryText,
+              },
+              "& .MuiOutlinedInput-root": {
+                "& fieldset": {
+                  borderColor: errorsBool.password ? "red" : theme.fieldsText,
+                },
+                "&:hover fieldset": {
+                  borderColor: errorsBool.password ? "red" : theme.primaryText,
+                },
+                "&.Mui-focused fieldset": {
+                  borderColor: errorsBool.password ? "red" : theme.primaryText,
+                },
+              },
+              "& .MuiIconButton-root": {
+                color: theme.primaryText,
+              },
+            }}
             slotProps={{
               input: {
                 endAdornment: (
                   <InputAdornment position="end">
-                    <IconButton
-                      aria-label="cambiar visibilidad de contraseña"
-                      onClick={handleClickShowPassword}
-                      edge="end"
-                    >
+                    <IconButton onClick={handleClickShowPassword} edge="end">
                       {showPassword ? <VisibilityOff /> : <Visibility />}
                     </IconButton>
                   </InputAdornment>
                 ),
               },
             }}
-            error={errorsBool.password}
-          ></TextField>
+          />
 
           <TextField
-            required
             id="confirmPassword"
             name="confirmPassword"
             label="Confirmar contraseña"
             variant="outlined"
-            type={showConfPassword ? "text" : "password"}
-            sx={{ marginTop: 2 }}
             fullWidth
+            required
+            type={showConfPassword ? "text" : "password"}
+            value={form.confirmPassword || ""}
             onChange={handleChange}
+            error={errorsBool.confirmPassword}
+            color={
+              form.confirmPassword !== "" &&
+              form.confirmPassword === form.password
+                ? "success"
+                : "primary"
+            }
             slotProps={{
               input: {
                 endAdornment: (
                   <InputAdornment position="end">
                     <IconButton
-                      aria-label="cambiar visibilidad de contraseña"
                       onClick={handleClickShowConfPassword}
                       edge="end"
+                      sx={{ color: theme.primaryText }}
                     >
                       {showConfPassword ? <VisibilityOff /> : <Visibility />}
                     </IconButton>
@@ -198,18 +286,65 @@ export default function RegisterPage() {
                 ),
               },
             }}
-            color={
-              form.confirmPassword !== "" &&
-              form.confirmPassword === form.password
-                ? "success"
-                : "primary"
-            }
-            focused={
-              form.confirmPassword !== "" &&
-              form.confirmPassword === form.password
-            }
-            error={errorsBool.confirmPassword}
-          ></TextField>
+            sx={{
+              marginTop: 2,
+              background: theme.tertiaryBack,
+              borderRadius: "4px",
+
+              "& .MuiInputBase-input": {
+                color: errorsBool.confirmPassword
+                  ? "red"
+                  : form.confirmPassword !== "" &&
+                      form.confirmPassword === form.password
+                    ? "#4caf50"
+                    : theme.fieldsText,
+              },
+
+              "& .MuiInputLabel-root": {
+                color: errorsBool.confirmPassword
+                  ? "red"
+                  : form.confirmPassword !== "" &&
+                      form.confirmPassword === form.password
+                    ? "#4caf50"
+                    : theme.fieldsText,
+              },
+              "& .MuiInputLabel-root.Mui-focused": {
+                color: errorsBool.confirmPassword
+                  ? "red"
+                  : form.confirmPassword !== "" &&
+                      form.confirmPassword === form.password
+                    ? "#4caf50"
+                    : theme.primaryText,
+              },
+
+              "& .MuiOutlinedInput-root": {
+                "& fieldset": {
+                  borderColor: errorsBool.confirmPassword
+                    ? "red"
+                    : form.confirmPassword !== "" &&
+                        form.confirmPassword === form.password
+                      ? "#4caf50"
+                      : theme.fieldsText,
+                },
+                "&:hover fieldset": {
+                  borderColor: errorsBool.confirmPassword
+                    ? "red"
+                    : form.confirmPassword !== "" &&
+                        form.confirmPassword === form.password
+                      ? "#4caf50"
+                      : theme.primaryText,
+                },
+                "&.Mui-focused fieldset": {
+                  borderColor: errorsBool.confirmPassword
+                    ? "red"
+                    : form.confirmPassword !== "" &&
+                        form.confirmPassword === form.password
+                      ? "#4caf50"
+                      : theme.primaryText,
+                },
+              },
+            }}
+          />
         </Grid>
         <ErrorMessage
           message={errorMsg}
@@ -220,19 +355,18 @@ export default function RegisterPage() {
           <Button
             variant="contained"
             onClick={registrarUsuario}
-            color="primary"
-            sx={{ marginTop: 2 }}
+            sx={{ marginTop: 2, background: theme.variantBack }}
           >
             Registrar Usuario
           </Button>
         </Grid>
 
         <Grid container justifyContent="center" sx={{ mt: 2 }}>
-          <Typography variant="body2" color="textSecondary">
+          <Typography variant="body2" sx={{ color: theme.primaryText }}>
             ¿Ya tienes cuenta?{" "}
             <Link
               to="/login"
-              style={{ textDecoration: "none", color: "#C9A227" }}
+              style={{ textDecoration: "none", color: theme.links }}
             >
               Inicia sesión aquí
             </Link>

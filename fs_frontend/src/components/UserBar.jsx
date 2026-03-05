@@ -1,7 +1,5 @@
-// Este componente sera una appbar para los usuarios registrados en la app
-// Incluye logo, nombre de la app y botones de navegación.
 
-import React, { useEffect } from "react";
+import React from "react";
 import { Link, Outlet } from "react-router-dom";
 import AppBar from "@mui/material/AppBar";
 import Box from "@mui/material/Box";
@@ -20,7 +18,6 @@ import { Grid } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import api from "../utils/api";
 import { useUser } from "../hooks/useUser";
-import { useFirstLogin } from "../hooks/useFirstLogin";
 
 const pages = ["Buscar friends", "Anuncios", "Chats"];
 
@@ -50,8 +47,6 @@ export default function UserBar() {
     }
   };
 
-  // PROTECCIÓN CRÍTICA:
-  // Mientras loggedUser es null (al refrescar la página), renderizamos una barra mínima
   if (!loggedUser) {
     return (
       <Grid
@@ -81,7 +76,6 @@ export default function UserBar() {
     );
   }
 
-  // RENDER NORMAL CUANDO loggedUser YA EXISTE
   return (
     <Grid
       container

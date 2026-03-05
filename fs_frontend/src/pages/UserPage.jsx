@@ -9,16 +9,13 @@ export default function UserPage() {
   const navigate = useNavigate();
   const { loggedUser } = useUser();
 
-  // useParams no recibe argumentos
   const { id: userIdAct } = useParams();
 
-  // Evita errores si loggedUser aún no está cargado
   const isLoggedUser = loggedUser?.id == userIdAct;
 
   const [visitedUser, setVisitedUser] = useState({});
   const [userInterests, setUserInterests] = useState([]);
 
-  // Cargar datos del usuario visitado (solo si no es el usuario logueado)
   useEffect(() => {
     async function fetchUser() {
       try {
@@ -48,7 +45,6 @@ export default function UserPage() {
   // Usuario a mostrar (propio o visitado)
   const userToShow = isLoggedUser ? loggedUser : visitedUser;
 
-  // Evita pantalla en blanco sin feedback
   if (!userToShow?.email) return <div>Cargando usuario...</div>;
 
   return (

@@ -16,7 +16,7 @@ const ProtectedRoute = ({ children }) => {
 
   useEffect(() => {
     async function validate() {
-      // Si Zustand ya tiene userId → guardarlo en localStorage
+      // Si Zustand ya tiene userId guardarlo en localStorage
       if (userId) {
         localStorage.setItem("userId", userId);
         setIsAuth(true);
@@ -24,7 +24,7 @@ const ProtectedRoute = ({ children }) => {
         return;
       }
 
-      // Si NO hay userId → validar sesión
+      // Si no hay userId validar sesión
       try {
         const res = await checkSession();
 

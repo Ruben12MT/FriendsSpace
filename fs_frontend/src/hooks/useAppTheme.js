@@ -1,7 +1,7 @@
 import themeAppStore from "../store/appThemeStore";
 const themes = {
     light: {
-      fieldsText: "rgb(29, 19, 0)",
+      fieldsText: "#1d1300",
       primaryText: "#76520eff",
       secondaryText: "#a89879",
       primaryBack: "#c9a227",
