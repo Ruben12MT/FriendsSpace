@@ -59,19 +59,18 @@ export default function UserBar() {
         direction="column"
         sx={{
           minHeight: "100vh",
-          background: "#50C2AF",
         }}
       >
         <AppBar
           position="sticky"
-          elevation={0}
-          sx={{ backgroundColor: "white", color: "#50C2AF" }}
+          elevation={9}
+          sx={{ backgroundColor: "white" }}
         >
           <Container maxWidth="100%">
             <Toolbar disableGutters>
               <Avatar
                 src="/no_user_avatar_image.png"
-                sx={{ width: 45, height: 45, border: "#50C2AF solid 1px" }}
+                sx={{ width: 45, height: 45, border: "#C9A227 solid 1px" }}
               />
             </Toolbar>
           </Container>
@@ -87,15 +86,16 @@ export default function UserBar() {
     <Grid
       container
       direction="column"
-      sx={{
+      style={{
         minHeight: "100vh",
-        background: "#50C2AF",
+        backgroundImage: "url(/background.png)",
+        backgroundSize: "cover",
       }}
     >
       <AppBar
         position="sticky"
         elevation={0}
-        sx={{ backgroundColor: "white", color: "#50C2AF" }}
+        sx={{ backgroundColor: "white", color: "#C9A227" }}
       >
         <Container maxWidth="100%">
           <Toolbar disableGutters>
@@ -208,7 +208,7 @@ export default function UserBar() {
                 <Button
                   key={page}
                   onClick={handleCloseNavMenu}
-                  sx={{ my: 0, color: "#50C2AF", display: "block" }}
+                  sx={{ my: 0, color: "#C9A227", display: "block" }}
                 >
                   {page}
                 </Button>
@@ -220,7 +220,7 @@ export default function UserBar() {
                 <IconButton onClick={handleOpenUserMenu} sx={{ p: 0 }}>
                   <Avatar
                     alt="Foto del usuario"
-                    sx={{ border: "#50C2AF solid 1px" }}
+                    sx={{ border: "#C9A227 solid 1px" }}
                     src={loggedUser.url_image || "/no_user_avatar_image.png"}
                   />
                 </IconButton>
@@ -252,7 +252,7 @@ export default function UserBar() {
               <IconButton aria-label="notificaciones" size="large">
                 <NotificationsIcon
                   fontSize="inherit"
-                  sx={{ color: "#50C2AF" }}
+                  sx={{ color: "#C9A227" }}
                 />
               </IconButton>
             </Box>

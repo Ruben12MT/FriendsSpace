@@ -311,7 +311,7 @@ export default function EditUserPage() {
         <Grid container direction="column" alignItems="center">
           {/* CAMPO: DESCRIPCIÓN */}
           <Grid container spacing={1} sx={{ width: "100%", mt: 1 }}>
-            <Typography sx={{ fontWeight: "bold", mb: 0.5, color: "#50C2AF" }}>
+            <Typography sx={{ fontWeight: "bold", mb: 0.5, color: "#C9A227" }}>
               Descripción
             </Typography>
             <TextField
@@ -326,7 +326,7 @@ export default function EditUserPage() {
 
           {/* CAMPO: FRASE CORTA */}
           <Grid container spacing={1} sx={{ width: "100%", mt: 1 }}>
-            <Typography sx={{ fontWeight: "bold", mb: 0.5, color: "#50C2AF" }}>
+            <Typography sx={{ fontWeight: "bold", mb: 0.5, color: "#C9A227" }}>
               Frase Corta
             </Typography>
             <TextField
@@ -341,7 +341,7 @@ export default function EditUserPage() {
 
           {/* CAMPO: OBJETIVOS */}
           <Grid container spacing={1} sx={{ width: "100%", mt: 1 }}>
-            <Typography sx={{ fontWeight: "bold", mb: 0.5, color: "#50C2AF" }}>
+            <Typography sx={{ fontWeight: "bold", mb: 0.5, color: "#C9A227" }}>
               Objetivos
             </Typography>
             <TextField
@@ -360,7 +360,7 @@ export default function EditUserPage() {
             sx={{
               width: "100%",
               mt: 2,
-              background: "#50C2AF",
+              background: "#C9A227",
               borderRadius: 2,
               p: 2,
             }}
@@ -416,7 +416,7 @@ export default function EditUserPage() {
               variant="contained"
               onClick={() => navigate("/app/" + loggedUser.id)}
               sx={{
-                background: "#50C2AF",
+                background: "#C9A227",
                 display: loggedUser.first_login == 1 ? "none" : "flex",
               }}
             >
@@ -427,7 +427,7 @@ export default function EditUserPage() {
               disabled={ui.loading}
               variant="contained"
               onClick={editarUsuario}
-              sx={{ background: "#50C2AF" }}
+              sx={{ background: "#C9A227" }}
             >
               {loggedUser.first_login == 1 && !edited
                 ? "Saltar"

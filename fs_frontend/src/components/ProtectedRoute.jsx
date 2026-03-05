@@ -53,7 +53,7 @@ const ProtectedRoute = ({ children }) => {
   if (loading) {
     return (
       <Box sx={{ minHeight: "100vh", display: "flex", justifyContent: "center", alignItems: "center" }}>
-        <CircularProgress sx={{ color: "#50C2AF" }} />
+        <CircularProgress sx={{ color: "#C9A227" }} />
       </Box>
     );
   }

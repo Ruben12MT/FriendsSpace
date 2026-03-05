@@ -115,7 +115,7 @@ export default function RegisterPage() {
             variant="h5"
             component="div"
             gutterBottom
-            sx={{ color: "#50C2AF" }}
+            sx={{ color: "#C9A227" }}
           >
             Registrar nueva cuenta
           </Typography>
@@ -232,7 +232,7 @@ export default function RegisterPage() {
             ¿Ya tienes cuenta?{" "}
             <Link
               to="/login"
-              style={{ textDecoration: "none", color: "#50C2AF" }}
+              style={{ textDecoration: "none", color: "#C9A227" }}
             >
               Inicia sesión aquí
             </Link>

@@ -58,12 +58,12 @@ export default function UserPage() {
         direction="column"
         spacing={2}
         size={{ xs: 12, md: 7 }}
-        sx={{ background: "#79DECE", borderRadius: 3, p: 3 }}
+        sx={{ background: "#fad643ff", borderRadius: 3, p: 3 }}
       >
 
         {/* Tarjeta principal */}
         <Grid size={{ xs: 12 }}>
-          <Grid sx={{ background: "#50C2AF", borderRadius: "12px 12px 0 0", height: "12px" }} />
+          <Grid sx={{ background: "#C9A227", borderRadius: "12px 12px 0 0", height: "12px" }} />
           <Grid container spacing={2} sx={{ background: "#FFFFFF", borderRadius: "0 0 12px 12px", p: 3 }}>
 
             {/* Avatar + info */}
@@ -71,12 +71,12 @@ export default function UserPage() {
               <Grid>
                 <Avatar
                   src={userToShow.url_image ?? "/no_user_avatar_image.png"}
-                  sx={{ width: 90, height: 90, border: "#50C2AF solid 3px" }}
+                  sx={{ width: 90, height: 90, border: "#C9A227 solid 3px" }}
                 />
               </Grid>
 
               <Grid container direction="column" justifyContent="center" size={{ xs: "grow" }} spacing={0.5}>
-                <Typography sx={{ fontWeight: "bold", fontSize: "1.4rem", color: "#50C2AF" }}>
+                <Typography sx={{ fontWeight: "bold", fontSize: "1.4rem", color: "#C9A227" }}>
                   @{userToShow.name}
                 </Typography>
 
@@ -92,7 +92,7 @@ export default function UserPage() {
               </Grid>
 
               <Grid container direction="column" alignItems="flex-end" justifyContent="space-between" size={{ xs: "grow" }}>
-                <Typography sx={{ color: "#50C2AF", fontSize: "0.85rem", fontWeight: "bold" }}>
+                <Typography sx={{ color: "#C9A227", fontSize: "0.85rem", fontWeight: "bold" }}>
                   Miembro desde{" "}
                   {new Date(userToShow.created_at).toLocaleDateString("es-ES", {
                     day: "numeric",
@@ -105,7 +105,7 @@ export default function UserPage() {
                 {isLoggedUser && (
                   <Button
                     variant="contained"
-                    sx={{ mt: 1, background: "#50C2AF", "&:hover": { background: "#79DECE" }, borderRadius: 2 }}
+                    sx={{ mt: 1, background: "#C9A227", "&:hover": { background: "#dbb42cff" }, borderRadius: 2 }}
                     onClick={() => navigate("/app/user/edit")}
                   >
                     Editar perfil
@@ -131,7 +131,7 @@ export default function UserPage() {
         {/* Intereses */}
         {userInterests.length > 0 && (
           <Grid size={{ xs: 12 }}>
-            <Grid container direction="column" spacing={1} sx={{ background: "#50C2AF", borderRadius: 12, py: 3, px: 4 }}>
+            <Grid container direction="column" spacing={1} sx={{ background: "#c9a227", borderRadius: 12, py: 3, px: 4 }}>
               <Typography sx={{ fontWeight: "bold", color: "#FFFFFF", mb: 1 }}>
                 Intereses
               </Typography>

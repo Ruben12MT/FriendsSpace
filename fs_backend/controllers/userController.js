@@ -46,7 +46,7 @@ class UserController {
         });
       }
 
-      // 6. Si todo está OK, generar JWT
+      // 6. Si todo está OK, generar JWt
       const token = jwt.sign({ id: usuarioBuscado.id }, SECRET_JWT_KEY, {
         expiresIn: "1h",
       });

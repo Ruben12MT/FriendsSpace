@@ -10,7 +10,8 @@ import VisibilityOff from "@mui/icons-material/VisibilityOff";
 import ErrorMessage from "../components/ErrorMessage";
 import api from "../utils/api";
 import userAuthStore from "../store/useAuthStore";
-
+import { useAppTheme } from "../hooks/useAppTheme";
+import ThemeToggler from "../components/themeToggler";
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const handleClickShowPassword = () => {
@@ -27,6 +28,8 @@ export default function LoginPage() {
   });
 
   const setUserId = userAuthStore((state) => state.setUserId);
+
+  const theme = useAppTheme();
 
   const iniciarSesion = async () => {
     try {
@@ -61,22 +64,25 @@ export default function LoginPage() {
   return (
     <Grid
       container
+      direction={"column"}
       spacing={2}
       justifyContent="center"
       alignItems="center"
       style={{
         minHeight: "100vh",
-        backgroundImage: "url(/background.png)",
+        backgroundImage: "url(" + theme.backgroundImage + ")",
         backgroundSize: "cover",
       }}
     >
+      <ThemeToggler />
       <Paper
-        elevation={4}
+        elevation={8}
         sx={{
           padding: 3,
           maxWidth: 400,
           margin: "20px auto",
           borderRadius: "20px",
+          background: theme.secondaryBack,
         }}
       >
         {
@@ -90,7 +96,12 @@ export default function LoginPage() {
           >
             <Avatar
               src="/logo.png"
-              sx={{ width: 100, height: 100, margin: "0 auto" }}
+              sx={{
+                width: 100,
+                height: 100,
+                margin: "0 auto",
+                border: "2px solid " + theme.primaryText,
+              }}
             />
           </Button>
         </Grid>
@@ -99,7 +110,7 @@ export default function LoginPage() {
             variant="h5"
             component="div"
             gutterBottom
-            sx={{ color: "#50C2AF" }}
+            sx={{ color: theme.primaryText }}
           >
             Iniciar sesión
           </Typography>
@@ -118,14 +129,88 @@ export default function LoginPage() {
             onKeyDown={(e) => {
               if (e.key === "Enter") passwordRef.current.focus();
             }}
-          ></TextField>
+            sx={{
+              marginTop: 2,
+              // Fondo general del componente
+              background: theme.tertiaryBack,
+              borderRadius: "4px", // Para que el fondo no se salga de los bordes redondeados
+
+              // 1. Estilos del INPUT y AUTOFILL
+              "& .MuiInputBase-input": {
+                color: theme.fieldsText,
+                "&:-webkit-autofill": {
+                  WebkitBoxShadow: `0 0 0 1000px ${theme.tertiaryBack} inset`, // "Tapa" el blanco del navegador
+                  WebkitTextFillColor: theme.fieldsText, // Color del texto autocompletado
+                  transition: "background-color 5000s ease-in-out 0s", // Evita el parpadeo de color
+                },
+              },
+
+              // 2. Estilos de la ETIQUETA (Label)
+              "& .MuiInputLabel-root": {
+                color: theme.fieldsText,
+              },
+              "& .MuiInputLabel-root.Mui-focused": {
+                color: theme.fieldsText,
+              },
+
+              // 3. Estilos del BORDE (OutlinedInput)
+              "& .MuiOutlinedInput-root": {
+                "& fieldset": {
+                  borderColor: theme.fieldsText,
+                },
+                "&:hover fieldset": {
+                  borderColor: theme.primaryText,
+                },
+                "&.Mui-focused fieldset": {
+                  borderColor: theme.primaryText,
+                },
+              },
+
+              // 4. Color de ICONOS (si los hubiera, como el de visibilidad)
+              "& .MuiIconButton-root": {
+                color: theme.primaryText,
+              },
+            }}
+          />
           <TextField
             id="password"
             name="password"
             label="Contraseña"
             variant="outlined"
             type={showPassword ? "text" : "password"}
-            sx={{ marginTop: 2 }}
+            sx={{
+              marginTop: 2,
+              // Fondo del campo
+              background: theme.tertiaryBack,
+              // Color del texto que escribe el usuario
+              "& .MuiInputBase-input": {
+                color: theme.fieldsText,
+              },
+              // Color de la etiqueta (Label) cuando no está enfocada
+              "& .MuiInputLabel-root": {
+                color: theme.fieldsText,
+              },
+              // Color de la etiqueta cuando está enfocada (shrink)
+              "& .MuiInputLabel-root.Mui-focused": {
+                color: theme.fieldsText,
+              },
+              // Estilos del borde (OutlinedInput)
+              "& .MuiOutlinedInput-root": {
+                "& fieldset": {
+                  borderColor: theme.fieldsText, // Borde normal
+                },
+                "&:hover fieldset": {
+                  borderColor: theme.primaryText, // Borde al pasar el mouse
+                },
+                "&.Mui-focused fieldset": {
+                  borderColor: theme.primaryText, // Borde al hacer click
+                },
+              },
+              // Color del icono de visibilidad
+              "& .MuiIconButton-root": {
+                color: theme.primaryText,
+              },
+            }}
             fullWidth
             value={password}
             onChange={(e) => setPassword(e.target.value)}
@@ -160,8 +245,7 @@ export default function LoginPage() {
         <Grid container justifyContent="center" sx={{ mt: 1 }} spacing={2}>
           <Button
             variant="contained"
-            color="primary"
-            sx={{ marginTop: 2 }}
+            sx={{ marginTop: 2, background: theme.variantBack }}
             onClick={iniciarSesion}
           >
             Acceder
@@ -169,11 +253,11 @@ export default function LoginPage() {
         </Grid>
 
         <Grid container justifyContent="center" sx={{ mt: 2 }}>
-          <Typography variant="body2" color="textSecondary">
+          <Typography variant="body2" sx={{ color: theme.primaryText }}>
             ¿No tienes cuenta?{" "}
             <Link
               to="/register"
-              style={{ textDecoration: "none", color: "#50C2AF" }}
+              style={{ textDecoration: "none", color: theme.links }}
             >
               Regístrate aquí
             </Link>
