@@ -9,7 +9,7 @@ module.exports = function(sequelize, DataTypes) {
     },
     user_id: {
       type: DataTypes.INTEGER,
-      allowNull: true,
+      allowNull: false,
       references: {
         model: 'user',
         key: 'id'
@@ -27,6 +27,8 @@ module.exports = function(sequelize, DataTypes) {
     sequelize,
     tableName: 'ad',
     timestamps: true,
+    createdAt: 'created_at',  
+    updatedAt: false,
     indexes: [
       {
         name: "PRIMARY",

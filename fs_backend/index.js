@@ -17,6 +17,7 @@ const cookieParser = require("cookie-parser");
 const userRoutes = require("./routes/userRoutes");
 const interestRoutes = require("./routes/interestRoutes");
 const userInterestRoutes = require("./routes/userInterestRoutes");
+const adRoutes = require("./routes/adRoutes");
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -39,6 +40,8 @@ app.use(cors({
 app.use("/api/users", userRoutes);
 app.use("/api/interests", interestRoutes);
 app.use("/api/userinterests", userInterestRoutes);
+app.use("/api/ads", adRoutes);
+
 // Configurar el middleware para servir archivos estáticos desde el directorio 'public'
 app.use(express.static(path.join(__dirname, "public")));
 

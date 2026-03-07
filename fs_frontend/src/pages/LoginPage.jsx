@@ -142,13 +142,16 @@ export default function LoginPage() {
                   WebkitTextFillColor: errorsBool.emailOrUsername
                     ? "red"
                     : theme.fieldsText,
-                  transition: "background-color 5000s ease-in-out 0s",
+                  transition:
+                    "background-color 5000s ease-in-out 0s, color 5000s ease-in-out 0s",
                 },
-                "&:-webkit-autofill:hover": {
-                  WebkitTextFillColor: errorsBool.emailOrUsername
-                    ? "red"
-                    : theme.fieldsText,
-                },
+                "&:-webkit-autofill:hover, &:-webkit-autofill:focus, &:-webkit-autofill:active":
+                  {
+                    WebkitBoxShadow: `0 0 0 1000px ${theme.tertiaryBack} inset`,
+                    WebkitTextFillColor: errorsBool.emailOrUsername
+                      ? "red"
+                      : theme.fieldsText,
+                  },
                 "&:-webkit-autofill:focus": {
                   WebkitTextFillColor: errorsBool.emailOrUsername
                     ? "red"
