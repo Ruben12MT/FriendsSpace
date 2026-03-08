@@ -4,12 +4,13 @@ import Home from "./pages/Home";
 import ErrorPage from "./pages/ErrorPage";
 import { RouterProvider } from "react-router-dom";
 import UserPage from "./pages/UserPage";
-import { CssBaseline } from "@mui/material";
+import { Box, CssBaseline } from "@mui/material";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import UserBar from "./components/UserBar";
 import ProtectedRoute from "./components/ProtectedRoute";
 import EditUserPage from "./pages/EditUserPage";
+import { useAppTheme } from "./hooks/useAppTheme";
 const router = createBrowserRouter([
   {
     path: "/",
@@ -44,11 +45,25 @@ const router = createBrowserRouter([
 ]);
 
 function App() {
+  const theme = useAppTheme();
   return (
-    <>
+    <Box
+      sx={{
+        px:2,
+        backgroundImage: `url(${theme.backgroundImage})`,
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+        backgroundAttachment: "fixed",
+        minHeight: "100vh",
+        width: "100%",
+        overflowX: "hidden",
+        display: "flex",
+        flexDirection: "column",
+      }}
+    >
       <CssBaseline />
       <RouterProvider router={router} />
-    </>
+    </Box>
   );
 }
 export default App;

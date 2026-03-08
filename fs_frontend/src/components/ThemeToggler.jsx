@@ -8,9 +8,10 @@ import SentimentVerySatisfiedTwoToneIcon from "@mui/icons-material/SentimentVery
 import SentimentSatisfiedAltTwoToneIcon from "@mui/icons-material/SentimentSatisfiedAltTwoTone";
 import themes, { useAppTheme } from "../hooks/useAppTheme";
 import appThemeStore from "../store/appThemeStore";
+import { useState } from "react";
 
-export default function ThemeToggler() {
-  const [anchorEl, setAnchorEl] = React.useState(null);
+export default function ThemeToggler({block}) {
+  const [anchorEl, setAnchorEl] = useState(null);
   const handleClick = (event) => {
     setAnchorEl(event.currentTarget);
   };
@@ -24,14 +25,15 @@ export default function ThemeToggler() {
 
   const open = Boolean(anchorEl);
   const id = open ? "simple-popover" : undefined;
-  return (
-    <Box
-      sx={{
+  const sx = block ? {position: "block"} : {
         position: "fixed",
         top: "16px",
         right: "16px",
         zIndex: 2000,
-      }}
+      };
+  return (
+    <Box
+      sx={sx}
     >
       <IconButton
         aria-describedby={id}
@@ -39,7 +41,7 @@ export default function ThemeToggler() {
         onClick={handleClick}
       >
         <Tooltip title={open ? "" : "Cambiar el tema de la app"}>
-          <ContrastIcon sx={{ color: theme.fieldsText }} />
+          <ContrastIcon sx={{ color: block ? theme.primaryText : theme.fieldsText }} />
         </Tooltip>
       </IconButton>
       <Popover

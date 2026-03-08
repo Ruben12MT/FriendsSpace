@@ -60,18 +60,7 @@ export default function LoginPage() {
   const passwordRef = useRef(null);
 
   return (
-    <Grid
-      container
-      direction={"column"}
-      spacing={2}
-      justifyContent="center"
-      alignItems="center"
-      style={{
-        minHeight: "100vh",
-        backgroundImage: "url(" + theme.backgroundImage + ")",
-        backgroundSize: "cover",
-      }}
-    >
+    <>
       <ThemeToggler />
       <Paper
         elevation={8}
@@ -81,6 +70,13 @@ export default function LoginPage() {
           margin: "20px auto",
           borderRadius: "20px",
           background: theme.secondaryBack,
+
+          position: "fixed",
+          top: "50%", 
+          left: "50%", 
+          transform: "translate(-50%, -50%)", 
+
+          zIndex: 2000,
         }}
       >
         {
@@ -278,6 +274,6 @@ export default function LoginPage() {
           </Typography>
         </Grid>
       </Paper>
-    </Grid>
+    </>
   );
 }

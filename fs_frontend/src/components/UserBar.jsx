@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Link, Outlet } from "react-router-dom";
 import AppBar from "@mui/material/AppBar";
@@ -14,16 +13,18 @@ import Button from "@mui/material/Button";
 import Tooltip from "@mui/material/Tooltip";
 import MenuItem from "@mui/material/MenuItem";
 import NotificationsIcon from "@mui/icons-material/Notifications";
-import { Grid } from "@mui/material";
+import { alpha, Grid } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import api from "../utils/api";
 import { useUser } from "../hooks/useUser";
+import { useAppTheme } from "../hooks/useAppTheme";
+import ThemeToggler from "../components/ThemeToggler.jsx";
 
 const pages = ["Buscar friends", "Anuncios", "Chats"];
 
 export default function UserBar() {
   const navigate = useNavigate();
-  const { loggedUser } = useUser();  
+  const { loggedUser } = useUser();
   const [anchorElNav, setAnchorElNav] = React.useState(null);
   const [anchorElUser, setAnchorElUser] = React.useState(null);
 
@@ -31,6 +32,7 @@ export default function UserBar() {
   const handleOpenUserMenu = (event) => setAnchorElUser(event.currentTarget);
   const handleCloseNavMenu = () => setAnchorElNav(null);
   const handleCloseUserMenu = () => setAnchorElUser(null);
+  const theme = useAppTheme();
 
   const showUserProfile = () => {
     handleCloseUserMenu();
@@ -49,19 +51,15 @@ export default function UserBar() {
 
   if (!loggedUser) {
     return (
-      <Grid
-        container
-        direction="column"
-        sx={{
-          minHeight: "100vh",
-        }}
+      <Box
+        sx={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}
       >
         <AppBar
           position="sticky"
           elevation={9}
           sx={{ backgroundColor: "white" }}
         >
-          <Container maxWidth="100%">
+          <Container maxWidth="xl">
             <Toolbar disableGutters>
               <Avatar
                 src="/no_user_avatar_image.png"
@@ -70,191 +68,219 @@ export default function UserBar() {
             </Toolbar>
           </Container>
         </AppBar>
-
-        <Outlet />
-      </Grid>
+        <Box component="main" sx={{ flexGrow: 1 }}>
+          <Outlet />
+        </Box>
+      </Box>
     );
   }
 
   return (
-    <Grid
-      container
-      direction="column"
-      style={{
+    <Box
+      sx={{
+        display: "flex",
+        flexDirection: "column",
         minHeight: "100vh",
-        backgroundImage: "url(/background.png)",
-        backgroundSize: "cover",
+        width: "100%",
       }}
     >
-      <AppBar
-        position="sticky"
-        elevation={0}
-        sx={{ backgroundColor: "white", color: "#C9A227" }}
+      <Box
+        sx={{
+          position: "fixed",
+          top: 0,
+          left: 0,
+          right: 0,
+          zIndex: 1100,
+          backgroundColor: theme.primaryBack,
+          pb: 2,
+        }}
       >
-        <Container maxWidth="100%">
-          <Toolbar disableGutters>
-            <Button
-              component={Link}
-              to="/"
-              style={{ textDecoration: "none", color: "inherit" }}
-              sx={{ display: { xs: "none", md: "flex" } }}
-            >
-              <Avatar
-                src="/logo.png"
-                style={{
-                  marginTop: "20px",
-                  marginBottom: "20px",
-                  width: "70px",
-                  height: "70px",
-                  marginRight: "15px",
-                }}
-              />
-            </Button>
-
-            <Typography
-              variant="h6"
-              noWrap
-              component="a"
-              href="#app-bar-with-responsive-menu"
-              sx={{
-                mr: 2,
-                display: { xs: "none", md: "flex" },
-                fontFamily: "monospace",
-                fontWeight: 700,
-                letterSpacing: ".3rem",
-                color: "inherit",
-                textDecoration: "none",
-              }}
-            >
-              Friends Space
-            </Typography>
-
-            <Box sx={{ flexGrow: 1, display: { xs: "flex", md: "none" } }}>
-              <IconButton
-                size="large"
-                aria-label="menu"
-                aria-controls="menu-appbar"
-                aria-haspopup="true"
-                onClick={handleOpenNavMenu}
-                color="inherit"
+        <AppBar
+          position="relative"
+          elevation={4}
+          sx={{
+            mt: 2,
+            mx: 2, 
+            width: "auto",
+            borderRadius: 4,
+            backgroundColor: theme.navBar.backColor,
+            color: theme.navBar.textColor,
+          }}
+        >
+          <Container maxWidth="xxl">
+            <Toolbar disableGutters>
+              <Button
+                component={Link}
+                to="/"
+                style={{ textDecoration: "none", color: "inherit" }}
+                sx={{ display: { xs: "none", md: "flex" } }}
               >
-                <MenuIcon />
-              </IconButton>
+                <Avatar
+                  src="/logo.png"
+                  style={{
+                    marginTop: "20px",
+                    marginBottom: "20px",
+                    width: "70px",
+                    height: "70px",
+                    marginRight: "15px",
+                  }}
+                />
+              </Button>
 
-              <Menu
-                id="menu-appbar"
-                anchorEl={anchorElNav}
-                anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
-                keepMounted
-                transformOrigin={{ vertical: "top", horizontal: "left" }}
-                open={Boolean(anchorElNav)}
-                onClose={handleCloseNavMenu}
-                sx={{ display: { xs: "block", md: "none" } }}
+              <Typography
+                variant="h6"
+                noWrap
+                component="a"
+                href="#app-bar-with-responsive-menu"
+                sx={{
+                  mr: 2,
+                  display: { xs: "none", md: "flex" },
+                  fontFamily: "monospace",
+                  fontWeight: 700,
+                  letterSpacing: ".3rem",
+                  color: "inherit",
+                  textDecoration: "none",
+                }}
+              >
+                Friends Space
+              </Typography>
+
+              <Box sx={{ flexGrow: 1, display: { xs: "flex", md: "none" } }}>
+                <IconButton
+                  size="large"
+                  aria-label="menu"
+                  aria-controls="menu-appbar"
+                  aria-haspopup="true"
+                  onClick={handleOpenNavMenu}
+                  color="inherit"
+                >
+                  <MenuIcon />
+                </IconButton>
+
+                <Menu
+                  id="menu-appbar"
+                  anchorEl={anchorElNav}
+                  anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
+                  keepMounted
+                  transformOrigin={{ vertical: "top", horizontal: "left" }}
+                  open={Boolean(anchorElNav)}
+                  onClose={handleCloseNavMenu}
+                  sx={{ display: { xs: "block", md: "none" } }}
+                >
+                  {pages.map((page) => (
+                    <MenuItem key={page} onClick={handleCloseNavMenu}>
+                      <Typography sx={{ textAlign: "center" }}>
+                        {page}
+                      </Typography>
+                    </MenuItem>
+                  ))}
+                </Menu>
+              </Box>
+
+              <Button
+                component={Link}
+                to="/"
+                style={{ textDecoration: "none", color: "inherit" }}
+                sx={{ display: { xs: "flex", md: "none" } }}
+              >
+                <Avatar
+                  src="/logo.png"
+                  style={{ margin: "20px", width: "70px", height: "70px" }}
+                />
+              </Button>
+
+              <Typography
+                variant="h5"
+                noWrap
+                component="a"
+                href="#app-bar-with-responsive-menu"
+                sx={{
+                  mr: 2,
+                  display: { xs: "flex", md: "none" },
+                  flexGrow: 1,
+                  fontFamily: "monospace",
+                  fontWeight: 700,
+                  letterSpacing: ".3rem",
+                  color: "inherit",
+                  textDecoration: "none",
+                }}
+              >
+                Friends Space
+              </Typography>
+
+              <Box
+                sx={{
+                  flexGrow: 1,
+                  display: { xs: "none", md: "flex" },
+                  justifyContent: "end",
+                  margin: 2,
+                }}
               >
                 {pages.map((page) => (
-                  <MenuItem key={page} onClick={handleCloseNavMenu}>
-                    <Typography sx={{ textAlign: "center" }}>{page}</Typography>
-                  </MenuItem>
+                  <Button
+                    key={page}
+                    onClick={handleCloseNavMenu}
+                    sx={{
+                      my: 0,
+                      color: theme.navBar.textColor,
+                      display: "block",
+                    }}
+                  >
+                    {page}
+                  </Button>
                 ))}
-              </Menu>
-            </Box>
+              </Box>
 
-            <Button
-              component={Link}
-              to="/"
-              style={{ textDecoration: "none", color: "inherit" }}
-              sx={{ display: { xs: "flex", md: "none" } }}
-            >
-              <Avatar
-                src="/logo.png"
-                style={{ margin: "20px", width: "70px", height: "70px" }}
-              />
-            </Button>
+              <Box display={"flex"} alignItems={"center"} sx={{ flexGrow: 0 }}>
+                <Tooltip title="Ajustes del Usuario">
+                  <IconButton onClick={handleOpenUserMenu} sx={{ p: 0 }}>
+                    <Avatar
+                      alt="Foto del usuario"
+                      sx={{ border: theme.navBar.textColor + " solid 1px" }}
+                      src={loggedUser.url_image || "/no_user_avatar_image.png"}
+                    />
+                  </IconButton>
+                </Tooltip>
 
-            <Typography
-              variant="h5"
-              noWrap
-              component="a"
-              href="#app-bar-with-responsive-menu"
-              sx={{
-                mr: 2,
-                display: { xs: "flex", md: "none" },
-                flexGrow: 1,
-                fontFamily: "monospace",
-                fontWeight: 700,
-                letterSpacing: ".3rem",
-                color: "inherit",
-                textDecoration: "none",
-              }}
-            >
-              Friends Space
-            </Typography>
-
-            <Box
-              sx={{
-                flexGrow: 1,
-                display: { xs: "none", md: "flex" },
-                justifyContent: "end",
-                margin: 2,
-              }}
-            >
-              {pages.map((page) => (
-                <Button
-                  key={page}
-                  onClick={handleCloseNavMenu}
-                  sx={{ my: 0, color: "#C9A227", display: "block" }}
+                <Menu
+                  sx={{ mt: "45px" }}
+                  id="menu-appbar"
+                  anchorEl={anchorElUser}
+                  anchorOrigin={{ vertical: "top", horizontal: "right" }}
+                  keepMounted
+                  transformOrigin={{ vertical: "top", horizontal: "right" }}
+                  open={Boolean(anchorElUser)}
+                  onClose={handleCloseUserMenu}
                 >
-                  {page}
-                </Button>
-              ))}
-            </Box>
+                  <MenuItem key={"userProfile"} onClick={showUserProfile}>
+                    <Typography sx={{ textAlign: "center" }}>
+                      Ver Perfil
+                    </Typography>
+                  </MenuItem>
 
-            <Box sx={{ flexGrow: 0 }}>
-              <Tooltip title="Ajustes del Usuario">
-                <IconButton onClick={handleOpenUserMenu} sx={{ p: 0 }}>
-                  <Avatar
-                    alt="Foto del usuario"
-                    sx={{ border: "#C9A227 solid 1px" }}
-                    src={loggedUser.url_image || "/no_user_avatar_image.png"}
+                  <MenuItem key={"logout"} onClick={logout}>
+                    <Typography sx={{ textAlign: "center" }}>
+                      Cerrar Sesión
+                    </Typography>
+                  </MenuItem>
+                </Menu>
+
+                <IconButton aria-label="notificaciones" size="large">
+                  <NotificationsIcon
+                    fontSize="inherit"
+                    sx={{ color: theme.navBar.textColor }}
                   />
                 </IconButton>
-              </Tooltip>
 
-              <Menu
-                sx={{ mt: "45px" }}
-                id="menu-appbar"
-                anchorEl={anchorElUser}
-                anchorOrigin={{ vertical: "top", horizontal: "right" }}
-                keepMounted
-                transformOrigin={{ vertical: "top", horizontal: "right" }}
-                open={Boolean(anchorElUser)}
-                onClose={handleCloseUserMenu}
-              >
-                <MenuItem key={"userProfile"} onClick={showUserProfile}>
-                  <Typography sx={{ textAlign: "center" }}>
-                    Ver Perfil
-                  </Typography>
-                </MenuItem>
-
-                <MenuItem key={"logout"} onClick={logout}>
-                  <Typography sx={{ textAlign: "center" }}>
-                    Cerrar Sesión
-                  </Typography>
-                </MenuItem>
-              </Menu>
-
-              <IconButton aria-label="notificaciones" size="large">
-                <NotificationsIcon
-                  fontSize="inherit"
-                  sx={{ color: "#C9A227" }}
-                />
-              </IconButton>
-            </Box>
-          </Toolbar>
-        </Container>
-      </AppBar>
-
-      <Outlet />
-    </Grid>
+                <ThemeToggler block={true} />
+              </Box>
+            </Toolbar>
+          </Container>
+        </AppBar>
+      </Box>
+      <Box sx={{ mt: 20 }}>
+        <Outlet />
+      </Box>{" "}
+    </Box>
   );
 }

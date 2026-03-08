@@ -10,7 +10,7 @@ import VisibilityOff from "@mui/icons-material/VisibilityOff";
 import api from "../utils/api";
 import { useNavigate } from "react-router-dom";
 import ErrorMessage from "../components/ErrorMessage";
-import ThemeToggler from "../components/themeToggler";
+import ThemeToggler from "../components/ThemeToggler";
 import { useAppTheme } from "../hooks/useAppTheme";
 
 export default function RegisterPage() {
@@ -74,17 +74,7 @@ export default function RegisterPage() {
   }
 
   return (
-    <Grid
-      container
-      spacing={2}
-      justifyContent="center"
-      alignItems="center"
-      style={{
-        minHeight: "100vh",
-        backgroundImage: "url(" + theme.backgroundImage + ")",
-        backgroundSize: "cover",
-      }}
-    >
+    <>
       <ThemeToggler />
 
       <Paper
@@ -95,6 +85,10 @@ export default function RegisterPage() {
           margin: "20px auto",
           borderRadius: "20px",
           background: theme.secondaryBack,
+          position: "fixed",
+          top: "50%", 
+          left: "50%", 
+          transform: "translate(-50%, -50%)", 
         }}
       >
         <Grid container justifyContent="center" spacing={2} sx={{ mb: 1 }}>
@@ -373,6 +367,6 @@ export default function RegisterPage() {
           </Typography>
         </Grid>
       </Paper>
-    </Grid>
+    </>
   );
 }
