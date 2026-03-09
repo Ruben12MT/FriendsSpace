@@ -18,25 +18,50 @@ import {
 } from "@mui/icons-material";
 import ErrorMessage from "../components/ErrorMessage";
 import InterestItem from "../components/interestItem";
-
-const inputStyle = {
-  background: "#FFFFFF",
-  borderRadius: 2,
-  "& .MuiOutlinedInput-root": { borderRadius: 2 },
-  "& .MuiOutlinedInput-notchedOutline": { border: "none" },
-};
+import { useAppTheme } from "../hooks/useAppTheme";
 
 export default function EditUserPage() {
   const { loggedUser, setLoggedUser } = useUser();
   const navigate = useNavigate();
   const fileInputRef = useRef(null);
   const [edited, setEdited] = useState(false);
-
+  const theme = useAppTheme();
   // Estado unificado para los errores
   const [errorState, setErrorState] = useState({
     open: false,
     msg: "",
   });
+
+  const inputStyle = {
+    background: theme.tertiaryBack,
+    borderRadius: 2,
+    "& .MuiOutlinedInput-root": { borderRadius: 2 },
+    "& .MuiOutlinedInput-notchedOutline": { border: "none" },
+    "& .MuiInputBase-input": {
+      color: theme.fieldsText,
+      "&:-webkit-autofill": {
+        WebkitBoxShadow: `0 0 0 1000px ${theme.tertiaryBack} inset`,
+        WebkitTextFillColor: theme.fieldsText,
+        transition:
+          "background-color 5000s ease-in-out 0s, color 5000s ease-in-out 0s",
+      },
+      "&:-webkit-autofill:hover, &:-webkit-autofill:focus, &:-webkit-autofill:active":
+        {
+          WebkitBoxShadow: `0 0 0 1000px ${theme.tertiaryBack} inset`,
+          WebkitTextFillColor: theme.fieldsText,
+        },
+      "&:-webkit-autofill:focus": {
+        WebkitTextFillColor: theme.fieldsText,
+      },
+    },
+
+    "& .MuiInputLabel-root": {
+      color: theme.fieldsText,
+    },
+    "& .MuiInputLabel-root.Mui-focused": {
+      color: theme.primaryText,
+    },
+  };
 
   const [allInterests, setAllInterests] = useState([]);
   const [editedUser, setEditedUser] = useState({});
@@ -215,7 +240,11 @@ export default function EditUserPage() {
             editedUser.url_image ||
             "/no_user_avatar_image.png"
           }
-          sx={{ width: 150, height: 150 }}
+          sx={{
+            width: 150,
+            height: 150,
+            border: theme.primaryText + " 2px solid",
+          }}
         />
 
         {ui.avatarHovered && (
@@ -265,7 +294,10 @@ export default function EditUserPage() {
               size="small"
               sx={inputStyle}
             />
-            <IconButton onClick={handleUsernameExist} sx={{ color: "white" }}>
+            <IconButton
+              onClick={handleUsernameExist}
+              sx={{ color: theme.primaryText }}
+            >
               <CheckIcon />
             </IconButton>
           </Grid>
@@ -275,14 +307,14 @@ export default function EditUserPage() {
               sx={{
                 fontWeight: "bold",
                 fontSize: "1.5rem",
-                color: "white",
+                color: theme.primaryText,
               }}
             >
               @{editedUser.name}
             </Typography>
             <IconButton
               onClick={() => setUi({ ...ui, editingName: true })}
-              sx={{ color: "white" }}
+              sx={{ color: theme.primaryText }}
             >
               <EditIcon />
             </IconButton>
@@ -304,14 +336,21 @@ export default function EditUserPage() {
           p: 3,
           mt: 3,
           borderRadius: 2,
-          background: "#D9FCF6",
+          background: theme.secondaryBack,
           width: "75%",
         }}
       >
-        <Grid container direction="column" alignItems="center">
+        <Grid
+          container
+          direction="column"
+          alignItems="center"
+          sx={{ width: "100%" }}
+        >
           {/* CAMPO: DESCRIPCIÓN */}
           <Grid container spacing={1} sx={{ width: "100%", mt: 1 }}>
-            <Typography sx={{ fontWeight: "bold", mb: 0.5, color: "#C9A227" }}>
+            <Typography
+              sx={{ fontWeight: "bold", mb: 0.5, color: theme.primaryText }}
+            >
               Descripción
             </Typography>
             <TextField
@@ -326,7 +365,9 @@ export default function EditUserPage() {
 
           {/* CAMPO: FRASE CORTA */}
           <Grid container spacing={1} sx={{ width: "100%", mt: 1 }}>
-            <Typography sx={{ fontWeight: "bold", mb: 0.5, color: "#C9A227" }}>
+            <Typography
+              sx={{ fontWeight: "bold", mb: 0.5, color: theme.primaryText }}
+            >
               Frase Corta
             </Typography>
             <TextField
@@ -341,7 +382,9 @@ export default function EditUserPage() {
 
           {/* CAMPO: OBJETIVOS */}
           <Grid container spacing={1} sx={{ width: "100%", mt: 1 }}>
-            <Typography sx={{ fontWeight: "bold", mb: 0.5, color: "#C9A227" }}>
+            <Typography
+              sx={{ fontWeight: "bold", mb: 0.5, color: theme.primaryText }}
+            >
               Objetivos
             </Typography>
             <TextField
@@ -360,7 +403,7 @@ export default function EditUserPage() {
             sx={{
               width: "100%",
               mt: 2,
-              background: "#C9A227",
+              background: theme.primaryBack,
               borderRadius: 2,
               p: 2,
             }}
@@ -384,7 +427,19 @@ export default function EditUserPage() {
                 <TextField
                   placeholder="Buscar intereses"
                   {...p}
-                  sx={{ ...inputStyle, borderRadius: 100 }}
+                  sx={{
+                    ...inputStyle,
+                    borderRadius: 100,
+                    "& .MuiAutocomplete-endAdornment .MuiSvgIcon-root": {
+                      color: theme.primaryText,
+                    },
+                    "& .MuiAutocomplete-clearIndicator": {
+                      color: theme.primaryText,
+                    },
+                    "& .MuiAutocomplete-popupIndicator": {
+                      color: theme.primaryText,
+                    },
+                  }}
                 />
               )}
             />
@@ -416,8 +471,9 @@ export default function EditUserPage() {
               variant="contained"
               onClick={() => navigate("/app/" + loggedUser.id)}
               sx={{
-                background: "#C9A227",
+                background: theme.variantBack,
                 display: loggedUser.first_login == 1 ? "none" : "flex",
+                "&:hover": { background: theme.buttonHover },
               }}
             >
               Volver
@@ -427,7 +483,10 @@ export default function EditUserPage() {
               disabled={ui.loading}
               variant="contained"
               onClick={editarUsuario}
-              sx={{ background: "#C9A227" }}
+              sx={{
+                background: theme.variantBack,
+                "&:hover": { background: theme.buttonHover },
+              }}
             >
               {loggedUser.first_login == 1 && !edited
                 ? "Saltar"

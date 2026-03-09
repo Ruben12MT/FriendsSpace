@@ -38,6 +38,9 @@ const router = createBrowserRouter([
     ),
     children: [
       { path: "searchnewfriends", element: <h3>Buscar nuevos amigos</h3> },
+      { path: "ads", element: <h3>Anuncios</h3> },
+      { path: "chats", element: <h3>Chats</h3> },
+
       { path: ":id", element: <UserPage /> },
       { path: "user/edit", element: <EditUserPage /> },
     ],

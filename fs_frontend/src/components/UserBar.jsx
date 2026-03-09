@@ -20,7 +20,11 @@ import { useUser } from "../hooks/useUser";
 import { useAppTheme } from "../hooks/useAppTheme";
 import ThemeToggler from "../components/ThemeToggler.jsx";
 
-const pages = ["Buscar friends", "Anuncios", "Chats"];
+const pages = [
+  { "/app/searchnewfriends": "Buscar friends" },
+  { "/app/ads": "Anuncios" },
+  { "/app/chats": "Chats" },
+];
 
 export default function UserBar() {
   const navigate = useNavigate();
@@ -100,7 +104,7 @@ export default function UserBar() {
           elevation={4}
           sx={{
             mt: 2,
-            mx: 2, 
+            mx: 2,
             width: "auto",
             borderRadius: 4,
             backgroundColor: theme.navBar.backColor,
@@ -109,29 +113,24 @@ export default function UserBar() {
         >
           <Container maxWidth="xxl">
             <Toolbar disableGutters>
-              <Button
-                component={Link}
-                to="/"
-                style={{ textDecoration: "none", color: "inherit" }}
-                sx={{ display: { xs: "none", md: "flex" } }}
-              >
-                <Avatar
-                  src="/logo.png"
-                  style={{
-                    marginTop: "20px",
-                    marginBottom: "20px",
-                    width: "70px",
-                    height: "70px",
-                    marginRight: "15px",
-                  }}
-                />
-              </Button>
+              <Avatar
+                src="/logo.png"
+                onClick={() => navigate("/")}
+                style={{
+                  marginTop: "20px",
+                  marginBottom: "20px",
+                  width: "70px",
+                  height: "70px",
+                  marginRight: "15px",
+                  cursor: "pointer",
+                }}
+              />
 
               <Typography
                 variant="h6"
                 noWrap
                 component="a"
-                href="#app-bar-with-responsive-menu"
+                href="/"
                 sx={{
                   mr: 2,
                   display: { xs: "none", md: "flex" },
@@ -167,13 +166,24 @@ export default function UserBar() {
                   onClose={handleCloseNavMenu}
                   sx={{ display: { xs: "block", md: "none" } }}
                 >
-                  {pages.map((page) => (
-                    <MenuItem key={page} onClick={handleCloseNavMenu}>
-                      <Typography sx={{ textAlign: "center" }}>
-                        {page}
-                      </Typography>
-                    </MenuItem>
-                  ))}
+                  {pages.map((page) => {
+                    const [key, label] = Object.entries(page)[0];
+                    return (
+                      <MenuItem key={key} onClick={handleCloseNavMenu}>
+                        <Typography
+                          component="a"
+                          href={`/${key}`}
+                          sx={{
+                            textAlign: "center",
+                            textDecoration: "none",
+                            color: "inherit",
+                          }}
+                        >
+                          {label}
+                        </Typography>
+                      </MenuItem>
+                    );
+                  })}
                 </Menu>
               </Box>
 
@@ -193,7 +203,7 @@ export default function UserBar() {
                 variant="h5"
                 noWrap
                 component="a"
-                href="#app-bar-with-responsive-menu"
+                href="/"
                 sx={{
                   mr: 2,
                   display: { xs: "flex", md: "none" },
@@ -216,19 +226,27 @@ export default function UserBar() {
                   margin: 2,
                 }}
               >
-                {pages.map((page) => (
-                  <Button
-                    key={page}
-                    onClick={handleCloseNavMenu}
+                {pages.map((page) => {
+                  const [key, label] = Object.entries(page)[0];
+                  return (
+
+                    <Button
+                    key={key}
+                    onClick={() => {
+                      navigate(key);
+                    }}
                     sx={{
                       my: 0,
                       color: theme.navBar.textColor,
                       display: "block",
                     }}
                   >
-                    {page}
+                    {label}
                   </Button>
-                ))}
+                  );
+
+                  
+                })}
               </Box>
 
               <Box display={"flex"} alignItems={"center"} sx={{ flexGrow: 0 }}>

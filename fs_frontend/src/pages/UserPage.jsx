@@ -1,4 +1,4 @@
-import { Avatar, Button, Grid, Typography } from "@mui/material";
+import { Avatar, Button, Grid, Typography, Backdrop } from "@mui/material";
 import React, { useEffect, useState } from "react";
 import { useUser } from "../hooks/useUser";
 import InterestItem from "../components/InterestItem";
@@ -9,7 +9,7 @@ import { useAppTheme } from "../hooks/useAppTheme";
 export default function UserPage() {
   const navigate = useNavigate();
   const { loggedUser } = useUser();
-
+  const [openZoom, setOpenZoom] = useState(false);
   const { id: userIdAct } = useParams();
 
   const isLoggedUser = loggedUser?.id == userIdAct;
@@ -53,21 +53,20 @@ export default function UserPage() {
       container
       maxWidth="xxl"
       justifyContent="center"
-      sx={{ minHeight: "100%",
- }}
+      sx={{ minHeight: "100%" }}
     >
       <Grid
         container
         direction="column"
         spacing={2}
         size={{ xs: 12, md: 7 }}
-        sx={{ background: "#fad643ff", borderRadius: 3, p: 3 }}
+        sx={{ background: theme.secondaryBack, borderRadius: 3, p: 3 }}
       >
         {/* Tarjeta principal */}
         <Grid size={{ xs: 12 }}>
           <Grid
             sx={{
-              background: "#C9A227",
+              background: theme.primaryBack,
               borderRadius: "12px 12px 0 0",
               height: "12px",
             }}
@@ -76,9 +75,12 @@ export default function UserPage() {
             container
             spacing={2}
             justifyContent={"end"}
-            sx={{ background: "#FFFFFF", borderRadius: "0 0 12px 12px", p: 3 }}
+            sx={{
+              background: theme.tertiaryBack,
+              borderRadius: "0 0 12px 12px",
+              p: 3,
+            }}
           >
-
             {/* Avatar + info */}
             <Grid
               container
@@ -90,7 +92,14 @@ export default function UserPage() {
               <Grid>
                 <Avatar
                   src={userToShow.url_image ?? "/no_user_avatar_image.png"}
-                  sx={{ width: 90, height: 90, border: "#C9A227 solid 3px" }}
+                  onClick={() => setOpenZoom(true)}
+                  sx={{
+                    width: 90,
+                    height: 90,
+                    border: theme.primaryBack + " solid 3px",
+                    cursor: "pointer",
+                    ":hover": { border: theme.primaryText + " solid 3px" },
+                  }}
                 />
               </Grid>
 
@@ -104,19 +113,23 @@ export default function UserPage() {
                   sx={{
                     fontWeight: "bold",
                     fontSize: "1.4rem",
-                    color: "#C9A227",
+                    color: theme.primaryText,
                   }}
                 >
                   @{userToShow.name}
                 </Typography>
 
                 {isLoggedUser && (
-                  <Typography sx={{ color: "#888", fontSize: "0.9rem" }}>
+                  <Typography
+                    sx={{ color: theme.secondaryText, fontSize: "0.9rem" }}
+                  >
                     {loggedUser.email}
                   </Typography>
                 )}
 
-                <Typography sx={{ color: "#555", fontSize: "0.9rem" }}>
+                <Typography
+                  sx={{ color: theme.fieldsText, fontSize: "0.9rem" }}
+                >
                   13 Conexiones
                 </Typography>
               </Grid>
@@ -130,7 +143,7 @@ export default function UserPage() {
               >
                 <Typography
                   sx={{
-                    color: "#C9A227",
+                    color: theme.secondaryText,
                     fontSize: "0.85rem",
                     fontWeight: "bold",
                   }}
@@ -149,8 +162,8 @@ export default function UserPage() {
                     variant="contained"
                     sx={{
                       mt: 1,
-                      background: "#C9A227",
-                      "&:hover": { background: "#dbb42cff" },
+                      background: theme.variantBack,
+                      "&:hover": { background: theme.buttonHover },
                       borderRadius: 2,
                     }}
                     onClick={() => navigate("/app/user/edit")}
@@ -162,8 +175,8 @@ export default function UserPage() {
                     variant="contained"
                     sx={{
                       mt: 1,
-                      background: "#C9A227",
-                      "&:hover": { background: "#dbb42cff" },
+                      background: theme.variantBack,
+                      "&:hover": { background: theme.buttonHover },
                       borderRadius: 2,
                     }}
                     onClick={() => {}}
@@ -177,11 +190,21 @@ export default function UserPage() {
             {/* Sobre mí */}
             {userToShow.bio?.trim() && (
               <Grid size={{ xs: 12 }}>
-                <Typography sx={{ fontWeight: "bold", mb: 1 }}>
+                <Typography
+                  sx={{ fontWeight: "bold", mb: 1, color: theme.primaryText }}
+                >
                   Sobre mí:
                 </Typography>
-                <Grid sx={{ background: "#F5F5F5", p: 2, borderRadius: 3 }}>
-                  <Typography sx={{ whiteSpace: "pre-wrap", color: "#333" }}>
+                <Grid
+                  sx={{
+                    background: theme.secondaryBack,
+                    p: 2,
+                    borderRadius: 3,
+                  }}
+                >
+                  <Typography
+                    sx={{ whiteSpace: "pre-wrap", color: theme.fieldsText }}
+                  >
                     {userToShow.bio}
                   </Typography>
                 </Grid>
@@ -197,9 +220,16 @@ export default function UserPage() {
               container
               direction="column"
               spacing={1}
-              sx={{ background: "#c9a227", borderRadius: 12, py: 3, px: 4 }}
+              sx={{
+                background: theme.primaryBack,
+                borderRadius: 12,
+                py: 3,
+                px: 4,
+              }}
             >
-              <Typography sx={{ fontWeight: "bold", color: "#FFFFFF", mb: 1 }}>
+              <Typography
+                sx={{ fontWeight: "bold", color: theme.variantText, mb: 1 }}
+              >
                 Intereses
               </Typography>
 
@@ -219,11 +249,22 @@ export default function UserPage() {
         {/* Objetivos */}
         {userToShow.goals?.trim() && (
           <Grid size={{ xs: 12 }}>
-            <Typography sx={{ fontWeight: "bold", mb: 1, color: "#FFFFFF" }}>
+            <Typography
+              sx={{ fontWeight: "bold", mb: 1, color: theme.primaryText }}
+            >
               Objetivos personales
             </Typography>
-            <Grid sx={{ background: "#FFFFFF", borderRadius: 3, py: 2, px: 3 }}>
-              <Typography sx={{ whiteSpace: "pre-wrap", color: "#333" }}>
+            <Grid
+              sx={{
+                background: theme.tertiaryBack,
+                borderRadius: 3,
+                py: 2,
+                px: 3,
+              }}
+            >
+              <Typography
+                sx={{ whiteSpace: "pre-wrap", color: theme.fieldsText }}
+              >
                 {userToShow.goals}
               </Typography>
             </Grid>
@@ -233,17 +274,47 @@ export default function UserPage() {
         {/* Frase pública */}
         {userToShow.short_sentece?.trim() && (
           <Grid size={{ xs: 12 }}>
-            <Typography sx={{ fontWeight: "bold", mb: 1, color: "#FFFFFF" }}>
+            <Typography
+              sx={{ fontWeight: "bold", mb: 1, color: theme.primaryText }}
+            >
               Frase pública
             </Typography>
-            <Grid sx={{ background: "#FFFFFF", borderRadius: 3, py: 2, px: 3 }}>
-              <Typography sx={{ color: "#333" }}>
+            <Grid
+              sx={{
+                background: theme.tertiaryBack,
+                borderRadius: 3,
+                py: 2,
+                px: 3,
+              }}
+            >
+              <Typography sx={{ color: theme.fieldsText }}>
                 {userToShow.short_sentece}
               </Typography>
             </Grid>
           </Grid>
         )}
       </Grid>
+      {/* Vista ampliada del avatar */}
+      <Backdrop
+        sx={{
+          color: "#fff",
+          zIndex: (theme) => theme.zIndex.drawer + 100,
+          backgroundColor: "rgba(0, 0, 0, 0.8)",
+        }}
+        open={openZoom}
+        onClick={() => setOpenZoom(false)}
+      >
+        <img
+          src={userToShow.url_image ?? "/no_user_avatar_image.png"}
+          alt="Avatar Zoom"
+          style={{
+            width: "500px",
+            height: "500px",
+            borderRadius: 1000, 
+            boxShadow: "0 0 30px rgba(0,0,0,0.7)",
+          }}
+        />
+      </Backdrop>
     </Grid>
   );
 }
