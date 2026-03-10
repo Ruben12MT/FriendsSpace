@@ -21,5 +21,5 @@ export function useUser() {
     loadUser();
   }, [userId]);
 
-  return { loggedUser, setLoggedUser };
+  return { loggedUser };
 }

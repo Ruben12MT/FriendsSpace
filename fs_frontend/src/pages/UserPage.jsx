@@ -59,7 +59,7 @@ export default function UserPage() {
         container
         direction="column"
         spacing={2}
-        size={{ xs: 12, md: 7 }}
+        size={{ xs: 12, md: 9 }}
         sx={{ background: theme.secondaryBack, borderRadius: 3, p: 3 }}
       >
         {/* Tarjeta principal */}

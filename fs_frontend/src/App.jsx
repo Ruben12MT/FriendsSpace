@@ -11,6 +11,7 @@ import UserBar from "./components/UserBar";
 import ProtectedRoute from "./components/ProtectedRoute";
 import EditUserPage from "./pages/EditUserPage";
 import { useAppTheme } from "./hooks/useAppTheme";
+import AdsPage from "./pages/AdsPage";
 const router = createBrowserRouter([
   {
     path: "/",
@@ -38,7 +39,7 @@ const router = createBrowserRouter([
     ),
     children: [
       { path: "searchnewfriends", element: <h3>Buscar nuevos amigos</h3> },
-      { path: "ads", element: <h3>Anuncios</h3> },
+      { path: "ads", element: <AdsPage/>},
       { path: "chats", element: <h3>Chats</h3> },
 
       { path: ":id", element: <UserPage /> },

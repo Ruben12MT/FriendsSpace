@@ -8,12 +8,12 @@ class AdService {
     {
       model: models.user,
       as: "user",
-      attributes: ["name", "url_image"],
+      attributes: ["name", "role", "url_image"],
     },
     {
       model: models.interest,
       as: "interest_id_interests",
-      attributes: ["id", "name", "color"],
+      attributes: ["id", "name"],
       through: { attributes: [] },
     }
   ];

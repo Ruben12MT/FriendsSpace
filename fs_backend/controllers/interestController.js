@@ -3,13 +3,13 @@ const interestService = require("../services/interestService");
 class InterestController {
   async createInterest(req, res) {
     try {
-      const { name, color } = req.body;
-      if (!name || !color) {
+      const { name } = req.body;
+      if (!name) {
         return res
           .status(400)
           .json({ ok: false, mensaje: "Faltan campos obligatorios" });
       }
-      const newInterest = await interestService.createInterest({ name, color });
+      const newInterest = await interestService.createInterest({ name });
       return res
         .status(201)
         .json({

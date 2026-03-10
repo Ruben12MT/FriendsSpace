@@ -12,10 +12,7 @@ module.exports = function(sequelize, DataTypes) {
       allowNull: false,
       unique: "name"
     },
-    color: {
-      type: DataTypes.STRING(50),
-      allowNull: true
-    }
+    
   }, {
     sequelize,
     tableName: 'interest',

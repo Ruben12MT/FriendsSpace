@@ -162,6 +162,7 @@ export default function EditUserPage() {
   };
 
   const editarUsuario = async () => {
+    // comprobamos que no se esté validando el nombre en ese momento
     if (ui.editingName) {
       return setErrorState({
         msg: "Confirma el nombre antes de guardar",
@@ -169,9 +170,11 @@ export default function EditUserPage() {
       });
     }
 
+    // bloqueamos el botón para evitar envíos duplicados
     setUi({ ...ui, loading: true });
 
     try {
+      // preparamos los datos de texto filtrando campos internos
       const {
         id,
         url_image,
@@ -183,34 +186,42 @@ export default function EditUserPage() {
         ...data
       } = editedUser;
 
+      // enviamos la actualización de los campos de texto
       await api.put("/users/" + loggedUser.id, data);
 
+      // SOLO si hay un archivo nuevo en el estado subimos el avatar
+      // si avatar.file es null, nos saltamos este paso y evitamos el error
       if (avatar.file) {
         const form = new FormData();
         form.append("avatar", avatar.file);
-
-        await api.put(`/users/${loggedUser.id}/avatar`, form, {
-          headers: { "Content-Type": "multipart/form-data" },
-        });
+        await api.put(`/users/${loggedUser.id}/avatar`, form);
       }
 
+      // actualizamos la lista de intereses borrando los anteriores
       await api.delete(`/userinterests/${loggedUser.id}/interests`);
 
-      if (editedUserInterests.length) {
+      // insertamos los nuevos intereses seleccionados si los hay
+      if (editedUserInterests.length > 0) {
         await api.post(`/userinterests/${loggedUser.id}/interests`, {
           interestIds: editedUserInterests.map((i) => i.id),
         });
       }
 
+      // recuperamos los datos actualizados del servidor
       const res = await api.get("/users/" + loggedUser.id);
-      setLoggedUser(res.data.datos);
 
-      navigate("/app/" + loggedUser.id);
+      // refrescamos el usuario en el contexto global y navegamos al perfil
+      if (res.data.datos) {
+        navigate("/app/" + loggedUser.id);
+      }
     } catch (e) {
+      // mostramos el error detallado si alguna de las peticiones falla
+      console.error("Error en el proceso de guardado:", e);
       setErrorState({
         msg: e.response?.data?.mensaje || "Error al guardar cambios",
         open: true,
       });
+      // reactivamos el botón para permitir correcciones
       setUi({ ...ui, loading: false });
     }
   };
@@ -444,17 +455,24 @@ export default function EditUserPage() {
               )}
             />
 
-            <Grid container spacing={1} sx={{ mt: 1 }}>
+            <Grid
+              container
+              justifyContent={"center"}
+              spacing={1}
+              sx={{ mt: 1 }}
+            >
               {editedUserInterests.map((i) => (
                 <InterestItem
                   key={i.id}
                   title={i.name}
                   color={i.color}
-                  onDelete={() =>
-                    setEditedUserInterests(
-                      editedUserInterests.filter((x) => x.id !== i.id),
-                    )
-                  }
+                  onDelete={() => {
+                    const user = editedUserInterests.filter(
+                      (x) => x.id !== i.id,
+                    );
+
+                    setEditedUserInterests(user);
+                  }}
                 />
               ))}
             </Grid>

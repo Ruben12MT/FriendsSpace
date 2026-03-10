@@ -127,7 +127,7 @@ export default function UserBar() {
               />
 
               <Typography
-                variant="h6"
+                variant="h5"
                 noWrap
                 component="a"
                 href="/"
@@ -135,8 +135,6 @@ export default function UserBar() {
                   mr: 2,
                   display: { xs: "none", md: "flex" },
                   fontFamily: "monospace",
-                  fontWeight: 700,
-                  letterSpacing: ".3rem",
                   color: "inherit",
                   textDecoration: "none",
                 }}
@@ -229,23 +227,20 @@ export default function UserBar() {
                 {pages.map((page) => {
                   const [key, label] = Object.entries(page)[0];
                   return (
-
                     <Button
-                    key={key}
-                    onClick={() => {
-                      navigate(key);
-                    }}
-                    sx={{
-                      my: 0,
-                      color: theme.navBar.textColor,
-                      display: "block",
-                    }}
-                  >
-                    {label}
-                  </Button>
+                      key={key}
+                      onClick={() => {
+                        navigate(key);
+                      }}
+                      sx={{
+                        my: 0,
+                        color: theme.navBar.textColor,
+                        display: "block",
+                      }}
+                    >
+                      {label}
+                    </Button>
                   );
-
-                  
                 })}
               </Box>
 
@@ -296,9 +291,19 @@ export default function UserBar() {
           </Container>
         </AppBar>
       </Box>
-      <Box sx={{ mt: 20 }}>
+      <Box
+        component="main"
+        sx={{
+          flexGrow: 1,
+          pt: "160px", // Ajusta este valor al alto real de tu navbar (aprox 160px-180px)
+          minHeight: "100vh",
+          display: "flex",
+          flexDirection: "column",
+          boxSizing: "border-box",
+        }}
+      >
         <Outlet />
-      </Box>{" "}
+      </Box>
     </Box>
   );
 }

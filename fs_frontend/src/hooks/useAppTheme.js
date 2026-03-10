@@ -37,18 +37,39 @@ const themes = {
 
     links: "#c9a227",
   },
+
+  radiactivity: {
+    name: "dark",
+    navBar: {
+      textColor: "#84ff00",
+      backColor: "#2d2d2d",
+    },
+    fieldsText: "#84ff00",
+    primaryText: "#84ff00",
+    secondaryText: "#84ff00",
+    variantText: "#84ff00",
+    primaryBack: "#1a1a1a",
+    secondaryBack: "#2d2d2d",
+    tertiaryBack: "#3d3d3d",
+    variantBack: "#000000",
+    backgroundImage: "/dark-background.png",
+    buttonHover: "#4fc927",
+
+    links: "#52c927",
+  },
+
   aquamarine: {
     name: "aquamarine",
     navBar: {
       textColor: "#b3fff0",
-      backColor: "#194B41",
+      backColor: "#12372f",
     },
     fieldsText: "#dbfff8",
     primaryText: "#b3fff0",
     secondaryText: "#8ce8d5",
     variantText: "#ffffff",
     primaryBack: "#257A69",
-    secondaryBack: "#0C2520",
+    secondaryBack: "#12372f",
     tertiaryBack: "#194B41",
     variantBack: "#2b7566",
     backgroundImage: "/aquamarine-background.png",
