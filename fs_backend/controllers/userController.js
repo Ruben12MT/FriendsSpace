@@ -68,7 +68,6 @@ class UserController {
             email: usuarioBuscado.email,
             name: usuarioBuscado.name,
             first_login: usuarioBuscado.first_login,
-
           },
         });
     } catch (err) {
@@ -353,6 +352,17 @@ class UserController {
   async updateAvatar(req, res) {
     try {
       const { id } = req.params;
+
+      // 1. Verificación de seguridad
+      if (!req.file) {
+        return res.status(400).json({
+          ok: false,
+          mensaje:
+            "No se ha recibido ninguna imagen. Revisa el nombre del campo en el FormData.",
+        });
+      }
+
+      // En CloudinaryStorage, la URL suele venir en .path o .url
       const url_image = req.file.path;
 
       await userService.updateUser(id, { url_image: url_image });
@@ -363,10 +373,13 @@ class UserController {
         mensaje: "Avatar actualizado correctamente",
       });
     } catch (err) {
-      console.error("Error completo:", JSON.stringify(err, null, 2));
-      return res
-        .status(500)
-        .json({ ok: false, mensaje: "Error al actualizar avatar" });
+      // IMPORTANTE: Imprime el error sin JSON.stringify para verlo claro en la consola de Node
+      console.error("Error real en updateAvatar:", err);
+      return res.status(500).json({
+        ok: false,
+        mensaje: "Error interno",
+        error: err.message,
+      });
     }
   }
 }
