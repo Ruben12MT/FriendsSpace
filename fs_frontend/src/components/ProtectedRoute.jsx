@@ -4,6 +4,7 @@ import { checkSession } from "../utils/checkSession";
 import { CircularProgress, Box } from "@mui/material";
 import userAuthStore from "../store/useAuthStore";
 import { useFirstLogin } from "../hooks/useFirstLogin";
+import { useUser } from "../hooks/useUser";
 
 const ProtectedRoute = ({ children }) => {
   useFirstLogin();
@@ -11,20 +12,17 @@ const ProtectedRoute = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [isAuth, setIsAuth] = useState(false);
 
-  const setUserId = userAuthStore((state) => state.setUserId);
-  const userId = userAuthStore((state) => state.userId);
+  const {loggedUser, setLoggedUser} = useUser();
 
   useEffect(() => {
     async function validate() {
-      // Si Zustand ya tiene userId guardarlo en localStorage
-      if (userId) {
-        localStorage.setItem("userId", userId);
+      if (loggedUser) {
         setIsAuth(true);
         setLoading(false);
         return;
       }
 
-      // Si no hay userId validar sesión
+      // Si no hay loggedUser validar sesión
       try {
         const res = await checkSession();
 
@@ -34,9 +32,8 @@ const ProtectedRoute = ({ children }) => {
           return;
         }
 
-        // Guardar id en Zustand y localStorage
-        setUserId(res.user.id);
-        localStorage.setItem("userId", res.user.id);
+        // Guardar user en Zustand y localStorage
+        setLoggedUser(res.user);
 
         setIsAuth(true);
         setLoading(false);
@@ -48,7 +45,7 @@ const ProtectedRoute = ({ children }) => {
     }
 
     validate();
-  }, [userId, setUserId]);
+  }, [loggedUser, setLoggedUser]);
 
   if (loading) {
     return (

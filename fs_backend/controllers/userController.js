@@ -52,24 +52,32 @@ class UserController {
       });
 
       // 7. Enviar Cookie y Respuesta (Usamos los datos reales de la DB)
-      return res
-        .cookie("access_token", token, {
-          httpOnly: true,
-          secure: false,
-          sameSite: "lax", // Esto va a permitir que la cookie se mantenga en navegaciones internas
-          path: "/",
-          maxAge: 3600000,
-        })
-        .status(200)
-        .json({
-          ok: true,
-          mensaje: "Bienvenido a Friends Space",
-          user: {
-            email: usuarioBuscado.email,
-            name: usuarioBuscado.name,
-            first_login: usuarioBuscado.first_login,
-          },
-        });
+      return (
+        res
+          .cookie("access_token", token, {
+            httpOnly: true,
+            secure: false,
+            sameSite: "lax", // Esto va a permitir que la cookie se mantenga en navegaciones internas
+            path: "/",
+            maxAge: 3600000,
+          })
+          .status(200)
+          // EN TU CONTROLADOR BACKEND (Punto 7):
+          .json({
+            ok: true,
+            mensaje: "Bienvenido a Friends Space",
+            user: {
+              id: usuarioBuscado.id, // <--- AÑADE ESTO
+              email: usuarioBuscado.email,
+              name: usuarioBuscado.name,
+              url_image: usuarioBuscado.url_image,
+              bio: usuarioBuscado.bio,
+              goals: usuarioBuscado.goals,
+              short_sentece: usuarioBuscado.short_sentece,
+              first_login: usuarioBuscado.first_login,
+            },
+          })
+      );
     } catch (err) {
       console.error("Error en login:", err);
       return res.status(500).json({
@@ -350,38 +358,32 @@ class UserController {
   }
 
   async updateAvatar(req, res) {
-    try {
-      const { id } = req.params;
+  try {
+    const { id } = req.params;
 
-      // 1. Verificación de seguridad
-      if (!req.file) {
-        return res.status(400).json({
-          ok: false,
-          mensaje:
-            "No se ha recibido ninguna imagen. Revisa el nombre del campo en el FormData.",
-        });
-      }
-
-      // En CloudinaryStorage, la URL suele venir en .path o .url
-      const url_image = req.file.path;
-
-      await userService.updateUser(id, { url_image: url_image });
-
-      return res.status(200).json({
-        ok: true,
-        datos: { url_image },
-        mensaje: "Avatar actualizado correctamente",
-      });
-    } catch (err) {
-      // IMPORTANTE: Imprime el error sin JSON.stringify para verlo claro en la consola de Node
-      console.error("Error real en updateAvatar:", err);
-      return res.status(500).json({
-        ok: false,
-        mensaje: "Error interno",
-        error: err.message,
-      });
+    if (!req.file) {
+      return res
+        .status(400)
+        .json({ ok: false, mensaje: "No se recibió imagen" });
     }
+
+    // URL de Cloudinary
+    const url_image = req.file.path;
+
+    await userService.updateUser(id, { url_image });
+
+    return res.status(200).json({
+      ok: true,
+      url_image: url_image,
+      mensaje: "Avatar actualizado correctamente",
+    });
+  } catch (error) {
+    console.error("Error en updateAvatar:", error);
+    return res
+      .status(500)
+      .json({ ok: false, mensaje: "Error al subir avatar" });
   }
+}
 }
 
 module.exports = new UserController();

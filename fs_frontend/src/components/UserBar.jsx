@@ -53,32 +53,7 @@ export default function UserBar() {
     }
   };
 
-  if (!loggedUser) {
-    return (
-      <Box
-        sx={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}
-      >
-        <AppBar
-          position="sticky"
-          elevation={9}
-          sx={{ backgroundColor: "white" }}
-        >
-          <Container maxWidth="xl">
-            <Toolbar disableGutters>
-              <Avatar
-                src="/no_user_avatar_image.png"
-                sx={{ width: 45, height: 45, border: "#C9A227 solid 1px" }}
-              />
-            </Toolbar>
-          </Container>
-        </AppBar>
-        <Box component="main" sx={{ flexGrow: 1 }}>
-          <Outlet />
-        </Box>
-      </Box>
-    );
-  }
-
+  if (!loggedUser) return null;
   return (
     <Box
       sx={{

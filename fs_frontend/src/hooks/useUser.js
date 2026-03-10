@@ -1,25 +1,11 @@
-import { useEffect, useState } from "react";
 import api from "../utils/api";
-import userAuthStore from "../store/useAuthStore";
+import useAuthStore from "../store/useAuthStore";
 
 export function useUser() {
-  const userId = userAuthStore((state) => state.userId);
-  const [loggedUser, setLoggedUser] = useState(null);
+  const loggedUser = useAuthStore((state) => state.loggedUser);
+  const setLoggedUser = useAuthStore((state) => state.setLoggedUser);
 
-  useEffect(() => {
-    async function loadUser() {
-      if (!userId) return;
-
-      try {
-        const res = await api.get("/users/" + userId);
-        setLoggedUser(res.data.datos);
-      } catch (err) {
-        setLoggedUser(null);
-      }
-    }
-
-    loadUser();
-  }, [userId]);
-
-  return { loggedUser };
+  // Solo pedimos los datos si loggedUser es null por ejemplo, al iniciar la app
+  
+  return { loggedUser, setLoggedUser };
 }

@@ -162,7 +162,6 @@ export default function EditUserPage() {
   };
 
   const editarUsuario = async () => {
-    // comprobamos que no se esté validando el nombre en ese momento
     if (ui.editingName) {
       return setErrorState({
         msg: "Confirma el nombre antes de guardar",
@@ -170,11 +169,9 @@ export default function EditUserPage() {
       });
     }
 
-    // bloqueamos el botón para evitar envíos duplicados
     setUi({ ...ui, loading: true });
 
     try {
-      // preparamos los datos de texto filtrando campos internos
       const {
         id,
         url_image,
@@ -186,42 +183,40 @@ export default function EditUserPage() {
         ...data
       } = editedUser;
 
-      // enviamos la actualización de los campos de texto
+      // Actualizar datos de texto
       await api.put("/users/" + loggedUser.id, data);
 
-      // SOLO si hay un archivo nuevo en el estado subimos el avatar
-      // si avatar.file es null, nos saltamos este paso y evitamos el error
+      // Subir imagen si existe y obtener la nueva URL
+      let nuevaUrl = loggedUser.url_image;
       if (avatar.file) {
         const form = new FormData();
         form.append("avatar", avatar.file);
-        await api.put(`/users/${loggedUser.id}/avatar`, form);
+        const resAvatar = await api.put(`/users/${loggedUser.id}/avatar`, form);
+        nuevaUrl = resAvatar.data.url_image || resAvatar.data.datos?.url_image;
       }
 
-      // actualizamos la lista de intereses borrando los anteriores
+      // Actualizar intereses
       await api.delete(`/userinterests/${loggedUser.id}/interests`);
-
-      // insertamos los nuevos intereses seleccionados si los hay
       if (editedUserInterests.length > 0) {
         await api.post(`/userinterests/${loggedUser.id}/interests`, {
           interestIds: editedUserInterests.map((i) => i.id),
         });
       }
 
-      // recuperamos los datos actualizados del servidor
-      const res = await api.get("/users/" + loggedUser.id);
+      // Actualizar estado global de Zustand
+      setLoggedUser({
+        ...loggedUser,
+        ...data,
+        url_image: nuevaUrl,
+      });
 
-      // refrescamos el usuario en el contexto global y navegamos al perfil
-      if (res.data.datos) {
-        navigate("/app/" + loggedUser.id);
-      }
+      navigate("/app/" + loggedUser.id);
     } catch (e) {
-      // mostramos el error detallado si alguna de las peticiones falla
-      console.error("Error en el proceso de guardado:", e);
+      console.error(e);
       setErrorState({
         msg: e.response?.data?.mensaje || "Error al guardar cambios",
         open: true,
       });
-      // reactivamos el botón para permitir correcciones
       setUi({ ...ui, loading: false });
     }
   };
@@ -279,14 +274,18 @@ export default function EditUserPage() {
 
         <input
           type="file"
+          accept="image/*"
           ref={fileInputRef}
           style={{ display: "none" }}
-          onChange={(e) =>
-            setAvatar({
-              file: e.target.files[0],
-              preview: URL.createObjectURL(e.target.files[0]),
-            })
-          }
+          onChange={(e) => {
+            if (e.target.files[0]) {
+              setAvatar({
+                file: e.target.files[0],
+                preview: URL.createObjectURL(e.target.files[0]),
+              });
+              setEdited(true);
+            }
+          }}
         />
       </Grid>
 

@@ -9,9 +9,9 @@ import Visibility from "@mui/icons-material/Visibility";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
 import ErrorMessage from "../components/ErrorMessage";
 import api from "../utils/api";
-import userAuthStore from "../store/useAuthStore";
 import { useAppTheme } from "../hooks/useAppTheme";
 import ThemeToggler from "../components/themeToggler";
+import { useUser } from "../hooks/useUser";
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const handleClickShowPassword = () => {
@@ -27,7 +27,7 @@ export default function LoginPage() {
     password: false,
   });
 
-  const setUserId = userAuthStore((state) => state.setUserId);
+  const { setLoggedUser } = useUser();
 
   const theme = useAppTheme();
 
@@ -44,11 +44,14 @@ export default function LoginPage() {
         password,
       });
 
-      setUserId(res.data.user.id);
+      setLoggedUser(res.data.user);
 
       if (res.data.user.first_login == 0) {
+        console.log("El usuario ya ha iniciado sesión antes");
         navigate("/app/searchnewfriends");
       } else {
+        console.log("El usuario a entrado por primera vez");
+
         navigate("/app/user/edit");
       }
     } catch (error) {
@@ -72,9 +75,9 @@ export default function LoginPage() {
           background: theme.secondaryBack,
 
           position: "fixed",
-          top: "50%", 
-          left: "50%", 
-          transform: "translate(-50%, -50%)", 
+          top: "50%",
+          left: "50%",
+          transform: "translate(-50%, -50%)",
 
           zIndex: 2000,
         }}
