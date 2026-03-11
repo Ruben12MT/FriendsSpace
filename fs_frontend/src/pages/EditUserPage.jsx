@@ -26,7 +26,7 @@ export default function EditUserPage() {
   const fileInputRef = useRef(null);
   const [edited, setEdited] = useState(false);
   const theme = useAppTheme();
-  // Estado unificado para los errores
+  // Estado para los errores
   const [errorState, setErrorState] = useState({
     open: false,
     msg: "",
@@ -66,6 +66,13 @@ export default function EditUserPage() {
   const [allInterests, setAllInterests] = useState([]);
   const [editedUser, setEditedUser] = useState({});
   const [editedUserInterests, setEditedUserInterests] = useState([]);
+
+  const limiteUserName = 50;
+  const limiteShortSensence = 50;
+  const limiteBio = 500;
+  const limiteGoals = 500;
+
+  const limites = { name: 50, short_sentece: 50, bio: 500, goals: 500 };
 
   const [ui, setUi] = useState({
     editingName: false,
@@ -109,8 +116,10 @@ export default function EditUserPage() {
   }
 
   const handleChange = (e) => {
-    setEditedUser({ ...editedUser, [e.target.name]: e.target.value });
-    setEdited(true);
+    if (limites[e.target.name] >= e.target.value.length) {
+      setEditedUser({ ...editedUser, [e.target.name]: e.target.value });
+      setEdited(true);
+    }
   };
 
   const handleUsernameExist = async () => {
@@ -183,8 +192,13 @@ export default function EditUserPage() {
         ...data
       } = editedUser;
 
+      const cleanData = {};
+      Object.keys(data).forEach((key) => {
+        cleanData[key] =
+          typeof data[key] === "string" ? data[key].trim() : data[key];
+      });
       // Actualizar datos de texto
-      await api.put("/users/" + loggedUser.id, data);
+      await api.put("/users/" + loggedUser.id, cleanData);
 
       // Subir imagen si existe y obtener la nueva URL
       let nuevaUrl = loggedUser.url_image;
@@ -356,13 +370,25 @@ export default function EditUserPage() {
           alignItems="center"
           sx={{ width: "100%" }}
         >
-          {/* CAMPO: DESCRIPCIÓN */}
           <Grid container spacing={1} sx={{ width: "100%", mt: 1 }}>
-            <Typography
-              sx={{ fontWeight: "bold", mb: 0.5, color: theme.primaryText }}
+            <Grid
+              container
+              justifyContent={"space-between"}
+              sx={{ width: "100%" }}
             >
-              Descripción
-            </Typography>
+              <Typography
+                sx={{ fontWeight: "bold", mb: 0.5, color: theme.primaryText }}
+              >
+                Descripción
+              </Typography>
+
+              <Typography
+                sx={{ fontWeight: "bold", mb: 0.5, color: theme.primaryText }}
+              >
+                {editedUser.bio ? editedUser.bio.trim().length : 0}/
+                {limites.bio}
+              </Typography>
+            </Grid>
             <TextField
               name="bio"
               fullWidth
@@ -375,11 +401,26 @@ export default function EditUserPage() {
 
           {/* CAMPO: FRASE CORTA */}
           <Grid container spacing={1} sx={{ width: "100%", mt: 1 }}>
-            <Typography
-              sx={{ fontWeight: "bold", mb: 0.5, color: theme.primaryText }}
+            <Grid
+              container
+              justifyContent={"space-between"}
+              sx={{ width: "100%" }}
             >
-              Frase Corta
-            </Typography>
+              <Typography
+                sx={{ fontWeight: "bold", mb: 0.5, color: theme.primaryText }}
+              >
+                Frase Corta
+              </Typography>
+
+              <Typography
+                sx={{ fontWeight: "bold", mb: 0.5, color: theme.primaryText }}
+              >
+                {editedUser.short_sentece
+                  ? editedUser.short_sentece.trim().length
+                  : 0}
+                /{limites.short_sentece}
+              </Typography>
+            </Grid>
             <TextField
               name="short_sentece"
               fullWidth
@@ -390,13 +431,25 @@ export default function EditUserPage() {
             />
           </Grid>
 
-          {/* CAMPO: OBJETIVOS */}
           <Grid container spacing={1} sx={{ width: "100%", mt: 1 }}>
-            <Typography
-              sx={{ fontWeight: "bold", mb: 0.5, color: theme.primaryText }}
+            <Grid
+              container
+              justifyContent={"space-between"}
+              sx={{ width: "100%" }}
             >
-              Objetivos
-            </Typography>
+              <Typography
+                sx={{ fontWeight: "bold", mb: 0.5, color: theme.primaryText }}
+              >
+                Objetivos
+              </Typography>
+
+              <Typography
+                sx={{ fontWeight: "bold", mb: 0.5, color: theme.primaryText }}
+              >
+                {editedUser.goals ? editedUser.goals.trim().length : 0}/
+                {limites.goals}
+              </Typography>
+            </Grid>
             <TextField
               name="goals"
               fullWidth

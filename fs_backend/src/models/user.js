@@ -41,7 +41,7 @@ module.exports = function (sequelize, DataTypes) {
         allowNull: true,
       },
       short_sentece: {
-        type: DataTypes.STRING(20),
+        type: DataTypes.STRING(50),
         allowNull: true,
       },
       created_at: {

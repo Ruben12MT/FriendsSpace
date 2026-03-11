@@ -13,9 +13,13 @@ import { useUser } from "../hooks/useUser";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import GradeIcon from "@mui/icons-material/Grade";
+import { motion } from "framer-motion";
+import { green } from "@mui/material/colors";
+import { useNavigate } from "react-router-dom";
 export default function AdCard({ ad, onEdit, onDelete }) {
   const { loggedUser } = useUser();
   const theme = useAppTheme();
+  const navigate = useNavigate();
 
   const formatDate = (timestamp) => {
     const date = new Date(timestamp);
@@ -63,6 +67,14 @@ export default function AdCard({ ad, onEdit, onDelete }) {
     >
       {/*Avatar e Intereses */}
       <Box
+        component={motion.div} // <-- Esta es la clave
+        onClick={() => {
+          navigate("/app/" + ad.user_id);
+        }}
+        whileHover={{
+          scale: 0.98,
+          transition: { duration: 0.1 },
+        }}
         sx={{
           display: "flex",
           alignItems: "center",
@@ -73,6 +85,7 @@ export default function AdCard({ ad, onEdit, onDelete }) {
           p: 1.5,
           mb: 1,
           background: theme.secondaryBack,
+          cursor: "pointer",
         }}
       >
         <Avatar

@@ -1,6 +1,8 @@
 const jwt = require("jsonwebtoken");
 const { SECRET_JWT_KEY } = require("../config/config");
 const userService = require("../services/userService");
+const userInterestService = require("../services/userInterestService");
+
 const bcrypt = require("bcrypt");
 const userValidations = require("../validations/userValidations");
 
@@ -105,10 +107,25 @@ class UserController {
   async checkAuth(req, res) {
     try {
       const usuario = await userService.getUserById(req.user.id);
+      const usuarioIntereses = await userInterestService.getUserInterests(
+        req.user.id,
+      );
+
+      // 1. Convertimos el modelo de Sequelize a un objeto JSON puro
       const usuarioLimpio = usuario.toJSON();
+
+      // 2. ASIGNACIÓN MANUAL (Usa el igual =, no paréntesis)
+      // Esto añade la lista de intereses que vemos en tu log de SQL al objeto del usuario
+      usuarioLimpio.interests = usuarioIntereses;
+
+      // 3. Limpieza de seguridad
       delete usuarioLimpio.password;
+
+      // 4. Respuesta al frontend
       return res.status(200).json({ ok: true, usuario: usuarioLimpio });
     } catch (err) {
+      // Si hay error, imprímelo en la terminal para saber qué pasó
+      console.error("ERROR EN CHECKAUTH:", err);
       return res
         .status(500)
         .json({ ok: false, mensaje: "Error al verificar sesión" });
@@ -301,16 +318,16 @@ class UserController {
       }
 
       // 4. VALIDACIÓN DE PASSWORD (Si viene en el body)
-      if (datosEditados.password) {
-        const passError = userValidations.passwordValidation(
-          datosEditados.password,
-        );
-        if (passError) {
-          return res.status(400).json({ ok: false, mensaje: passError });
-        }
-        // Si es válida, hasheamos
-        datosEditados.password = await bcrypt.hash(datosEditados.password, 10);
-      }
+      // if (datosEditados.password) {
+      //   const passError = userValidations.passwordValidation(
+      //     datosEditados.password,
+      //   );
+      //   if (passError) {
+      //     return res.status(400).json({ ok: false, mensaje: passError });
+      //   }
+      //   // Si es válida, hasheamos
+      //   datosEditados.password = await bcrypt.hash(datosEditados.password, 10);
+      // }
 
       // 5. Ejecutar actualización
       const updatedUser = await userService.updateUser(id, datosEditados);
@@ -358,32 +375,32 @@ class UserController {
   }
 
   async updateAvatar(req, res) {
-  try {
-    const { id } = req.params;
+    try {
+      const { id } = req.params;
 
-    if (!req.file) {
+      if (!req.file) {
+        return res
+          .status(400)
+          .json({ ok: false, mensaje: "No se recibió imagen" });
+      }
+
+      // URL de Cloudinary
+      const url_image = req.file.path;
+
+      await userService.updateUser(id, { url_image });
+
+      return res.status(200).json({
+        ok: true,
+        url_image: url_image,
+        mensaje: "Avatar actualizado correctamente",
+      });
+    } catch (error) {
+      console.error("Error en updateAvatar:", error);
       return res
-        .status(400)
-        .json({ ok: false, mensaje: "No se recibió imagen" });
+        .status(500)
+        .json({ ok: false, mensaje: "Error al subir avatar" });
     }
-
-    // URL de Cloudinary
-    const url_image = req.file.path;
-
-    await userService.updateUser(id, { url_image });
-
-    return res.status(200).json({
-      ok: true,
-      url_image: url_image,
-      mensaje: "Avatar actualizado correctamente",
-    });
-  } catch (error) {
-    console.error("Error en updateAvatar:", error);
-    return res
-      .status(500)
-      .json({ ok: false, mensaje: "Error al subir avatar" });
   }
-}
 }
 
 module.exports = new UserController();
