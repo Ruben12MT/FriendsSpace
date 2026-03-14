@@ -8,53 +8,69 @@ import { useAppTheme } from "../hooks/useAppTheme";
 
 export default function UserPage() {
   const navigate = useNavigate();
+
+  // Sacamos a loggedUser por que para comparar el usuario buscado don el logged
   const { loggedUser } = useUser();
+
+  // Estado para el zoom a la imagen del usuario
   const [openZoom, setOpenZoom] = useState(false);
+
+  // El id de los parametros
   const { id: userIdAct } = useParams();
 
+  // Con esta variable se decidira que opciones de ven y que opciones no
   const isLoggedUser = loggedUser?.id == userIdAct;
 
+  // Este estado es para almacenar el objeto completo del usuario visitado, ya seamos nosotros o uno ajeno
   const [visitedUser, setVisitedUser] = useState({});
+
+  // Este estado es para guardar un array de intereses con los intereses del usuario de la página
   const [userInterests, setUserInterests] = useState([]);
+
+  // Usamos el hook useAppTheme para tomar el tema de colores actual
   const theme = useAppTheme();
+
+  // Este useEffect busca el usuario por el id que esta en los parametros de la ruta del navegador y sus intereses
   useEffect(() => {
     async function fetchUser() {
       try {
-        if (isLoggedUser) return;
+        // Hacemos la peticion a la base de datos a traves de api.js
         const res = await api.get("/users/" + userIdAct);
-        setVisitedUser(res.data.datos);
+        const usuarioBuscado = res.data.usuario;
+
+        // Comprobamos si el usuario existe
+        if (usuarioBuscado) {
+          console.log("Se ha encontrado ese usuario");
+          // Setteamos el estado con el usuario encontrado
+          setVisitedUser(usuarioBuscado);
+        } else {
+          // Si no se encuentra el usuario pues omitimos todo lo siguiente
+          return;
+        }
+
+        // Hacemos una segunda peticion para sacar los intereses del usuario si es que en este punto existe
+        const res2 = await api.get(`/users/${userIdAct}/interests`);
+
+        // Si devuelve algo se muestra ese o si no será un array vacio.
+        setUserInterests(res2.data.datos || []);
       } catch (error) {
         console.log(error.message);
       }
     }
     fetchUser();
-  }, [isLoggedUser, userIdAct]);
-
-  // Cargar intereses del usuario visitado o del propio usuario
-  useEffect(() => {
-    async function fetchUserInterest() {
-      try {
-        const res = await api.get(`/userInterests/${userIdAct}/interests`);
-        setUserInterests(res.data.datos);
-      } catch (error) {
-        console.log(error.message);
-      }
-    }
-    fetchUserInterest();
   }, [userIdAct]);
 
-  // Usuario a mostrar (propio o visitado)
-  const userToShow = isLoggedUser ? loggedUser : visitedUser;
-
-  if (!userToShow?.email) return <div>Cargando usuario...</div>;
-
   return (
+
+    // Contenedor principal
     <Grid
       container
       maxWidth="xxl"
       justifyContent="center"
       sx={{ minHeight: "100%" }}
     >
+
+    {/* Columna central */}
       <Grid
         container
         direction="column"
@@ -91,7 +107,7 @@ export default function UserPage() {
             >
               <Grid>
                 <Avatar
-                  src={userToShow.url_image ?? "/no_user_avatar_image.png"}
+                  src={visitedUser.url_image ?? "/no_user_avatar_image.png"}
                   onClick={() => setOpenZoom(true)}
                   sx={{
                     width: 90,
@@ -116,14 +132,15 @@ export default function UserPage() {
                     color: theme.primaryText,
                   }}
                 >
-                  @{userToShow.name}
+                  @{visitedUser.name}
                 </Typography>
 
-                {isLoggedUser && (
+                {/* Mostramos el email si lo tenemos (el controller ahora lo manda) */}
+                {visitedUser.email && (
                   <Typography
                     sx={{ color: theme.secondaryText, fontSize: "0.9rem" }}
                   >
-                    {loggedUser.email}
+                    {visitedUser.email}
                   </Typography>
                 )}
 
@@ -149,11 +166,16 @@ export default function UserPage() {
                   }}
                 >
                   Miembro desde{" "}
-                  {new Date(userToShow.created_at).toLocaleDateString("es-ES", {
-                    day: "numeric",
-                    month: "long",
-                    year: "numeric",
-                  })}
+                  {visitedUser.created_at
+                    ? new Date(visitedUser.created_at).toLocaleDateString(
+                        "es-ES",
+                        {
+                          day: "numeric",
+                          month: "long",
+                          year: "numeric",
+                        },
+                      )
+                    : "Reciente"}
                 </Typography>
 
                 {/* Ruta correcta para editar */}
@@ -188,7 +210,7 @@ export default function UserPage() {
             </Grid>
 
             {/* Sobre mí */}
-            {userToShow.bio?.trim() && (
+            {visitedUser.bio?.trim() && (
               <Grid size={{ xs: 12 }}>
                 <Typography
                   sx={{ fontWeight: "bold", mb: 1, color: theme.primaryText }}
@@ -205,7 +227,7 @@ export default function UserPage() {
                   <Typography
                     sx={{ whiteSpace: "pre-wrap", color: theme.fieldsText }}
                   >
-                    {userToShow.bio}
+                    {visitedUser.bio}
                   </Typography>
                 </Grid>
               </Grid>
@@ -213,6 +235,7 @@ export default function UserPage() {
           </Grid>
         </Grid>
 
+        {/* Intereses */}
         {/* Intereses */}
         {userInterests.length > 0 && (
           <Grid size={{ xs: 12 }}>
@@ -236,9 +259,8 @@ export default function UserPage() {
               <Grid container spacing={1}>
                 {userInterests.map((interestRec) => (
                   <InterestItem
-                    key={interestRec.interest_id}
-                    color={interestRec.interest.color}
-                    title={interestRec.interest.name}
+                    key={interestRec.interest_id || interestRec.id}
+                    title={interestRec.interest?.name || interestRec.name}
                   />
                 ))}
               </Grid>
@@ -246,8 +268,7 @@ export default function UserPage() {
           </Grid>
         )}
 
-        {/* Objetivos */}
-        {userToShow.goals?.trim() && (
+        {visitedUser.goals?.trim() && (
           <Grid size={{ xs: 12 }}>
             <Typography
               sx={{ fontWeight: "bold", mb: 1, color: theme.primaryText }}
@@ -265,14 +286,14 @@ export default function UserPage() {
               <Typography
                 sx={{ whiteSpace: "pre-wrap", color: theme.fieldsText }}
               >
-                {userToShow.goals}
+                {visitedUser.goals}
               </Typography>
             </Grid>
           </Grid>
         )}
 
-        {/* Frase pública */}
-        {userToShow.short_sentece?.trim() && (
+        {/* Frase pública - Corregido a short_sentece según BD */}
+        {visitedUser.short_sentece?.trim() && (
           <Grid size={{ xs: 12 }}>
             <Typography
               sx={{ fontWeight: "bold", mb: 1, color: theme.primaryText }}
@@ -288,7 +309,7 @@ export default function UserPage() {
               }}
             >
               <Typography sx={{ color: theme.fieldsText }}>
-                {userToShow.short_sentece}
+                {visitedUser.short_sentece}
               </Typography>
             </Grid>
           </Grid>
@@ -305,12 +326,12 @@ export default function UserPage() {
         onClick={() => setOpenZoom(false)}
       >
         <img
-          src={userToShow.url_image ?? "/no_user_avatar_image.png"}
+          src={visitedUser.url_image ?? "/no_user_avatar_image.png"}
           alt="Avatar Zoom"
           style={{
             width: "500px",
             height: "500px",
-            borderRadius: 1000, 
+            borderRadius: 1000,
             boxShadow: "0 0 30px rgba(0,0,0,0.7)",
           }}
         />

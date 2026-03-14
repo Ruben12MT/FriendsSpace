@@ -2,21 +2,14 @@ const express = require("express");
 const router = express.Router();
 const adController = require("../controllers/adController");
 const { validarToken } = require("../middlewares/validarToken");
-const { sameUser } = require("../middlewares/sameUser");
 
-// Rutas públicas
+// Rutas publicas de lectura
 router.get("/", adController.getAllAds);
 router.get("/search/:word", adController.getAdsByWord);
-router.get("/:id", adController.getAdById);
 
-// Rutas protegidas (solo same User)
+// Rutas privadas de gestion
 router.post("/", validarToken, adController.createAd);
-router.put("/:id", validarToken, sameUser, adController.updateAd);
-router.delete("/:id", validarToken, sameUser, adController.deleteAd);
-
-// Rutas protegidas (solo admin)
-// router.post('/admin',validarToken ,adController.adminCreateAd);
-// router.put('/admin/:id', validarToken, adController.adminUpdateAd);
-// router.delete('/admin/:id', validarToken, adController.adminDeleteAd);
+router.put("/:id", validarToken, adController.updateAd);
+router.delete("/:id", validarToken, adController.deleteAd);
 
 module.exports = router;

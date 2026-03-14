@@ -1,118 +1,81 @@
 const adService = require("../services/adService");
 
 class AdController {
-  async createAd(req, res) {
+  // Lista todos los anuncios
+  async getAllAds(req, res) {
     try {
-      const { user_id, title, body, interestIds } = req.body;
-      
-      if (!title) {
-        return res.status(400).json({ ok: false, mensaje: "Debe al menos tener un título" });
-      }
-      if (!interestIds || interestIds.length === 0) {
-        return res.status(400).json({ ok: false, mensaje: "Debe seleccionar al menos un interés" });
-      }
-
-      if (!user_id) {
-        return res.status(400).json({ ok: false, mensaje: "Todo anuncio debe tener un creador" });
-      }
-
-      const newAd = await adService.createAd({ user_id, title, body, interestIds });
-      
-      return res.status(201).json({
-        ok: true,
-        datos: newAd,
-        mensaje: "Anuncio creado correctamente",
-      });
+      const ads = await adService.getAllAds();
+      res.status(200).json({ ok: true, datos: ads });
     } catch (err) {
-      console.error("Error en createAd:", err);
-      return res.status(500).json({ ok: false, mensaje: "Error al crear anuncio" });
+      res.status(500).json({ ok: false, mensaje: "Error al obtener anuncios" });
     }
   }
 
+  // Crea un anuncio nuevo para el usuario logueado
+  async createAd(req, res) {
+    try {
+      const { title, body, interestIds } = req.body;
+      const newAd = await adService.createAd({ 
+        title, 
+        body, 
+        user_id: req.user.id 
+      }, interestIds);
+      res.status(201).json({ ok: true, datos: newAd });
+    } catch (err) {
+      res.status(500).json({ ok: false, mensaje: "Error al crear anuncio" });
+    }
+  }
+
+  // Edita el anuncio validando que el usuario sea el dueño
+  async updateAd(req, res) {
+    try {
+      const { id } = req.params;
+      const { title, body, interestIds, } = req.body;
+
+
+      const ad = await adService.getAdById(id);
+      if (!ad) return res.status(404).json({ ok: false, mensaje: "No encontrado" });
+
+      // Comprueba si el usuario del token es el dueño del anuncio
+      if (ad.user_id !== req.user.id) {
+        return res.status(403).json({ ok: false, mensaje: "No tienes permiso para editar este anuncio" });
+      }
+
+      const updated = await adService.updateAd(id, { title, body }, interestIds);
+      res.status(200).json({ ok: true, datos: updated });
+    } catch (err) {
+      res.status(500).json({ ok: false, mensaje: "Error al actualizar" });
+    }
+  }
+
+  // Borra el anuncio validando que el usuario sea el dueño
+  async deleteAd(req, res) {
+    try {
+      const { id } = req.params;
+      const ad = await adService.getAdById(id);
+
+      if (!ad) return res.status(404).json({ ok: false, mensaje: "No encontrado" });
+
+      // Comprueba si el usuario del token es el dueño del anuncio
+      if (ad.user_id !== req.user.id) {
+        return res.status(403).json({ ok: false, mensaje: "No tienes permiso para borrar este anuncio" });
+      }
+
+      await adService.deleteAd(id);
+      res.status(200).json({ ok: true, mensaje: "Anuncio eliminado" });
+    } catch (err) {
+      res.status(500).json({ ok: false, mensaje: "Error al borrar" });
+    }
+  }
+
+  // Busca anuncios por palabra clave
   async getAdsByWord(req, res) {
     try {
       const { word } = req.params;
       const ads = await adService.getAdsByWord(word);
-      
-      if (!ads || ads.length === 0) {
-        return res.status(404).json({ ok: false, mensaje: "No existen anuncios con esa palabra clave" });
-      }
-      
-      return res.status(200).json({ ok: true, datos: ads });
+      res.status(200).json({ ok: true, datos: ads });
     } catch (err) {
-      console.error("Error en getAdsByWord:", err);
-      return res.status(500).json({ ok: false, mensaje: "Error al buscar anuncios" });
-    }
-  }
-
-  async getAdById(req, res) {
-    try {
-      const { id } = req.params;
-      const ad = await adService.getAdById(id);
-      
-      if (!ad) {
-        return res.status(404).json({ ok: false, mensaje: "Anuncio no encontrado" });
-      }
-      
-      return res.status(200).json({ ok: true, datos: ad });
-    } catch (err) {
-      console.error("Error en getAdById:", err);
-      return res.status(500).json({ ok: false, mensaje: "Error al obtener el anuncio" });
-    }
-  }
-
-  async getAllAds(req, res) {
-    try {
-      const ads = await adService.getAllAds();
-      return res.status(200).json({ ok: true, datos: ads });
-    } catch (err) {
-      console.error("Error en getAllAds:", err);
-      return res.status(500).json({ ok: false, mensaje: "Error al obtener anuncios" });
-    }
-  }
-
-  async updateAd(req, res) {
-    try {
-      const { id } = req.params;
-      // Primero verificamos si existe
-      const adExists = await adService.getAdById(id);
-      if (!adExists) {
-        return res.status(404).json({ ok: false, mensaje: "Anuncio no encontrado" });
-      }
-
-      if (req.body.user_id) {
-                return res.status(404).json({ ok: false, mensaje: "No puedes cambiar el autor de un anuncio" });
-
-      }
-
-      const updated = await adService.updateAd(id, req.body);
-      
-      return res.status(200).json({
-        ok: true,
-        datos: updated,
-        mensaje: "Anuncio actualizado correctamente",
-      });
-    } catch (err) {
-      console.error("Error en updateAd:", err);
-      return res.status(500).json({ ok: false, mensaje: "Error al actualizar anuncio" });
-    }
-  }
-
-  async deleteAd(req, res) {
-    try {
-      const { id } = req.params;
-      const adExists = await adService.getAdById(id);
-      
-      if (!adExists) {
-        return res.status(404).json({ ok: false, mensaje: "Anuncio no encontrado" });
-      }
-
-      await adService.deleteAd(id);
-      
-      return res.status(200).json({ ok: true, mensaje: "Anuncio eliminado correctamente" });
-    } catch (err) {
-      console.error("Error en deleteAd:", err);
-      return res.status(500).json({ ok: false, mensaje: "Error al eliminar anuncio" });
+      res.status(500).json({ ok: false, mensaje: "Error en la busqueda" });
     }
   }
 }

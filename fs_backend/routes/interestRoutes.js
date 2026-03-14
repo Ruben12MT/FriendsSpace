@@ -3,14 +3,11 @@ const router = express.Router();
 const interestController = require('../controllers/interestController');
 const { validarToken } = require('../middlewares/validarToken');
 
-// Rutas públicas
+// Ruta publica para que cualquiera (o usuarios logueados) vean los intereses disponibles
 router.get('/', interestController.getAllInterests);
-router.get('/search/:name', interestController.getInterestByName);
-router.get('/:id', interestController.getInterestById);
 
-// Rutas protegidas (solo admin)
+// Rutas que podrias proteger mas adelante solo para administradores
 router.post('/', validarToken, interestController.createInterest);
-router.put('/:id', validarToken, interestController.updateInterest);
 router.delete('/:id', validarToken, interestController.deleteInterest);
 
 module.exports = router;

@@ -1,120 +1,33 @@
 const interestService = require("../services/interestService");
 
 class InterestController {
-  async createInterest(req, res) {
-    try {
-      const { name } = req.body;
-      if (!name) {
-        return res
-          .status(400)
-          .json({ ok: false, mensaje: "Faltan campos obligatorios" });
-      }
-      const newInterest = await interestService.createInterest({ name });
-      return res
-        .status(201)
-        .json({
-          ok: true,
-          datos: newInterest,
-          mensaje: "Interés creado correctamente",
-        });
-    } catch (err) {
-      console.error("Error en createInterest:", err);
-      return res
-        .status(500)
-        .json({ ok: false, mensaje: "Error al crear interés" });
-    }
-  }
-
-  async getInterestByName(req, res) {
-    try {
-      const { name } = req.params;
-      const interest = await interestService.getInterestByName(name);
-      if (!interest) {
-        return res
-          .status(404)
-          .json({ ok: false, mensaje: "Interés no encontrado" });
-      }
-      return res.status(200).json({ ok: true, datos: interest });
-    } catch (err) {
-      console.error("Error en getInterestByName:", err);
-      return res
-        .status(500)
-        .json({ ok: false, mensaje: "Error al buscar interés" });
-    }
-  }
-
-  async getInterestById(req, res) {
-    try {
-      const { id } = req.params;
-      const interest = await interestService.getInterestById(id);
-      if (!interest) {
-        return res
-          .status(404)
-          .json({ ok: false, mensaje: "Interés no encontrado" });
-      }
-      return res.status(200).json({ ok: true, datos: interest });
-    } catch (err) {
-      console.error("Error en getInterestById:", err);
-      return res
-        .status(500)
-        .json({ ok: false, mensaje: "Error al obtener interés" });
-    }
-  }
+  // Devuelve todos los intereses al cliente
   async getAllInterests(req, res) {
     try {
       const interests = await interestService.getAllInterests();
-      return res.status(200).json({ ok: true, datos: interests });
+      res.status(200).json({ ok: true, datos: interests });
     } catch (err) {
-      console.error("Error en getAllInterests:", err);
-      return res
-        .status(500)
-        .json({ ok: false, mensaje: "Error al obtener intereses" });
+      res.status(500).json({ ok: false, mensaje: "Error al obtener catálogo de intereses" });
     }
   }
 
-  async updateInterest(req, res) {
+  // Crea un nuevo interés (esto lo usará normalmente un admin)
+  async createInterest(req, res) {
     try {
-      const { id } = req.params;
-      const interest = await interestService.getInterestById(id);
-      if (!interest) {
-        return res
-          .status(404)
-          .json({ ok: false, mensaje: "Interés no encontrado" });
-      }
-      const updated = await interestService.updateInterest(id, req.body);
-      return res
-        .status(200)
-        .json({
-          ok: true,
-          datos: updated,
-          mensaje: "Interés actualizado correctamente",
-        });
+      const newInterest = await interestService.createInterest(req.body);
+      res.status(201).json({ ok: true, datos: newInterest });
     } catch (err) {
-      console.error("Error en updateInterest:", err);
-      return res
-        .status(500)
-        .json({ ok: false, mensaje: "Error al actualizar interés" });
+      res.status(500).json({ ok: false, mensaje: "Error al crear el interés" });
     }
   }
 
+  // Elimina un interés por su id
   async deleteInterest(req, res) {
     try {
-      const { id } = req.params;
-      const interest = await interestService.getInterestById(id);
-      if (!interest) {
-        return res
-          .status(404)
-          .json({ ok: false, mensaje: "Interés no encontrado" });
-      }
-      await interestService.deleteInterest(id);
-      return res
-        .status(200)
-        .json({ ok: true, mensaje: "Interés eliminado correctamente" });
+      await interestService.deleteInterest(req.params.id);
+      res.status(200).json({ ok: true, mensaje: "Interés eliminado" });
     } catch (err) {
-      console.error("Error en deleteInterest:", err);
-      return res
-        .status(500)
-        .json({ ok: false, mensaje: "Error al eliminar interés" });
+      res.status(500).json({ ok: false, mensaje: "Error al eliminar el interés" });
     }
   }
 }

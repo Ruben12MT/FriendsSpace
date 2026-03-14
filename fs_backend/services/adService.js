@@ -1,60 +1,88 @@
-const { Op } = require("sequelize");
-const initModels = require("../src/models/init-models.js").initModels;
 const sequelize = require("../config/sequelize.js");
+const { initModels } = require("../src/models/init-models.js");
 const models = initModels(sequelize);
+const { Op } = require("sequelize");
 
 class AdService {
+  // Define que incluir: el dueño (con su foto) y los intereses
   static includeData = [
     {
       model: models.user,
       as: "user",
-      attributes: ["name", "role", "url_image"],
+      attributes: ["name", "url_image"],
     },
     {
       model: models.interest,
-      as: "interest_id_interests",
+      as: "interests",
       attributes: ["id", "name"],
       through: { attributes: [] },
     }
   ];
 
-  async createAd(data) {
-    const { interestIds, ...adData } = data;
-    const transaccion = await sequelize.transaction();
-
-    try {
-      const newAd = await models.ad.create(adData, { transaction: transaccion });
-
-      if (interestIds && interestIds.length > 0) {
-        const adInterests = interestIds.map((id) => ({
-          ad_id: newAd.id,
-          interest_id: id,
-        }));
-        await models.ad_interest.bulkCreate(adInterests, { transaction: transaccion });
-      }
-
-      await transaccion.commit();
-      return await this.getAdById(newAd.id);
-    } catch (error) {
-      await transaccion.rollback();
-      throw error;
-    }
-  }
-
+  // Obtiene todos los anuncios ordenados por id descendente
   async getAllAds() {
     return await models.ad.findAll({
-      // Corregido: añadida la referencia a la clase
-      include: AdService.includeData, 
+      include: AdService.includeData,
       order: [['id', 'DESC']]
     });
   }
 
+  // Busca un anuncio por su id
   async getAdById(id) {
-    return await models.ad.findByPk(id, {
-      include: AdService.includeData // Corregido
-    });
+    return await models.ad.findByPk(id, { include: AdService.includeData });
   }
 
+  // Crea un anuncio y sus intereses asociados
+  async createAd(data, interestIds) {
+    const transaction = await sequelize.transaction();
+    try {
+      const newAd = await models.ad.create(data, { transaction });
+
+      if (interestIds && interestIds.length > 0) {
+        const relations = interestIds.map(id => ({
+          ad_id: newAd.id,
+          interest_id: id
+        }));
+        await models.ad_interest.bulkCreate(relations, { transaction });
+      }
+
+      await transaction.commit();
+      return await this.getAdById(newAd.id);
+    } catch (error) {
+      await transaction.rollback();
+      throw error;
+    }
+  }
+
+  // Actualiza datos del anuncio y refresca sus intereses
+  async updateAd(id, data, interestIds) {
+    const transaction = await sequelize.transaction();
+    try {
+      await models.ad.update(data, { where: { id }, transaction });
+
+      if (interestIds) {
+        await models.ad_interest.destroy({ where: { ad_id: id }, transaction });
+        const relations = interestIds.map(intId => ({
+          ad_id: id,
+          interest_id: intId
+        }));
+        await models.ad_interest.bulkCreate(relations, { transaction });
+      }
+
+      await transaction.commit();
+      return await this.getAdById(id);
+    } catch (error) {
+      await transaction.rollback();
+      throw error;
+    }
+  }
+
+  // Elimina un anuncio por su id
+  async deleteAd(id) {
+    return await models.ad.destroy({ where: { id } });
+  }
+
+  // Busca anuncios por palabra clave en titulo o cuerpo
   async getAdsByWord(word) {
     return await models.ad.findAll({
       where: {
@@ -63,44 +91,8 @@ class AdService {
           { body: { [Op.substring]: word } },
         ],
       },
-      include: AdService.includeData, // Corregido
+      include: AdService.includeData,
     });
-  }
-
-  async updateAd(id, data) {
-    const { interestIds, ...adData } = data;
-    const transaccion = await sequelize.transaction();
-
-    try {
-      await models.ad.update(adData, { 
-        where: { id },
-        transaction: transaccion 
-      });
-
-      if (interestIds) {
-        await models.ad_interest.destroy({ 
-          where: { ad_id: id },
-          transaction: transaccion 
-        });
-
-        const newInterests = interestIds.map(intId => ({
-          ad_id: id,
-          interest_id: intId
-        }));
-        await models.ad_interest.bulkCreate(newInterests, { transaction: transaccion });
-      }
-
-      await transaccion.commit();
-      return await this.getAdById(id);
-    } catch (error) {
-      await transaccion.rollback();
-      throw error;
-    }
-  }
-
-  async deleteAd(id) {
-    // Corregido: de .delete() a .destroy()
-    return await models.ad.destroy({ where: { id } });
   }
 }
 

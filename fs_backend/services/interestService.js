@@ -1,36 +1,28 @@
-const { Op } = require("sequelize");
-const initModels = require("../src/models/init-models.js").initModels;
-const sequelize = require("../config/sequelize.js");
+const sequelize = require("../config/sequelize");
+const { initModels } = require("../src/models/init-models");
+
 const models = initModels(sequelize);
-const interest = models.interest;
+const { interest } = models;
 
 class InterestService {
-
-  async createInterest(data) {
-    return await interest.create(data);
-  }
-
+  // Obtiene todos los intereses disponibles en la base de datos
   async getAllInterests() {
-    return await interest.findAll();
+    return await interest.findAll({
+      order: [['name', 'ASC']]
+    });
   }
 
+  // Busca un interes por su id
   async getInterestById(id) {
     return await interest.findByPk(id);
   }
 
-  async getInterestByName(name) {
-    return await interest.findOne({
-      where: {
-        name: { [Op.like]: name }
-      }
-    });
+  // Crea un nuevo interes en el catalogo global
+  async createInterest(interestData) {
+    return await interest.create(interestData);
   }
 
-  async updateInterest(id, data) {
-    await interest.update(data, { where: { id } });
-    return await interest.findByPk(id);
-  }
-
+  // Elimina un interes del catalogo
   async deleteInterest(id) {
     return await interest.destroy({ where: { id } });
   }

@@ -54,6 +54,9 @@ export default function UserBar() {
   };
 
   if (!loggedUser) return null;
+
+  //--BORRAR--
+  console.log("URL IMAGEN ACTUAL USUARIO: "+ loggedUser.url_image)
   return (
     <Box
       sx={{

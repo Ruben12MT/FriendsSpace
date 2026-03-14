@@ -1,58 +1,84 @@
-// services/userservice.js
-// Servicio para interactuar con el modelo Sequelize `users`
+const sequelize = require("../config/sequelize");
+const { initModels } = require("../src/models/init-models");
 
-// Recuperar función de inicialización de modelos
-const initModels = require("../src/models/init-models.js").initModels;
-const { where, Op } = require("sequelize");
-// Crear la instancia de sequelize con la conexión a la base de datos
-const sequelize = require("../config/sequelize.js");
-// Cargar las definiciones del modelo en sequelize
 const models = initModels(sequelize);
-// Recuperar el modelo user
-const user = models.user;
+const { user, interest, user_interest } = models;
 
+const { Op } = require("sequelize");
 const bcrypt = require('bcrypt');
+
 class UserService {
+  // Obtiene todos los usuarios de la base de datos sin mostrar la contraseña
   async getAllUsers() {
-    // Devuelve todos los usuarios.
-    const result = await user.findAll();
-    return result;
+    return await user.findAll({
+      attributes: { exclude: ['password'] }
+    });
   }
 
+  // Busca un usuario por su id e incluye sus intereses asociados
   async getUserById(id) {
-    // Devuelve un usuario por su ID.
-    const result = await user.findByPk(id);
-    
-    return result;
+    return await user.findByPk(id, {
+      include: [{ 
+        model: interest, 
+        as: 'interests', 
+        through: { attributes: [] } 
+      }]
+    });
   }
 
+  // Busca un usuario comparando su email o su nombre de usuario
   async getUserByEmailOrUsername(emailOrUsername) {
-    // Devuelve un usuario por su email o nombre de usuario.
-    const result = await user.findOne({
+    return await user.findOne({
       where: {
-        [Op.or]: [{ email: emailOrUsername }, { name: emailOrUsername }],
+        [Op.or]: [ { name: emailOrUsername }, { email: emailOrUsername }],
       },
     });
-    return result;
   }
 
+  // Crea un nuevo usuario encriptando la contraseña antes de guardar
   async createUser(userData) {
     const hash = await bcrypt.hash(userData.password, 10);
     userData.password = hash;
-
-    const result = await user.create(userData);
-    return result;
+    return await user.create(userData);
   }
 
+  // Actualiza los datos de un usuario especifico
   async updateUser(id, userData) {
-    
-    const result = await user.update(userData, { where: { id } });
-    return result;
+    const [updated] = await user.update(userData, { where: { id } });
+    return updated;
   }
 
+  // Elimina un usuario de la base de datos por su id
   async deleteUser(id) {
-    const result = await user.destroy({ where: { id } });
-    return result;
+    return await user.destroy({ where: { id } });
+  }
+
+  // Obtiene solo la lista de intereses de un usuario concreto
+  async getUserInterests(userId) {
+    const foundUser = await user.findByPk(userId, {
+      include: [{ 
+        model: interest, 
+        as: 'interests', 
+        through: { attributes: [] } 
+      }]
+    });
+    return foundUser ? foundUser.interests : [];
+  }
+
+  // Añade intereses al usuario
+  async addInterestsToUser(userId, interestIds) {
+    const ids = Array.isArray(interestIds) ? interestIds : [interestIds];
+    const userInstance = await user.findByPk(userId);
+    if (!userInstance) throw new Error("Usuario no encontrado");
+    return await userInstance.addInterests(ids);
+  }
+
+  // Elimina intereses del usuario
+  async removeInterestsFromUser(userId, interestIds) {
+    const ids = Array.isArray(interestIds) ? interestIds : [interestIds];
+    const userInstance = await user.findByPk(userId);
+    if (!userInstance) throw new Error("Usuario no encontrado");
+    return await userInstance.removeInterests(ids);
   }
 }
 

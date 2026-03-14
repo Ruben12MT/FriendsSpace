@@ -1,13 +1,26 @@
-function logMensaje(mensaje) {
-  console.log(mensaje);
-}
+// Este archivo centraliza cómo nuestra app "habla" por la consola
 
-function logErrorSQL(err){
-  console.error('Error de MySQL:');
-  console.error('Code:', err.code);
-  console.error('Errno:', err.errno);
-  console.error('SQL Message:', err.sqlMessage);
-  console.error('SQL State:', err.sqlState);
-}
+const logger = {
+    // Para mensajes de éxito, información o desarrollo (Se apagan en producción)
+    info: (mensaje, datos = "") => {
+        if (process.env.NODE_ENV !== 'production') {
+            console.log(`🟢 [INFO] ${mensaje}`, datos);
+        }
+    },
 
-module.exports = { logMensaje, logErrorSQL };
+    // Para advertencias (Cosas raras pero que no rompen la app)
+    warn: (mensaje, datos = "") => {
+         if (process.env.NODE_ENV !== 'production') {
+            console.warn(`🟠 [WARN] ${mensaje}`, datos);
+        }
+    },
+
+    // Para errores graves (Estos SIEMPRE se imprimen, incluso en producción)
+    error: (contexto, error) => {
+        // Extraemos el mensaje real del error si existe
+        const detalleError = error?.message || error;
+        console.error(`🔴 [ERROR - ${contexto}]:`, detalleError);
+    }
+};
+
+module.exports = logger;

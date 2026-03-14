@@ -32,6 +32,7 @@ export default function LoginPage() {
   const theme = useAppTheme();
 
   const iniciarSesion = async () => {
+
     try {
       setErrorsBool({
         emailOrUsername: emailOrUsername === "",
@@ -44,15 +45,19 @@ export default function LoginPage() {
         password,
       });
 
-      setLoggedUser(res.data.user);
+      setLoggedUser(res.data.usuario);
 
-      if (res.data.user.first_login == 0) {
+      if (res.data.usuario && res.data.usuario.first_login == 0) {
         console.log("El usuario ya ha iniciado sesión antes");
         navigate("/app/searchnewfriends");
-      } else {
+      } else if(res.data.usuario.first_login == 1) {
         console.log("El usuario a entrado por primera vez");
 
         navigate("/app/user/edit");
+      }
+      
+      if(res.data.ok){
+              console.log("MENSAJE: El login se ha llevado a cabo de manera exitosa");
       }
     } catch (error) {
       setErrorMsg(error.response?.data?.mensaje || "Error al conectar");

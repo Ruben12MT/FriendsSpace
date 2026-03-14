@@ -16,7 +16,6 @@ const cookieParser = require("cookie-parser");
 // Importar gestores de rutas
 const userRoutes = require("./routes/userRoutes");
 const interestRoutes = require("./routes/interestRoutes");
-const userInterestRoutes = require("./routes/userInterestRoutes");
 const adRoutes = require("./routes/adRoutes");
 
 const app = express();
@@ -39,7 +38,6 @@ app.use(cors({
 // Configurar rutas de la API Rest
 app.use("/api/users", userRoutes);
 app.use("/api/interests", interestRoutes);
-app.use("/api/userinterests", userInterestRoutes);
 app.use("/api/ads", adRoutes);
 
 // Configurar el middleware para servir archivos estáticos desde el directorio 'public'

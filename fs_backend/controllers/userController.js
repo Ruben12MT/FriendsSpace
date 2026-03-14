@@ -1,404 +1,316 @@
+const userService = require("../services/userService");
+const userValidations = require("../validations/userValidations");
+const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const { SECRET_JWT_KEY } = require("../config/config");
-const userService = require("../services/userService");
-const userInterestService = require("../services/userInterestService");
-
-const bcrypt = require("bcrypt");
-const userValidations = require("../validations/userValidations");
-
+const logger = require("../utils/logger"); // Ajusta la ruta según tu carpeta
+const { json } = require("sequelize");
 class UserController {
+  // Maneja el inicio de sesion y la creacion de la cookie
   async login(req, res) {
+    logger.info("LOGIN INICIADO");
     try {
       const { emailOrUsername, password } = req.body;
-
-      // 1. Validación básica de presencia
       if (!emailOrUsername || !password) {
-        return res.status(400).json({
-          ok: false,
-          mensaje: "Debes introducir tu usuario/email y contraseña",
-        });
+        logger.warn("ALGUNO DE LOS DATOS ESTA VACIO");
+
+        return res
+          .status(400)
+          .json({ ok: false, mensaje: "Introduce tus datos" });
       }
 
-      // 2. Limpieza de datos
-      const identificador = emailOrUsername.trim().toLowerCase();
-      const passwordLimpia = password.trim();
-
-      // 3. Buscar usuario por cualquiera de los dos campos
-      const usuarioBuscado =
-        await userService.getUserByEmailOrUsername(identificador);
-
-      // 4. Si no existe el usuario
-      if (!usuarioBuscado) {
-        return res.status(404).json({
-          ok: false,
-          mensaje: "El usuario o correo electrónico no existe",
-        });
-      }
-
-      // 5. Comparar contraseña con la de la Base de Datos
-      const isMatch = await bcrypt.compare(
-        passwordLimpia,
-        usuarioBuscado.password,
+      const usuarioBuscado = await userService.getUserByEmailOrUsername(
+        emailOrUsername.trim().toLowerCase(),
       );
 
-      if (!isMatch) {
-        return res.status(400).json({
-          ok: false,
-          mensaje: "La contraseña es incorrecta",
-        });
+      if (
+        !usuarioBuscado ||
+        !(await bcrypt.compare(password, usuarioBuscado.password))
+      ) {
+        logger.warn("LA CONTRASEÑA INSERTADA NO ES LA CORRECTA");
+
+        return res
+          .status(401)
+          .json({ ok: false, mensaje: "Credenciales incorrectas" });
       }
 
-      // 6. Si todo está OK, generar JWt
-      const token = jwt.sign({ id: usuarioBuscado.id }, SECRET_JWT_KEY, {
-        expiresIn: "1h",
+      const token = jwt.sign(
+        {
+          id: usuarioBuscado.id,
+          name: usuarioBuscado.name,
+          url_image: usuarioBuscado.url_image,
+          role: usuarioBuscado.role,
+          first_login: usuarioBuscado.first_login,
+        },
+        SECRET_JWT_KEY,
+        { expiresIn: "1h" },
+      );
+
+      res.cookie("access_token", token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "strict",
+        maxAge: 1000 * 60 * 60,
       });
-
-      // 7. Enviar Cookie y Respuesta (Usamos los datos reales de la DB)
-      return (
-        res
-          .cookie("access_token", token, {
-            httpOnly: true,
-            secure: false,
-            sameSite: "lax", // Esto va a permitir que la cookie se mantenga en navegaciones internas
-            path: "/",
-            maxAge: 3600000,
-          })
-          .status(200)
-          // EN TU CONTROLADOR BACKEND (Punto 7):
-          .json({
-            ok: true,
-            mensaje: "Bienvenido a Friends Space",
-            user: {
-              id: usuarioBuscado.id, // <--- AÑADE ESTO
-              email: usuarioBuscado.email,
-              name: usuarioBuscado.name,
-              url_image: usuarioBuscado.url_image,
-              bio: usuarioBuscado.bio,
-              goals: usuarioBuscado.goals,
-              short_sentece: usuarioBuscado.short_sentece,
-              first_login: usuarioBuscado.first_login,
-            },
-          })
-      );
+      logger.info("LOGIN EXITOSO");
+      return res
+        .status(200)
+        .json({ ok: true, usuario: usuarioBuscado, mensaje: "Bienvenido" });
     } catch (err) {
-      console.error("Error en login:", err);
-      return res.status(500).json({
-        ok: false,
-        mensaje: "Error interno del servidor al intentar iniciar sesión",
-      });
-    }
-  }
-
-  async logout(req, res) {
-    try {
-      return res.clearCookie("access_token").status(200).json({
-        ok: true,
-        mensaje: "Sesión cerrada correctamente",
-      });
-    } catch (error) {
-      return res.status(500).json({
-        ok: false,
-        mensaje: "Error al intentar cerrar la sesión del usuario",
-        error: error.menssage,
-      });
-    }
-  }
-
-  async checkAuth(req, res) {
-    try {
-      const usuario = await userService.getUserById(req.user.id);
-      const usuarioIntereses = await userInterestService.getUserInterests(
-        req.user.id,
-      );
-
-      // 1. Convertimos el modelo de Sequelize a un objeto JSON puro
-      const usuarioLimpio = usuario.toJSON();
-
-      // 2. ASIGNACIÓN MANUAL (Usa el igual =, no paréntesis)
-      // Esto añade la lista de intereses que vemos en tu log de SQL al objeto del usuario
-      usuarioLimpio.interests = usuarioIntereses;
-
-      // 3. Limpieza de seguridad
-      delete usuarioLimpio.password;
-
-      // 4. Respuesta al frontend
-      return res.status(200).json({ ok: true, usuario: usuarioLimpio });
-    } catch (err) {
-      // Si hay error, imprímelo en la terminal para saber qué pasó
-      console.error("ERROR EN CHECKAUTH:", err);
+      logger.error("HA OCURRIDO UN ERROR DURANTE EL LOGIN");
       return res
         .status(500)
-        .json({ ok: false, mensaje: "Error al verificar sesión" });
+        .json({ ok: false, mensaje: "Error en el servidor" });
     }
   }
 
+  // Registra un usuario nuevo usando las validaciones personalizadas
+  async createUser(req, res) {
+    try {
+      const { email, name, password } = req.body;
+
+      // Usamos tus validaciones de userValidations.js
+      const emailError = await userValidations.emailValidation(email);
+      if (emailError)
+        return res.status(400).json({ ok: false, mensaje: emailError });
+
+      const nameError = await userValidations.userNameValidation(name);
+      if (nameError)
+        return res.status(400).json({ ok: false, mensaje: nameError });
+
+      const passError = userValidations.passwordValidation(password);
+      if (passError)
+        return res.status(400).json({ ok: false, mensaje: passError });
+
+      const newUser = await userService.createUser(req.body);
+      return res.status(201).json({ ok: true, datos: newUser });
+    } catch (err) {
+      return res
+        .status(500)
+        .json({ ok: false, mensaje: "Error al registrar usuario" });
+    }
+  }
+
+  // Cierra la sesion limpiando la cookie
+  async logout(req, res) {
+    return res
+      .clearCookie("access_token")
+      .json({ ok: true, mensaje: "Sesion terminada" });
+  }
+
+  // Verifica el estado de autenticacion del usuario
+  async checkAuth(req, res) {
+    logger.info("DEVOLVIENDO EL USUARIO LOGUEADO");
+    return res.status(200).json({ ok: true, usuario: req.user });
+  }
+
+  // Devuelve la lista completa de usuarios
   async getAllUsers(req, res) {
     try {
       const users = await userService.getAllUsers();
-
-      const usersLimpios = users.map((user) => {
-        const { password, email, ...datosPublicos } = user.toJSON();
-        return datosPublicos;
-      });
-
-      return res.status(200).json({
-        ok: true,
-        datos: usersLimpios,
-        mensaje: "Usuarios recuperados correctamente",
-      });
+      res.status(200).json({ ok: true, datos: users });
     } catch (err) {
-      console.error("Error en getAllUser:", err);
-      return res.status(500).json({
-        ok: false,
-        datos: null,
-        mensaje: "Error al recuperar usuarios",
-      });
+      res
+        .status(500)
+        .json({ ok: false, mensaje: "Error al consultar usuarios" });
     }
   }
 
-  async getUserById(req, res) {
-    try {
-      const user = await userService.getUserById(req.params.id);
-
-      if (!user) {
-        return res.status(404).json({
-          ok: false,
-          datos: null,
-          mensaje: "Usuario no encontrado",
-        });
-      }
-
-      const userLimpio = user.toJSON();
-      delete userLimpio.password;
-
-      return res.status(200).json({
-        ok: true,
-        datos: userLimpio,
-        mensaje: "Usuario recuperado correctamente",
-      });
-    } catch (err) {
-      console.error("Error en getUserById:", err);
-      return res.status(500).json({
-        ok: false,
-        datos: null,
-        mensaje: "Error al recuperar usuario",
-      });
-    }
-  }
-
+  // Devuelve un usuario por nombre
   async getUserByEmailOrUsername(req, res) {
     try {
-      const { emailOrUsername } = req.params;
+      const usuario = await userService.getUserByEmailOrUsername(
+        req.params.emailorusername,
+      );
 
-      if (!emailOrUsername) {
-        return res
-          .status(400)
-          .json({ ok: false, mensaje: "Falta el parámetro" });
-      }
-
-      const userData =
-        await userService.getUserByEmailOrUsername(emailOrUsername);
-
-      if (!userData) {
+      logger.info("USUARIO A BUSCAR " + req.params.emailorusername);
+      if (!usuario) {
         return res
           .status(404)
           .json({ ok: false, mensaje: "Usuario no encontrado" });
       }
+      const { password, ...usuarioLimpio } = usuario.toJSON();
 
-      const userLimpio = userData.toJSON();
-      delete userLimpio.password;
-      delete userLimpio.email;
-
-      return res.status(200).json({ ok: true, datos: userLimpio });
-    } catch (err) {
-      console.error(err);
-      return res.status(500).json({ ok: false, mensaje: "Error interno" });
-    }
-  }
-
-  async createUser(req, res) {
-    try {
-      const { name, email, password } = req.body;
-      if (!name || !email || !password) {
-        return res
-          .status(400)
-          .json({ ok: false, mensaje: "Faltan campos obligatorios" });
-      }
-
-      const emailValidationMessage =
-        await userValidations.emailValidation(email);
-
-      if (emailValidationMessage) {
-        return res.status(400).json({
-          ok: false,
-          datos: {},
-          mensaje: emailValidationMessage,
-        });
-      }
-
-      const userNameValidationMessage =
-        await userValidations.userNameValidation(name);
-
-      if (userNameValidationMessage) {
-        return res.status(400).json({
-          ok: false,
-          datos: {},
-          mensaje: userNameValidationMessage,
-        });
-      }
-
-      const passwordValidationMessage =
-        userValidations.passwordValidation(password);
-
-      if (passwordValidationMessage) {
-        return res.status(400).json({
-          ok: false,
-          datos: {},
-          mensaje: passwordValidationMessage,
-        });
-      }
-
-      const emailMinus = email.trim().toLowerCase();
-      const nameLimpio = name.trim();
-      const passwordLimpia = password.trim();
-      const newUser = await userService.createUser({
-        name: nameLimpio,
-        email: emailMinus,
-        password: passwordLimpia,
-        first_login: 1,
-      });
-
-      const { password: passwdOut, ...newUserSinPasswd } = newUser.toJSON();
-
-      return res.status(201).json({
+      res.status(200).json({
         ok: true,
-        datos: newUserSinPasswd,
-        mensaje: "Usuario creado correctamente",
+        datos: usuarioLimpio,
       });
     } catch (err) {
-      console.error("Error en createUser:", err);
-      return res.status(500).json({
-        ok: false,
-        datos: null,
-        mensaje: "Error al crear usuario",
-      });
+      res.status(500).json({ ok: false, mensaje: "Error al consultar" });
     }
   }
 
+  // Busca y devuelve un usuario por su id
+  async getUserById(req, res) {
+    try {
+      const usuarioBuscado = await userService.getUserById(req.params.id);
+      const { password, ...usuarioLimpio } = usuarioBuscado.toJSON
+        ? usuarioBuscado.toJSON()
+        : usuarioBuscado;
+
+      if (!usuarioBuscado)
+        return res
+          .status(404)
+          .json({ ok: false, mensaje: "Usuario no encontrado" });
+      return res.status(200).json({
+        ok: true,
+        usuario: usuarioLimpio,
+      });
+    } catch (err) {
+      res.status(500).json({ ok: false, mensaje: "Error al buscar usuario" });
+    }
+  }
+
+  // Actualiza los datos del usuario logueado
   async updateUser(req, res) {
     try {
-      const { id } = req.params;
-      const datosEditados = req.body;
+      if (req.user.id != req.params.id)
+        return res.status(403).json({
+          ok: false,
+          mensaje: "No tienes permiso para realizar esta acción",
+        });
 
-      // 1. Verificar si el usuario existe
-      const user = await userService.getUserById(id);
-      if (!user) {
-        return res
-          .status(404)
-          .json({ ok: false, mensaje: "Usuario no encontrado" });
-      }
+      // 1. Actualizamos en la DB
+      await userService.updateUser(req.params.id, req.body);
 
-      // 2. Bloquear cambio de email
-      delete datosEditados.email;
+      // 2. Buscamos el usuario RECIÉN actualizado para tener los datos reales
+      const usuarioActualizado = await userService.getUserById(req.params.id);
 
-      // 3. VALIDACIÓN DE NOMBRE DE USUARIO (Si viene en el body)
-      if (datosEditados.name) {
-        // Limpiamos el nombre
-        datosEditados.name = datosEditados.name.trim().toLowerCase();
+      // 3. Generamos un NUEVO TOKEN con los datos actualizados
+      const token = jwt.sign(
+        {
+          id: usuarioActualizado.id,
+          name: usuarioActualizado.name,
+          url_image: usuarioActualizado.url_image,
+          role: usuarioActualizado.role,
+          first_login: usuarioActualizado.first_login,
+        },
+        SECRET_JWT_KEY,
+        { expiresIn: "1h" },
+      );
 
-        // Validamos el nombre
-        const nameError = await userValidations.userNameValidation(
-          datosEditados.name,
-        );
+      // 4. Volvemos a enviar la cookie (sobrescribe la anterior)
+      res.cookie("access_token", token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "strict",
+        maxAge: 1000 * 60 * 60,
+      });
 
-        // Si hay error de validación, pero es el nombre que YA TIENE el usuario, lo ignoramos
-        if (nameError && datosEditados.name !== user.name) {
-          return res.status(400).json({ ok: false, mensaje: nameError });
-        }
-      }
-
-      // 4. VALIDACIÓN DE PASSWORD (Si viene en el body)
-      // if (datosEditados.password) {
-      //   const passError = userValidations.passwordValidation(
-      //     datosEditados.password,
-      //   );
-      //   if (passError) {
-      //     return res.status(400).json({ ok: false, mensaje: passError });
-      //   }
-      //   // Si es válida, hasheamos
-      //   datosEditados.password = await bcrypt.hash(datosEditados.password, 10);
-      // }
-
-      // 5. Ejecutar actualización
-      const updatedUser = await userService.updateUser(id, datosEditados);
-
-      // 6. Limpiar respuesta (quitar password del JSON de salida)
-      const userPlain = updatedUser.toJSON ? updatedUser.toJSON() : updatedUser;
-      const { password: _, ...userSinPass } = userPlain;
-
-      return res.status(200).json({
+      // Enviamos el usuario actualizado para que el frontend lo guarde en Zustand
+      res.status(200).json({
         ok: true,
-        datos: userSinPass,
-        mensaje: "Perfil actualizado correctamente",
+        mensaje: "Perfil actualizado",
+        usuario: usuarioActualizado,
       });
     } catch (err) {
-      console.error("Error en updateUser:", err);
-      return res
+      res
         .status(500)
-        .json({ ok: false, mensaje: "Error interno al actualizar" });
+        .json({ ok: false, mensaje: "Error al actualizar perfil" });
     }
   }
 
+  // Borra al usuario de la base de datos
   async deleteUser(req, res) {
     try {
-      const { id } = req.params;
-
-      const userData = await userService.getUserById(id);
-
-      if (!userData) {
-        return res
-          .status(404)
-          .json({ ok: false, mensaje: "Usuario no encontrado" });
-      }
-
-      const deletedUser = await userService.deleteUser(id);
-
-      return res.status(200).json({
-        ok: true,
-        datos: deletedUser,
-        mensaje: "Usuario eliminado correctamente",
-      });
+      if (req.user.id != req.params.id)
+        return res.status(403).json({
+          ok: false,
+          mensaje: "No tienes permiso para realizar esta acción",
+        });
+      await userService.deleteUser(req.params.id);
+      res.status(200).json({ ok: true, mensaje: "Cuenta eliminada" });
     } catch (err) {
-      console.error("Error en deleteUser:", err);
-      return res.status(500).json({ ok: false, mensaje: "Error al eliminar" });
+      res.status(500).json({ ok: false, mensaje: "Error al eliminar cuenta" });
+    }
+  }
+
+  // Gestion de intereses del usuario
+  async getMyInterests(req, res) {
+    try {
+      const interests = await userService.getUserInterests(req.params.id);
+      res.status(200).json({ ok: true, datos: interests });
+    } catch (err) {
+      res.status(500).json({ ok: false, mensaje: "Error al cargar intereses" });
+    }
+  }
+
+  async addInterests(req, res) {
+    try {
+      if (req.user.id != req.params.id)
+        return res.status(403).json({
+          ok: false,
+          mensaje: "No tienes permiso para realizar esta acción",
+        });
+      await userService.addInterestsToUser(req.params.id, req.body.interestIds);
+      res.status(200).json({ ok: true, mensaje: "Intereses guardados" });
+    } catch (err) {
+      res
+        .status(500)
+        .json({ ok: false, mensaje: "Error al guardar intereses" });
+    }
+  }
+
+  async removeInterests(req, res) {
+    try {
+      if (req.user.id != req.params.id)
+        return res.status(403).json({
+          ok: false,
+          mensaje: "No tienes permiso para realizar esta acción",
+        });
+      await userService.removeInterestsFromUser(req.params.id);
+      res.status(200).json({ ok: true, mensaje: "Intereses quitados" });
+    } catch (err) {
+      res.status(500).json({ ok: false, mensaje: "Error al quitar intereses" });
     }
   }
 
   async updateAvatar(req, res) {
     try {
-      const { id } = req.params;
+      if (req.user.id != req.params.id)
+        return res.status(403).json({
+          ok: false,
+          mensaje: "No tienes permiso para realizar esta acción",
+        });
 
-      if (!req.file) {
-        return res
-          .status(400)
-          .json({ ok: false, mensaje: "No se recibió imagen" });
-      }
+      if (!req.file)
+        return res.status(400).json({ ok: false, mensaje: "Sube una imagen" });
 
-      // URL de Cloudinary
-      const url_image = req.file.path;
+      // 1. Actualizamos la URL de la imagen en la DB
+      const nuevaUrl = req.file.path;
+      await userService.updateUser(req.params.id, { url_image: nuevaUrl });
 
-      await userService.updateUser(id, { url_image });
+      // 2. Buscamos el usuario completo para el token
+      const usuarioActualizado = await userService.getUserById(req.params.id);
 
-      return res.status(200).json({
-        ok: true,
-        url_image: url_image,
-        mensaje: "Avatar actualizado correctamente",
+      // 3. Generamos NUEVO TOKEN con la NUEVA URL de imagen
+      const token = jwt.sign(
+        {
+          id: usuarioActualizado.id,
+          name: usuarioActualizado.name,
+          url_image: usuarioActualizado.url_image, // <--- Ahora es la nueva
+          role: usuarioActualizado.role,
+          first_login: usuarioActualizado.first_login,
+        },
+        SECRET_JWT_KEY,
+        { expiresIn: "1h" },
+      );
+
+      // 4. Actualizamos la cookie
+      res.cookie("access_token", token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "strict",
+        maxAge: 1000 * 60 * 60,
       });
-    } catch (error) {
-      console.error("Error en updateAvatar:", error);
-      return res
-        .status(500)
-        .json({ ok: false, mensaje: "Error al subir avatar" });
+
+      res.status(200).json({
+        ok: true,
+        url: nuevaUrl,
+        usuario: usuarioActualizado,
+      });
+    } catch (err) {
+      res.status(500).json({ ok: false, mensaje: "Error al subir avatar" });
     }
   }
 }
