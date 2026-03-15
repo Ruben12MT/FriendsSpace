@@ -33,9 +33,7 @@ export default function AdCard({ ad, onDelete }) {
   const [openEditAd, setOpenEditAd] = useState(false);
 
   const [allInterests, setAllInterests] = useState([]);
-  const [selectedInterests, setSelectedInterests] = useState(
-    ad.interest_id_interests.map((i) => i.id || i.interest_id)
-  );
+
 
   // Carga de intereses al abrir el modal
   useEffect(() => {
@@ -43,6 +41,8 @@ export default function AdCard({ ad, onDelete }) {
       const fetchInterests = async () => {
         try {
           const response = await api.get("/interests");
+
+          
           if (response.data?.datos) setAllInterests(response.data.datos);
         } catch (error) {
           console.error("Error cargando intereses:", error);
@@ -130,7 +130,7 @@ export default function AdCard({ ad, onDelete }) {
             </Typography>
           </Box>
           <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, width: "100%" }}>
-            {ad.interest_id_interests.map((interest) => (
+            {ad.interests.map((interest) => (
               <InterestItem key={interest.id} title={interest.name} variant={"ad"} />
             ))}
           </Box>
@@ -179,131 +179,7 @@ export default function AdCard({ ad, onDelete }) {
         </Box>
       )}
 
-      {/* MODAL DE EDICIÓN */}
-      <Portal>
-        <Backdrop
-          sx={{ zIndex: (theme) => theme.zIndex.modal + 100, backgroundColor: "rgba(0, 0, 0, 0.85)", backdropFilter: "blur(4px)" }}
-          open={openEditAd}
-        >
-          <AnimatePresence>
-            {openEditAd && (
-              <Box
-                component={motion.div}
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.9 }}
-                onClick={(e) => e.stopPropagation()}
-                sx={{
-                  width: "90%",
-                  maxWidth: "500px",
-                  background: theme.secondaryBack,
-                  borderRadius: 4,
-                  p: 4,
-                  position: "relative",
-                  border: `2px solid ${theme.primaryText}`,
-                }}
-              >
-                <IconButton onClick={() => setOpenEditAd(false)} sx={{ position: "absolute", top: 12, right: 12, color: theme.primaryText }}>
-                  <CloseIcon />
-                </IconButton>
-
-                <Typography variant="h5" sx={{ mb: 4, fontWeight: "bold", color: theme.primaryText, textAlign: "center" }}>
-                  Editar Anuncio
-                </Typography>
-
-                <Stack spacing={3}>
-                  <Box>
-                    <Typography sx={{ color: theme.primaryText, mb: 1, fontWeight: 500, fontSize: "0.9rem", ml: 1 }}>Título del anuncio</Typography>
-                    <TextField fullWidth defaultValue={ad.title} variant="outlined" sx={textFieldStyles} />
-                  </Box>
-
-                  <Box>
-                    <Typography sx={{ color: theme.primaryText, mb: 1, fontWeight: 500, fontSize: "0.9rem", ml: 1 }}>Descripción</Typography>
-                    <TextField fullWidth multiline rows={3} defaultValue={ad.body} variant="outlined" sx={textFieldStyles} />
-                  </Box>
-
-                  <Box>
-                    <Typography sx={{ color: theme.primaryText, mb: 1, fontWeight: 500, fontSize: "0.9rem", ml: 1 }}>Intereses relacionados</Typography>
-                    <FormControl fullWidth sx={textFieldStyles}>
-                      <Select
-                        multiple
-                        value={selectedInterests}
-                        onChange={(e) => setSelectedInterests(e.target.value)}
-                        MenuProps={{
-                          sx: { 
-                            zIndex: (theme) => theme.zIndex.modal + 150,
-                          },
-                          PaperProps: {
-                            sx: {
-                              backgroundColor: theme.secondaryBack,
-                              border: `1px solid ${theme.primaryText}`,
-                              marginTop: "8px",
-                              maxHeight: 300,
-                              "& .MuiMenuItem-root": { 
-                                color: theme.primaryText,
-                                margin: "4px 8px",
-                                borderRadius: "8px",
-                                transition: "all 0.2s ease",
-                                "&.Mui-selected": {
-                                  backgroundColor: theme.primaryBack,
-                                  color: "white",
-                                  fontWeight: "bold",
-                                  "&:hover": {
-                                    backgroundColor: theme.primaryBack,
-                                    opacity: 0.8,
-                                  }
-                                },
-                                "&:hover": {
-                                  backgroundColor: theme.primaryBack + "22",
-                                }
-                              },
-                            }
-                          }
-                        }}
-                        renderValue={(selected) => (
-                          <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
-                            {selected.map((value) => (
-                              <Chip 
-                                key={value} 
-                                label={allInterests.find((i) => i.id === value)?.name} 
-                                sx={{ backgroundColor: theme.primaryBack, color: "white", borderRadius: "6px" }} 
-                              />
-                            ))}
-                          </Box>
-                        )}
-                      >
-                        {allInterests.map((interest) => (
-                          <MenuItem key={interest.id} value={interest.id}>
-                            {interest.name}
-                          </MenuItem>
-                        ))}
-                      </Select>
-                    </FormControl>
-                  </Box>
-
-                  <Box sx={{ display: "flex", gap: 2, mt: 1 }}>
-                    <Button 
-                      fullWidth 
-                      variant="outlined" 
-                      onClick={() => setOpenEditAd(false)} 
-                      sx={{ color: theme.primaryText, borderColor: theme.primaryText, borderRadius: 2, textTransform: "none", py: 1.2 }}
-                    >
-                      Cancelar
-                    </Button>
-                    <Button 
-                      fullWidth 
-                      variant="contained" 
-                      sx={{ backgroundColor: theme.primaryBack, color: "white", borderRadius: 2, textTransform: "none", py: 1.2, "&:hover": { backgroundColor: theme.primaryText } }}
-                    >
-                      Guardar cambios
-                    </Button>
-                  </Box>
-                </Stack>
-              </Box>
-            )}
-          </AnimatePresence>
-        </Backdrop>
-      </Portal>
+     
     </Grid>
   );
 }

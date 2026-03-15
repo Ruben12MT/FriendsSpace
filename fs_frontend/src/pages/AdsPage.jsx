@@ -17,17 +17,55 @@ import { useUser } from "../hooks/useUser";
 import api from "../utils/api";
 
 export default function AdsPage() {
+  // Sacamos el usuario loggeado
   const { loggedUser } = useUser();
+
+  // Estado para guardar todos los intereses para mostrarlos en el select
   const [allInterests, setAllInterests] = useState([]);
+
+  // Estado para guardar los intereses seleccionados en el select
   const [selectedInterests, setSelectedInterests] = useState([0]);
+
+  // Estado para guardar todos los anuncios de la app
   const [allAds, setAllAds] = useState([]);
+
+  // Estado para guardar los anuncios que se van a mostrar
   const [adsToShow, setAdsToShow] = useState([]);
+
+  // Esto es para mostrar que está cargando el listado
   const [isLoading, setIsLoading] = useState(true);
+
+  // Este estado guarda la palabra que se va a buscar, esta puede ser un nombre de usuario, palabra dentro dle titulo del anuncio o del cuerpo
   const [wordToSearch, setWordToSearch] = useState("");
 
+  // Sacamos el theme actual
   const theme = useAppTheme();
+
+  // Variable para ajustar el formulario en relacion a la altura del navBar
   const navbarHeight = "160px";
 
+  // Este estado es para guardar un array de intereses con los intereses del usuario loggeado
+  const [userInterests, setUserInterests] = useState([]);
+
+  // UseEffect para cargar los intereses del usuario loggeado
+  useEffect(() => {
+    async function fetchUser() {
+      try {
+        if (!loggedUser) return;
+
+        // Hacemos una  peticion para sacar los intereses del usuario si es que en este punto existe
+        const res2 = await api.get(`/users/${loggedUser.id}/interests`);
+
+        // Si devuelve algo se muestra ese o si no será un array vacio.
+        setUserInterests(res2.data.datos || []);
+      } catch (error) {
+        console.log(error.message);
+      }
+    }
+    fetchUser();
+  }, [loggedUser]);
+
+  // UseEffect para sacar todos los intereses para el select
   useEffect(() => {
     const fetchAllInterest = async () => {
       try {
@@ -40,10 +78,13 @@ export default function AdsPage() {
     fetchAllInterest();
   }, []);
 
+  // Función que será reutilizable para sacar todos los anuncios actuales
   const fetchAllAds = async () => {
     setIsLoading(true);
     try {
       const response = await api.get("/ads");
+      //--BORRAR--
+      console.log(response);
       if (response.data?.datos) setAllAds(response.data.datos);
     } catch (error) {
       console.error(error);
@@ -52,26 +93,33 @@ export default function AdsPage() {
     }
   };
 
+  // Cargamos todos los anuncios en el primer renderizado
   useEffect(() => {
     fetchAllAds();
   }, []);
 
+  // Cada vez que buscamos traemos una lista de anuncios estos pasaran un filtrado cada vez que se cambien los parametros de búsquedas
   useEffect(() => {
+    // Sacamos la palabra a buscar y la limpiamos para asegurarnos
     const busqueda = wordToSearch.toLowerCase().trim();
+
+    // Filtramos los anuncios por los parámetros de filtrado
     const filtrados = allAds.filter((ad) => {
+      // Boleano para saber si el texto coincide
       const coincideTexto =
         busqueda === "" ||
         ad.title?.toLowerCase().includes(busqueda) ||
         ad.user?.name?.toLowerCase().includes(busqueda) ||
         ad.body?.toLowerCase().includes(busqueda);
 
+      // Boleano para saber si los intereses seleccionados coinciden
       const coincideInteres =
         selectedInterests.includes(-1) ||
-        ad.interest_id_interests?.some((interesDelAnuncio) => {
+        ad.interests?.some((interesDelAnuncio) => {
           const idAnuncio =
             interesDelAnuncio.id || interesDelAnuncio.interest_id;
           if (selectedInterests.includes(0)) {
-            const misIntereses = loggedUser?.interests || [];
+            const misIntereses = userInterests || [];
             return misIntereses.some((uInt) => {
               const idUsuarioInt = uInt.id || uInt.interest_id;
               return Number(idUsuarioInt) === Number(idAnuncio);
@@ -84,6 +132,7 @@ export default function AdsPage() {
     setAdsToShow(filtrados);
   }, [allAds, selectedInterests, wordToSearch, loggedUser]);
 
+  // Funcion para controlar seleccion de intereses
   const handleSelectInterest = (e) => {
     const nuevosValores = e.target.value;
     const ultimaSeleccion = nuevosValores[nuevosValores.length - 1];
@@ -98,6 +147,7 @@ export default function AdsPage() {
     }
   };
 
+  // Funcion para conseguir el texto segun los intereses selecionados
   const getInterestText = () => {
     if (selectedInterests.includes(0)) return "Mis intereses";
     if (selectedInterests.includes(-1)) return "Todos";
@@ -232,8 +282,8 @@ export default function AdsPage() {
               height: 45,
               flexShrink: 0,
               ":hover": {
-                background: theme.secondaryText
-              }
+                background: theme.secondaryText,
+              },
             }}
           >
             <AddIcon sx={{ color: theme.secondaryBack }} />
@@ -315,7 +365,6 @@ export default function AdsPage() {
               {adsToShow.map((ad) => (
                 <motion.div
                   key={ad.id}
-                  
                   initial={{ opacity: 0, y: 7 }}
                   animate={{ opacity: 1, y: 9 }}
                   exit={{ opacity: 0, scale: 0.0 }}
