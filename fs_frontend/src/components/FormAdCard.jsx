@@ -11,13 +11,9 @@ import CheckIcon from "@mui/icons-material/Check";
 import { useAppTheme } from "../hooks/useAppTheme";
 import InterestItem from "./InterestItem";
 import api from "../utils/api";
+import ErrorMessage from "../components/ErrorMessage";
 
-export default function FormAdCard({
-  open,
-  handleOpen,
-  adId,
-  handleFinish,
-}) {
+export default function FormAdCard({ open, handleOpen, adId, handleFinish }) {
   const theme = useAppTheme();
   const [ogAd, setOgAd] = useState({});
   const [allInterests, setAllInterests] = useState([]);
@@ -27,6 +23,7 @@ export default function FormAdCard({
     interests: [],
   });
   const [loading, setLoading] = useState(false);
+  const [localError, setLocalError] = useState({ open: false, message: "" });
 
   useEffect(() => {
     const fetchInterests = async () => {
@@ -34,7 +31,7 @@ export default function FormAdCard({
         const response = await api.get("/interests");
         if (response.data?.datos) setAllInterests(response.data.datos);
       } catch (error) {
-        console.error("Error al cargar intereses:", error);
+        console.error(error);
       }
     };
     fetchInterests();
@@ -52,7 +49,10 @@ export default function FormAdCard({
               setEditedAd(response.data.datos);
             }
           } catch (err) {
-            console.error("Error al cargar anuncio:", err);
+            setLocalError({
+              open: true,
+              message: "No se pudo cargar el anuncio.",
+            });
           } finally {
             setLoading(false);
           }
@@ -69,7 +69,10 @@ export default function FormAdCard({
   );
   const restInterests = allInterests.filter((i) => !adInterestIds.has(i.id));
 
-  const handleClose = () => handleOpen(false);
+  const handleClose = () => {
+    setLocalError({ open: false, message: "" });
+    handleOpen(false);
+  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -96,9 +99,35 @@ export default function FormAdCard({
     }));
   };
 
-  const onConfirm = () => {
-    handleFinish(editedAd);
-    handleClose();
+  const handleSubmit = async () => {
+    if (!editedAd.title || editedAd.interests.length === 0) {
+      setLocalError({
+        open: true,
+        message: "El título y al menos un interés son obligatorios.",
+      });
+      return;
+    }
+
+    const dataToSend = {
+      ...editedAd,
+      interests: editedAd.interests.map((i) => i.id || i.interest_id),
+    };
+    try {
+      if (adId) {
+        await api.put(`/ads/${adId}`, dataToSend);
+      } else {
+        await api.post("/ads", dataToSend);
+      }
+      handleFinish();
+      handleClose();
+    } catch (error) {
+      setLocalError({
+        open: true,
+        message:
+          error.response?.data?.message ||
+          "Ocurrió un error al guardar el anuncio.",
+      });
+    }
   };
 
   const inputStyle = {
@@ -173,7 +202,6 @@ export default function FormAdCard({
                 sx={inputStyle}
               />
             </Grid>
-
             <Grid item sx={{ width: "100%", mt: 3 }}>
               <Grid container justifyContent="space-between">
                 <Typography
@@ -215,6 +243,7 @@ export default function FormAdCard({
                       <InterestItem
                         title={int.name || int.nombre}
                         variant="default"
+                        onDelete={() => {}}
                       />
                     </Box>
                   ))}
@@ -255,7 +284,6 @@ export default function FormAdCard({
                 </Grid>
               </Grid>
             </Grid>
-
             <Grid item sx={{ width: "100%", mt: 3 }}>
               <Grid container justifyContent="space-between">
                 <Typography
@@ -279,6 +307,13 @@ export default function FormAdCard({
                 sx={inputStyle}
               />
             </Grid>
+            <ErrorMessage
+              message={localError.message}
+              open={localError.open}
+              setOpen={(val) =>
+                setLocalError((prev) => ({ ...prev, open: val }))
+              }
+            />
           </Box>
 
           <Box
@@ -290,13 +325,11 @@ export default function FormAdCard({
           >
             <Tooltip title="Restablecer cambios" arrow placement="top">
               <IconButton
-                onClick={() => {
-                  if (adId) {
-                    setEditedAd(ogAd);
-                  } else {
-                    setEditedAd({ title: "", body: "", interests: [] });
-                  }
-                }}
+                onClick={() =>
+                  adId
+                    ? setEditedAd(ogAd)
+                    : setEditedAd({ title: "", body: "", interests: [] })
+                }
               >
                 <RestartAltIcon sx={{ color: theme.primaryText }} />
               </IconButton>
@@ -307,10 +340,7 @@ export default function FormAdCard({
               arrow
               placement="top"
             >
-              <IconButton
-                onClick={onConfirm}
-                disabled={!editedAd.title || editedAd.interests.length === 0}
-              >
+              <IconButton onClick={handleSubmit}>
                 {adId ? (
                   <CheckIcon sx={{ color: theme.primaryText }} />
                 ) : (

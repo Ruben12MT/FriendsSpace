@@ -19,7 +19,7 @@ export default function InterestItem({ title, onDelete, variant = "default" }) {
       display: "flex",
       cursor: onDelete ? "pointer" : "default",
       "&:hover": {
-        background: onDelete ? theme.tertiaryBack : theme.secondaryBack,
+        background: onDelete ? theme.primaryBack : theme.secondaryBack,
       },
     },
 

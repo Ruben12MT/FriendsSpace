@@ -28,7 +28,7 @@ import api from "../utils/api";
 import StarIcon from "@mui/icons-material/Star";
 import FormAdCard from "./FormAdCard";
 
-export default function AdCard({ ad, onDelete, setOpenFormAd, onSelect}) {
+export default function AdCard({ ad, onDelete, setOpenFormAd, onSelect }) {
   const { loggedUser } = useUser();
   const theme = useAppTheme();
   const navigate = useNavigate();
@@ -184,6 +184,8 @@ export default function AdCard({ ad, onDelete, setOpenFormAd, onSelect}) {
                 color: theme.fieldsText,
                 fontSize: "0.95rem",
                 lineHeight: 1.6,
+                wordBreak: "break-word",
+                overflowWrap: "anywhere",
               }}
             >
               {ad.body}
@@ -215,8 +217,9 @@ export default function AdCard({ ad, onDelete, setOpenFormAd, onSelect}) {
           >
             <Button
               onClick={() => {
-                onSelect(ad);
-                setOpenFormAd(true);}}
+                onSelect(ad.id);
+                setOpenFormAd(true);
+              }}
               sx={{ color: theme.primaryText, borderRadius: 1000, px: 2 }}
             >
               <Typography
@@ -240,7 +243,6 @@ export default function AdCard({ ad, onDelete, setOpenFormAd, onSelect}) {
           </Box>
         </Box>
       )}
-
     </Grid>
   );
 }

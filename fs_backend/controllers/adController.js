@@ -30,18 +30,18 @@ class AdController {
   async updateAd(req, res) {
     try {
       const { id } = req.params;
-      const { title, body, interestIds, } = req.body;
+      const { title, body, interests, } = req.body;
 
 
       const ad = await adService.getAdById(id);
       if (!ad) return res.status(404).json({ ok: false, mensaje: "No encontrado" });
 
       // Comprueba si el usuario del token es el dueño del anuncio
-      if (ad.user_id !== req.user.id) {
+      if ((ad.user_id !== req.user.id) && req.user.role !== "ADMIN") {
         return res.status(403).json({ ok: false, mensaje: "No tienes permiso para editar este anuncio" });
       }
 
-      const updated = await adService.updateAd(id, { title, body }, interestIds);
+      const updated = await adService.updateAd(id, { title, body }, interests);
       res.status(200).json({ ok: true, datos: updated });
     } catch (err) {
       res.status(500).json({ ok: false, mensaje: "Error al actualizar" });

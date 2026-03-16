@@ -12,21 +12,17 @@ import { useAppTheme } from "../hooks/useAppTheme";
 import AdCard from "../components/AdCard";
 import { motion, AnimatePresence } from "framer-motion";
 import AddIcon from "@mui/icons-material/Add";
-import RestartAltIcon from "@mui/icons-material/RestartAlt";
 import { useUser } from "../hooks/useUser";
 import api from "../utils/api";
 import { RotateCcw } from "lucide-react";
 import FormAdCard from "../components/FormAdCard";
+import ConfirmModal from "../components/ConfirmModal";
 
 export default function AdsPage() {
   // Sacamos el usuario loggeado
   const { loggedUser } = useUser();
 
-  const [selectedAd, setSelectedAd] = useState({
-    title: "",
-    body: "",
-    interest: [],
-  });
+  const [selectedAdId, setSelectedAdId] = useState(null);
 
   // Estado para guardar todos los intereses para mostrarlos en el select
   const [allInterests, setAllInterests] = useState([]);
@@ -57,6 +53,25 @@ export default function AdsPage() {
 
   // Estado para controlar el modal de creación del anuncio
   const [openFormAd, setOpenFormAd] = useState(false);
+
+  const [toast, setToast] = useState({ open: false, message: "" });
+  const [confirmDelete, setConfirmDelete] = useState({ open: false, adId: null });
+
+  const openDeleteModal = (id) => {
+    setConfirmDelete({ open: true, adId: id });
+  };
+
+  const handleDeleteAd = async () => {
+    try {
+      await api.delete(`/ads/${confirmDelete.adId}`);
+      fetchAllAds();
+      setConfirmDelete({ open: false, adId: null });
+    } catch (error) {
+      setToast({ open: true, message: "Error al eliminar el anuncio" });
+      setTimeout(() => setToast({ open: false, message: "" }), 5000);
+      setConfirmDelete({ open: false, adId: null });
+    }
+  };
 
   // UseEffect para cargar los intereses del usuario loggeado
   useEffect(() => {
@@ -94,8 +109,6 @@ export default function AdsPage() {
     setIsLoading(true);
     try {
       const response = await api.get("/ads");
-      //--BORRAR--
-      console.log(response);
       if (response.data?.datos) setAllAds(response.data.datos);
     } catch (error) {
       console.error(error);
@@ -288,6 +301,7 @@ export default function AdsPage() {
           </IconButton>
           <IconButton
             onClick={() => {
+              setSelectedAdId(null);
               setOpenFormAd(true);
             }}
             sx={{
@@ -388,8 +402,9 @@ export default function AdsPage() {
                   <AdCard
                     ad={ad}
                     onChange={fetchAllAds}
-                    onSelect={setSelectedAd}
-                    setOpenFormAd={setOpenFormAd} // <--- Add this line
+                    onSelect={setSelectedAdId}
+                    setOpenFormAd={setOpenFormAd}
+                    onDelete={() => openDeleteModal(ad.id)}
                   />
                 </motion.div>
               ))}
@@ -410,12 +425,45 @@ export default function AdsPage() {
       </Grid>
 
       <FormAdCard
-        key={selectedAd.id || "nuevo"}
-        adId={selectedAd.id}
+        key={selectedAdId || "nuevo"}
+        adId={selectedAdId}
         handleFinish={fetchAllAds}
         open={openFormAd}
         handleOpen={setOpenFormAd}
       />
+
+      <ConfirmModal
+        open={confirmDelete.open}
+        handleClose={() => setConfirmDelete({ open: false, adId: null })}
+        onConfirm={handleDeleteAd}
+        title="¿Eliminar anuncio?"
+        message="Esta acción no se puede deshacer. ¿Estás seguro de que quieres borrar este anuncio?"
+      />
+
+      <AnimatePresence>
+        {toast.open && (
+          <Box
+            component={motion.div}
+            initial={{ opacity: 0, x: 100 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 100 }}
+            transition={{ duration: 0.5 }}
+            sx={{
+              position: "fixed",
+              bottom: 40,
+              right: 40,
+              backgroundColor: "#d32f2f",
+              color: "white",
+              p: 2,
+              borderRadius: 2,
+              boxShadow: 3,
+              zIndex: 9999,
+            }}
+          >
+            <Typography>{toast.message}</Typography>
+          </Box>
+        )}
+      </AnimatePresence>
     </Box>
   );
 }
