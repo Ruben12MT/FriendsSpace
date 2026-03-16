@@ -319,9 +319,10 @@ export default function FormAdCard({ open, handleOpen, adId, handleFinish }) {
           <Box
             width={"100%"}
             display={"flex"}
-            justifyContent="space-around"
+            justifyContent="center"
             alignItems={"center"}
-            sx={{ pt: 2, borderTop: theme.primaryText + " solid 2px" }}
+            gap={6}
+            sx={{ pt: 3, borderTop: theme.primaryText + " solid 2px" }}
           >
             <Tooltip title="Restablecer cambios" arrow placement="top">
               <IconButton
@@ -330,8 +331,19 @@ export default function FormAdCard({ open, handleOpen, adId, handleFinish }) {
                     ? setEditedAd(ogAd)
                     : setEditedAd({ title: "", body: "", interests: [] })
                 }
+                sx={{
+                  backgroundColor: theme.primaryBack,
+                  width: 55,
+                  height: 55,
+                  transition: "all 0.3s ease",
+                  "&:hover": {
+                    backgroundColor: "#f44336",
+                    transform: "rotate(-45deg)",
+                    boxShadow: "0px 4px 15px rgba(244, 67, 54, 0.4)",
+                  },
+                }}
               >
-                <RestartAltIcon sx={{ color: theme.primaryText }} />
+                <RestartAltIcon sx={{ color: theme.primaryText, fontSize: 30 }} />
               </IconButton>
             </Tooltip>
 
@@ -340,11 +352,24 @@ export default function FormAdCard({ open, handleOpen, adId, handleFinish }) {
               arrow
               placement="top"
             >
-              <IconButton onClick={handleSubmit}>
+              <IconButton 
+                onClick={handleSubmit}
+                sx={{
+                  backgroundColor: theme.primaryText,
+                  width: 55,
+                  height: 55,
+                  transition: "all 0.3s ease",
+                  "&:hover": {
+                    backgroundColor: theme.secondaryText || "#4caf50",
+                    transform: "scale(1.1)",
+                    boxShadow: `0px 4px 15px ${theme.primaryText}66`,
+                  },
+                }}
+              >
                 {adId ? (
-                  <CheckIcon sx={{ color: theme.primaryText }} />
+                  <CheckIcon sx={{ color: theme.secondaryBack, fontSize: 32 }} />
                 ) : (
-                  <PublishIcon sx={{ color: theme.primaryText }} />
+                  <PublishIcon sx={{ color: theme.secondaryBack, fontSize: 32 }} />
                 )}
               </IconButton>
             </Tooltip>

@@ -93,7 +93,8 @@ export default function UserBar() {
             <Toolbar disableGutters>
               <Avatar
                 src="/logo.png"
-                onClick={() => navigate("/")}
+                onClick={() => navigate("/")}                sx={{ display: { xs: "none", md: "flex" } }}
+
                 style={{
                   marginTop: "20px",
                   marginBottom: "20px",
