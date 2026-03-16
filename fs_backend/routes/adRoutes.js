@@ -6,6 +6,7 @@ const { validarToken } = require("../middlewares/validarToken");
 // Rutas publicas de lectura
 router.get("/", adController.getAllAds);
 router.get("/search/:word", adController.getAdsByWord);
+router.get("/:id", adController.getAdById);
 
 // Rutas privadas de gestion
 router.post("/", validarToken, adController.createAd);

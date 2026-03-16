@@ -19,7 +19,7 @@ export default function InterestItem({ title, onDelete, variant = "default" }) {
       display: "flex",
       cursor: onDelete ? "pointer" : "default",
       "&:hover": {
-        background: onDelete ? theme.tertiaryBack : "transparent",
+        background: onDelete ? theme.tertiaryBack : theme.secondaryBack,
       },
     },
 
@@ -34,6 +34,22 @@ export default function InterestItem({ title, onDelete, variant = "default" }) {
       alignItems: "center",
       display: "flex",
       fontSize: "small",
+    },
+
+    select: {
+      color: theme.fieldsText,
+      borderRadius: 2,
+      background: theme.secondaryBack,
+      py: 0.5,
+      px: 1,
+      position: "relative",
+      alignItems: "center",
+      display: "flex",
+      cursor: onDelete ? "pointer" : "default",
+      "&:hover": {
+        color: theme.primaryText,
+      },
+      
     },
   };
   return (

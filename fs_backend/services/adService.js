@@ -9,21 +9,21 @@ class AdService {
     {
       model: models.user,
       as: "user",
-      attributes: ["name", "url_image"],
+      attributes: ["name", "url_image", "role"],
     },
     {
       model: models.interest,
       as: "interests",
       attributes: ["id", "name"],
       through: { attributes: [] },
-    }
+    },
   ];
 
   // Obtiene todos los anuncios ordenados por id descendente
   async getAllAds() {
     return await models.ad.findAll({
       include: AdService.includeData,
-      order: [['id', 'DESC']]
+      order: [["id", "DESC"]],
     });
   }
 
@@ -39,9 +39,9 @@ class AdService {
       const newAd = await models.ad.create(data, { transaction });
 
       if (interestIds && interestIds.length > 0) {
-        const relations = interestIds.map(id => ({
+        const relations = interestIds.map((id) => ({
           ad_id: newAd.id,
-          interest_id: id
+          interest_id: id,
         }));
         await models.ad_interest.bulkCreate(relations, { transaction });
       }
@@ -62,9 +62,9 @@ class AdService {
 
       if (interestIds) {
         await models.ad_interest.destroy({ where: { ad_id: id }, transaction });
-        const relations = interestIds.map(intId => ({
+        const relations = interestIds.map((intId) => ({
           ad_id: id,
-          interest_id: intId
+          interest_id: intId,
         }));
         await models.ad_interest.bulkCreate(relations, { transaction });
       }
@@ -93,6 +93,10 @@ class AdService {
       },
       include: AdService.includeData,
     });
+  }
+  // Busca anuncios por id
+  async getAdById(id) {
+    return await models.ad.findByPk(id, { include: AdService.includeData });
   }
 }
 

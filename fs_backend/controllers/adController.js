@@ -78,6 +78,16 @@ class AdController {
       res.status(500).json({ ok: false, mensaje: "Error en la busqueda" });
     }
   }
+
+  async getAdById(req, res) {
+    try {
+      const { id } = req.params;
+      const ad = await adService.getAdById(id);
+      res.status(200).json({ ok: true, datos: ad });
+    } catch (err) {
+      res.status(500).json({ ok: false, mensaje: "Error en la busqueda" });
+    }
+  }
 }
 
 module.exports = new AdController();

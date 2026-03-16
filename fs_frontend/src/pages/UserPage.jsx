@@ -5,6 +5,8 @@ import InterestItem from "../components/InterestItem";
 import { useNavigate, useParams } from "react-router-dom";
 import api from "../utils/api";
 import { useAppTheme } from "../hooks/useAppTheme";
+import GradeIcon from "@mui/icons-material/Grade";
+
 
 export default function UserPage() {
   const navigate = useNavigate();
@@ -61,7 +63,6 @@ export default function UserPage() {
   }, [userIdAct]);
 
   return (
-
     // Contenedor principal
     <Grid
       container
@@ -69,8 +70,7 @@ export default function UserPage() {
       justifyContent="center"
       sx={{ minHeight: "100%" }}
     >
-
-    {/* Columna central */}
+      {/* Columna central */}
       <Grid
         container
         direction="column"
@@ -133,8 +133,13 @@ export default function UserPage() {
                   }}
                 >
                   @{visitedUser.name}
+                  {visitedUser.role === "ADMIN" && (
+                  <GradeIcon
+                    sx={{ color: "#FFD700", fontSize: "1rem", ml: 0.5 }}
+                  />
+                )}
                 </Typography>
-
+                
                 {/* Mostramos el email si lo tenemos (el controller ahora lo manda) */}
                 {visitedUser.email && (
                   <Typography

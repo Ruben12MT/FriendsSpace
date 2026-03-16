@@ -12,13 +12,21 @@ import { useAppTheme } from "../hooks/useAppTheme";
 import AdCard from "../components/AdCard";
 import { motion, AnimatePresence } from "framer-motion";
 import AddIcon from "@mui/icons-material/Add";
-import SearchIcon from "@mui/icons-material/Search";
+import RestartAltIcon from "@mui/icons-material/RestartAlt";
 import { useUser } from "../hooks/useUser";
 import api from "../utils/api";
+import { RotateCcw } from "lucide-react";
+import FormAdCard from "../components/FormAdCard";
 
 export default function AdsPage() {
   // Sacamos el usuario loggeado
   const { loggedUser } = useUser();
+
+  const [selectedAd, setSelectedAd] = useState({
+    title: "",
+    body: "",
+    interest: [],
+  });
 
   // Estado para guardar todos los intereses para mostrarlos en el select
   const [allInterests, setAllInterests] = useState([]);
@@ -46,6 +54,9 @@ export default function AdsPage() {
 
   // Este estado es para guardar un array de intereses con los intereses del usuario loggeado
   const [userInterests, setUserInterests] = useState([]);
+
+  // Estado para controlar el modal de creación del anuncio
+  const [openFormAd, setOpenFormAd] = useState(false);
 
   // UseEffect para cargar los intereses del usuario loggeado
   useEffect(() => {
@@ -130,7 +141,7 @@ export default function AdsPage() {
       return coincideTexto && coincideInteres;
     });
     setAdsToShow(filtrados);
-  }, [allAds, selectedInterests, wordToSearch, loggedUser]);
+  }, [allAds, selectedInterests, wordToSearch, loggedUser, userInterests]);
 
   // Funcion para controlar seleccion de intereses
   const handleSelectInterest = (e) => {
@@ -273,9 +284,12 @@ export default function AdsPage() {
               "&:hover": { backgroundColor: theme.secondaryText },
             }}
           >
-            <SearchIcon />
+            <RotateCcw />
           </IconButton>
           <IconButton
+            onClick={() => {
+              setOpenFormAd(true);
+            }}
             sx={{
               backgroundColor: theme.primaryText,
               width: 45,
@@ -371,7 +385,12 @@ export default function AdsPage() {
                   transition={{ duration: 0.5 }}
                   style={{ width: "100%" }}
                 >
-                  <AdCard ad={ad} />
+                  <AdCard
+                    ad={ad}
+                    onChange={fetchAllAds}
+                    onSelect={setSelectedAd}
+                    setOpenFormAd={setOpenFormAd} // <--- Add this line
+                  />
                 </motion.div>
               ))}
             </AnimatePresence>
@@ -389,6 +408,14 @@ export default function AdsPage() {
           )}
         </Box>
       </Grid>
+
+      <FormAdCard
+        key={selectedAd.id || "nuevo"}
+        adId={selectedAd.id}
+        handleFinish={fetchAllAds}
+        open={openFormAd}
+        handleOpen={setOpenFormAd}
+      />
     </Box>
   );
 }
