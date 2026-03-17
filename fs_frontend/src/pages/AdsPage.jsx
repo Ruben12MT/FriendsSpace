@@ -418,7 +418,7 @@ export default function AdsPage() {
                 width: "100%",
               }}
             >
-              No se ha encontrado ningún anuncio que coincida
+              No se ha encontrado ningún anuncio
             </Typography>
           )}
         </Box>

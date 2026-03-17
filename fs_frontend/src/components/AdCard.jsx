@@ -169,7 +169,7 @@ export default function AdCard({ ad, onDelete, setOpenFormAd, onSelect }) {
               border: theme.primaryText + " 2px solid",
               background: theme.secondaryBack,
               borderRadius: 4,
-              height: "180px",
+              maxHeight: "180px",
               overflowY: "auto",
               "&::-webkit-scrollbar": { width: "3px" },
               "&::-webkit-scrollbar-thumb": {

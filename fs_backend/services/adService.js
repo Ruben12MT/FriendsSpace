@@ -33,13 +33,13 @@ class AdService {
   }
 
   // Crea un anuncio y sus intereses asociados
-  async createAd(data, interestIds) {
+  async createAd(data, interests) {
     const transaction = await sequelize.transaction();
     try {
       const newAd = await models.ad.create(data, { transaction });
 
-      if (interestIds && interestIds.length > 0) {
-        const relations = interestIds.map((id) => ({
+      if (interests && interests.length > 0) {
+        const relations = interests.map((id) => ({
           ad_id: newAd.id,
           interest_id: id,
         }));

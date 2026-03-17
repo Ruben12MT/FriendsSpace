@@ -49,7 +49,22 @@ export default function InterestItem({ title, onDelete, variant = "default" }) {
       "&:hover": {
         color: theme.primaryText,
       },
-      
+    },
+
+    deselect: {
+      color: theme.fieldsText,
+      borderRadius: 2,
+      border: "solid 2px",
+      background: theme.secondaryBack,
+      py: 0.5,
+      px: 0.5,
+      position: "relative",
+      alignItems: "center",
+      display: "flex",
+      cursor: onDelete ? "pointer" : "default",
+      "&:hover": {
+        background: onDelete ? theme.primaryBack : theme.secondaryBack,
+      },
     },
   };
   return (

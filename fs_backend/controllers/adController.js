@@ -14,12 +14,12 @@ class AdController {
   // Crea un anuncio nuevo para el usuario logueado
   async createAd(req, res) {
     try {
-      const { title, body, interestIds } = req.body;
+      const { title, body, interests } = req.body;
       const newAd = await adService.createAd({ 
         title, 
         body, 
         user_id: req.user.id 
-      }, interestIds);
+      }, interests);
       res.status(201).json({ ok: true, datos: newAd });
     } catch (err) {
       res.status(500).json({ ok: false, mensaje: "Error al crear anuncio" });
@@ -57,7 +57,7 @@ class AdController {
       if (!ad) return res.status(404).json({ ok: false, mensaje: "No encontrado" });
 
       // Comprueba si el usuario del token es el dueño del anuncio
-      if (ad.user_id !== req.user.id) {
+      if ((ad.user_id !== req.user.id) && req.user.role !== "ADMIN"){
         return res.status(403).json({ ok: false, mensaje: "No tienes permiso para borrar este anuncio" });
       }
 
