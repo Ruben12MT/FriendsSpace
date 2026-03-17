@@ -51,7 +51,7 @@ export default function UserCard({ user, variant = "card" }) {
         <Box
           sx={{
             height: 100,
-            background: theme.primaryBack,
+            background: theme.name === "dark" ? theme.primaryBack : theme.variantBack,
             display: "flex",
             justifyContent: "center",
             position: "relative",
