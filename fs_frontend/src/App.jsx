@@ -12,6 +12,8 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import EditUserPage from "./pages/EditUserPage";
 import { useAppTheme } from "./hooks/useAppTheme";
 import AdsPage from "./pages/AdsPage";
+import SearchNewFriendsPage from "./pages/SearchNewFriendsPage";
+
 const router = createBrowserRouter([
   {
     path: "/",
@@ -38,7 +40,7 @@ const router = createBrowserRouter([
       </ProtectedRoute>
     ),
     children: [
-      { path: "searchnewfriends", element: <h3>Buscar nuevos amigos</h3> },
+      { path: "searchnewfriends", element: <SearchNewFriendsPage/> },
       { path: "ads", element: <AdsPage/>},
       { path: "chats", element: <h3>Chats</h3> },
 
@@ -53,18 +55,29 @@ function App() {
   return (
     <Box
       sx={{
-        px:2,
-        backgroundImage: `url(${theme.backgroundImage})`,
-        backgroundSize: "cover",
-        backgroundPosition: "center",
-        backgroundAttachment: "fixed",
+        px: 2,
         minHeight: "100vh",
         width: "100%",
         overflowX: "hidden",
         display: "flex",
         flexDirection: "column",
+        position: "relative", // Importante
       }}
     >
+    <Box
+        sx={{
+          position: "fixed",
+          top: 0,
+          left: 0,
+          width: "100%",
+          height: "100%",
+          zIndex: -2, 
+          backgroundImage: `url(${theme.backgroundImage})`,
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+          pointerEvents: "none", // Para que no interfiera con clicks
+        }}
+      />
       <CssBaseline />
       <RouterProvider router={router} />
     </Box>

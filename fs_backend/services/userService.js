@@ -10,10 +10,15 @@ const bcrypt = require('bcrypt');
 class UserService {
   // Obtiene todos los usuarios de la base de datos sin mostrar la contraseña
   async getAllUsers() {
-    return await user.findAll({
-      attributes: { exclude: ['password'] }
-    });
-  }
+  return await user.findAll({
+    attributes: { exclude: ['password'] },
+    include: [{ 
+      model: interest, 
+      as: 'interests', 
+      through: { attributes: [] } 
+    }]
+  });
+}
 
   // Busca un usuario por su id e incluye sus intereses asociados
   async getUserById(id) {

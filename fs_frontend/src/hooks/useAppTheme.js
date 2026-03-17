@@ -15,7 +15,10 @@ const themes = {
     tertiaryBack: "#fffdf7",
     variantBack: "#dbb42cff",
     backgroundImage: "/background.png",
+    backgroundVideo: "/background-video.mp4",
     buttonHover: "#c9a227",
+    hoveredRow: "#ededed",
+
     links: "#c9a227",
   },
   dark: {
@@ -33,11 +36,12 @@ const themes = {
     tertiaryBack: "#3d3d3d",
     variantBack: "#76520e",
     backgroundImage: "/dark-background.png",
-    buttonHover: "#c9a227",
+    backgroundVideo: "/dark-background-video.mp4",
 
+    buttonHover: "#c9a227",
+    hoveredRow: "#5f4d12",
     links: "#c9a227",
   },
-
 };
 
 export function useAppTheme() {

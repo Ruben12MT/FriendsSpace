@@ -56,7 +56,7 @@ export default function UserBar() {
   if (!loggedUser) return null;
 
   //--BORRAR--
-  console.log("URL IMAGEN ACTUAL USUARIO: "+ loggedUser.url_image)
+  console.log("URL IMAGEN ACTUAL USUARIO: " + loggedUser.url_image);
   return (
     <Box
       sx={{
@@ -75,6 +75,17 @@ export default function UserBar() {
           zIndex: 1100,
           backgroundColor: theme.primaryBack,
           pb: 2,
+
+          "&::after": {
+            content: '""',
+            position: "absolute",
+            left: 0,
+            right: 0,
+            bottom: -35,
+            height: 40,
+            background: `linear-gradient(to bottom, ${theme.primaryBack}, transparent)`,
+            pointerEvents: "none",
+          },
         }}
       >
         <AppBar
@@ -93,8 +104,8 @@ export default function UserBar() {
             <Toolbar disableGutters>
               <Avatar
                 src="/logo.png"
-                onClick={() => navigate("/")}                sx={{ display: { xs: "none", md: "flex" } }}
-
+                onClick={() => navigate("/")}
+                sx={{ display: { xs: "none", md: "flex" } }}
                 style={{
                   marginTop: "20px",
                   marginBottom: "20px",

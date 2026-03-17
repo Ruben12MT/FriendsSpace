@@ -8,6 +8,7 @@ import { useState } from "react";
 import Visibility from "@mui/icons-material/Visibility";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
 import ErrorMessage from "../components/ErrorMessage";
+import BackgroundVideo from "../components/BackgroundVideo";
 import api from "../utils/api";
 import { useAppTheme } from "../hooks/useAppTheme";
 import ThemeToggler from "../components/themeToggler";
@@ -70,6 +71,8 @@ export default function LoginPage() {
   return (
     <>
       <ThemeToggler />
+      {theme.backgroundVideo && <BackgroundVideo src={theme.backgroundVideo} />}
+      
       <Paper
         elevation={8}
         sx={{
@@ -77,7 +80,7 @@ export default function LoginPage() {
           maxWidth: 400,
           margin: "20px auto",
           borderRadius: "20px",
-          background: theme.secondaryBack,
+          background: theme.secondaryBack ,
 
           position: "fixed",
           top: "50%",

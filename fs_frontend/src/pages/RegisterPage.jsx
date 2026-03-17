@@ -12,6 +12,7 @@ import { useNavigate } from "react-router-dom";
 import ErrorMessage from "../components/ErrorMessage";
 import ThemeToggler from "../components/ThemeToggler";
 import { useAppTheme } from "../hooks/useAppTheme";
+import BackgroundVideo from "../components/BackgroundVideo";
 
 export default function RegisterPage() {
   const theme = useAppTheme();
@@ -76,7 +77,7 @@ export default function RegisterPage() {
   return (
     <>
       <ThemeToggler />
-
+{theme.backgroundVideo && <BackgroundVideo src={theme.backgroundVideo} />}
       <Paper
         elevation={4}
         sx={{
