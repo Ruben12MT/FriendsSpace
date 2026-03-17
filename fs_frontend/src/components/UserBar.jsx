@@ -73,19 +73,9 @@ export default function UserBar() {
           left: 0,
           right: 0,
           zIndex: 1100,
-          backgroundColor: theme.primaryBack,
+          backgroundColor: theme.navBar.whiteSpace,
           pb: 2,
 
-          "&::after": {
-            content: '""',
-            position: "absolute",
-            left: 0,
-            right: 0,
-            bottom: -35,
-            height: 40,
-            background: `linear-gradient(to bottom, ${theme.primaryBack}, transparent)`,
-            pointerEvents: "none",
-          },
         }}
       >
         <AppBar

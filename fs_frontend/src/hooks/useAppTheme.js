@@ -5,6 +5,8 @@ const themes = {
     navBar: {
       textColor: "#c9a227",
       backColor: "#fffdf7",
+      whiteSpace: "#c5a34b"
+
     },
     fieldsText: "#1d1300",
     primaryText: "#76520eff",
@@ -26,6 +28,7 @@ const themes = {
     navBar: {
       textColor: "#fcf1c7",
       backColor: "#2d2d2d",
+      whiteSpace: "#242424"
     },
     fieldsText: "#d1d1d1",
     primaryText: "#fcf1c7",
