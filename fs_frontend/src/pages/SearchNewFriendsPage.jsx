@@ -122,7 +122,10 @@ export default function SearchNewFriendsPage() {
           alignItems="center"
           sx={{ mb: 2 }}
         >
-          <Typography variant="h4" sx={{ color: theme.primaryText, fontWeight: "bold" }}>
+          <Typography
+            variant="h4"
+            sx={{ color: theme.primaryText, fontWeight: "bold" }}
+          >
             ¡Encuentra tu friend!
           </Typography>
 
@@ -130,13 +133,18 @@ export default function SearchNewFriendsPage() {
             value={viewMode}
             exclusive
             onChange={(e, v) => v && setViewMode(v)}
-            sx={{ background: theme.tertiaryBack, borderRadius: 3, p: 0.5, height: 40 }}
+            sx={{
+              background: theme.tertiaryBack,
+              borderRadius: 3,
+              p: 0.5,
+              height: 40,
+            }}
           >
             <ToggleButton value="card" sx={{ border: "none" }}>
-              <ViewModuleIcon sx={{color: theme.primaryText}} />
+              <ViewModuleIcon sx={{ color: theme.primaryText }} />
             </ToggleButton>
             <ToggleButton value="row" sx={{ border: "none" }}>
-              <ViewStreamIcon sx={{color: theme.primaryText}}/>
+              <ViewStreamIcon sx={{ color: theme.primaryText }} />
             </ToggleButton>
           </ToggleButtonGroup>
         </Box>
@@ -174,18 +182,15 @@ export default function SearchNewFriendsPage() {
               <CircularProgress sx={{ color: "#fff" }} />
             </Box>
           ) : (
-            <Grid
-              container
-              spacing={2}
-              sx={{minHeight: "auto" }}
-            >
+            <Grid container spacing={2} sx={{ minHeight: "auto" }}>
               {usersToShow.map((user) => {
                 return (
                   <Grid
-                    size={{ xs: viewMode === "card" ? 4 : 12 }} sx={{pt: 1}}
-                
+                    key={user.id}
+                    size={{ xs: viewMode === "card" ? 6 : 12, md: viewMode === "card" ? 6 : 12 , lg: viewMode === "card" ? 4 : 12 }}
+                    sx={{ pt: 1 }}
                   >
-                    <UserCard user={user} variant={viewMode}/>
+                    <UserCard user={user} variant={viewMode} />
                   </Grid>
                 );
               })}

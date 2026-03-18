@@ -53,10 +53,236 @@ export default function UserBar() {
     }
   };
 
-  if (!loggedUser) return null;
+  if (!loggedUser) return (
+    <Box
+      sx={{
+        display: "flex",
+        flexDirection: "column",
+        minHeight: "100vh",
+        width: "100%",
+      }}
+    >
+      <Box
+        sx={{
+          position: "fixed",
+          top: 0,
+          left: 0,
+          right: 0,
+          zIndex: 1100,
+          backgroundColor: theme.navBar.whiteSpace,
+          pb: 2,
 
-  //--BORRAR--
-  console.log("URL IMAGEN ACTUAL USUARIO: " + loggedUser.url_image);
+        }}
+      >
+        <AppBar
+          position="relative"
+          elevation={4}
+          sx={{
+            mt: 2,
+            mx: 2,
+            width: "auto",
+            borderRadius: 4,
+            backgroundColor: theme.navBar.backColor,
+            color: theme.navBar.textColor,
+          }}
+        >
+          <Container maxWidth="xxl">
+            <Toolbar disableGutters>
+              <Avatar
+                src="/logo.png"
+                onClick={() => navigate("/")}
+                sx={{ display: { xs: "none", md: "flex" } }}
+                style={{
+                  marginTop: "20px",
+                  marginBottom: "20px",
+                  width: "70px",
+                  height: "70px",
+                  marginRight: "15px",
+                  cursor: "pointer",
+                }}
+              />
+
+              <Typography
+                variant="h5"
+                noWrap
+                component="a"
+                href="/"
+                sx={{
+                  mr: 2,
+                  display: { xs: "none", md: "flex" },
+                  fontFamily: "monospace",
+                  color: "inherit",
+                  textDecoration: "none",
+                }}
+              >
+                Friends Space
+              </Typography>
+
+              <Box sx={{ flexGrow: 1, display: { xs: "flex", md: "none" } }}>
+                <IconButton
+                  size="large"
+                  aria-label="menu"
+                  aria-controls="menu-appbar"
+                  aria-haspopup="true"
+                  onClick={handleOpenNavMenu}
+                  color="inherit"
+                >
+                  <MenuIcon />
+                </IconButton>
+
+                <Menu
+                  id="menu-appbar"
+                  anchorEl={anchorElNav}
+                  anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
+                  keepMounted
+                  transformOrigin={{ vertical: "top", horizontal: "left" }}
+                  open={Boolean(anchorElNav)}
+                  onClose={handleCloseNavMenu}
+                  sx={{ display: { xs: "block", md: "none" } }}
+                >
+                  {pages.map((page) => {
+                    const [key, label] = Object.entries(page)[0];
+                    return (
+                      <MenuItem key={key} onClick={handleCloseNavMenu}>
+                        <Typography
+                          component="a"
+                          href={`/${key}`}
+                          sx={{
+                            textAlign: "center",
+                            textDecoration: "none",
+                            color: "inherit",
+                          }}
+                        >
+                          {label}
+                        </Typography>
+                      </MenuItem>
+                    );
+                  })}
+                </Menu>
+              </Box>
+
+              <Button
+                component={Link}
+                to="/"
+                style={{ textDecoration: "none", color: "inherit" }}
+                sx={{ display: { xs: "flex", md: "none" } }}
+              >
+                <Avatar
+                  src="/logo.png"
+                  style={{ margin: "20px", width: "70px", height: "70px" }}
+                />
+              </Button>
+
+              <Typography
+                variant="h5"
+                noWrap
+                component="a"
+                href="/"
+                sx={{
+                  mr: 2,
+                  display: { xs: "flex", md: "none" },
+                  flexGrow: 1,
+                  fontFamily: "monospace",
+                  fontWeight: 700,
+                  letterSpacing: ".3rem",
+                  color: "inherit",
+                  textDecoration: "none",
+                }}
+              >
+                Friends Space
+              </Typography>
+
+              <Box
+                sx={{
+                  flexGrow: 1,
+                  display: { xs: "none", md: "flex" },
+                  justifyContent: "end",
+                  margin: 2,
+                }}
+              >
+                {pages.map((page) => {
+                  const [key, label] = Object.entries(page)[0];
+                  return (
+                    <Button
+                      key={key}
+                      onClick={() => {
+                        navigate(key);
+                      }}
+                      sx={{
+                        my: 0,
+                        color: theme.navBar.textColor,
+                        display: "block",
+                      }}
+                    >
+                      {label}
+                    </Button>
+                  );
+                })}
+              </Box>
+
+              <Box display={"flex"} alignItems={"center"} sx={{ flexGrow: 0 }}>
+                <Tooltip title="Ajustes del Usuario">
+                  <IconButton onClick={handleOpenUserMenu} sx={{ p: 0 }}>
+                    <Avatar
+                      alt="Foto del usuario"
+                      sx={{ border: theme.navBar.textColor + " solid 1px" }}
+                      src={loggedUser.url_image || "/no_user_avatar_image.png"}
+                    />
+                  </IconButton>
+                </Tooltip>
+
+                <Menu
+                  sx={{ mt: "45px" }}
+                  id="menu-appbar"
+                  anchorEl={anchorElUser}
+                  anchorOrigin={{ vertical: "top", horizontal: "right" }}
+                  keepMounted
+                  transformOrigin={{ vertical: "top", horizontal: "right" }}
+                  open={Boolean(anchorElUser)}
+                  onClose={handleCloseUserMenu}
+                >
+                  <MenuItem key={"userProfile"} onClick={showUserProfile}>
+                    <Typography sx={{ textAlign: "center" }}>
+                      Ver Perfil
+                    </Typography>
+                  </MenuItem>
+
+                  <MenuItem key={"logout"} onClick={logout}>
+                    <Typography sx={{ textAlign: "center" }}>
+                      Cerrar Sesión
+                    </Typography>
+                  </MenuItem>
+                </Menu>
+
+                <IconButton aria-label="notificaciones" size="large">
+                  <NotificationsIcon
+                    fontSize="inherit"
+                    sx={{ color: theme.navBar.textColor }}
+                  />
+                </IconButton>
+
+                <ThemeToggler block={true} />
+              </Box>
+            </Toolbar>
+          </Container>
+        </AppBar>
+      </Box>
+      <Box
+        component="main"
+        sx={{
+          flexGrow: 1,
+          pt: "160px",
+          minHeight: "100vh",
+          display: "flex",
+          flexDirection: "column",
+          boxSizing: "border-box",
+        }}
+      >
+        <Outlet />
+      </Box>
+    </Box>
+  );;
+
   return (
     <Box
       sx={{
