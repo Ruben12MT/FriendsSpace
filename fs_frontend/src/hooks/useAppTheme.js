@@ -5,8 +5,7 @@ const themes = {
     navBar: {
       textColor: "#c9a227",
       backColor: "#fffdf7",
-      whiteSpace: "#c5a34b"
-
+      whiteSpace: "#c5a34b",
     },
     fieldsText: "#1d1300",
     primaryText: "#76520eff",
@@ -18,6 +17,7 @@ const themes = {
     variantBack: "#dbb42cff",
     backgroundImage: "/background.png",
     backgroundVideo: "/background-video.mp4",
+    initialPoster: "/background-poster.jpg",
     buttonHover: "#c9a227",
     hoveredRow: "#ededed",
 
@@ -28,7 +28,7 @@ const themes = {
     navBar: {
       textColor: "#fcf1c7",
       backColor: "#2d2d2d",
-      whiteSpace: "#242424"
+      whiteSpace: "#242424",
     },
     fieldsText: "#d1d1d1",
     primaryText: "#fcf1c7",
@@ -40,7 +40,7 @@ const themes = {
     variantBack: "#76520e",
     backgroundImage: "/dark-background.png",
     backgroundVideo: "/dark-background-video.mp4",
-
+    initialPoster: "/dark-background-poster.jpg",
     buttonHover: "#c9a227",
     hoveredRow: "#5f4d12",
     links: "#c9a227",

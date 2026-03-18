@@ -4,13 +4,16 @@ import { Box } from "@mui/material";
 const BackgroundVideo = ({ src }) => {
   const [currentSrc, setCurrentSrc] = useState(src);
   const [prevSrc, setPrevSrc] = useState(null);
-  const [isChanging, setIsChanging] = useState(false);
+
+  // IMPORTANTE: Empezamos en TRUE para que el video nuevo esté invisible
+  // hasta que onLoadedData nos diga que hay imagen.
+  const [isChanging, setIsChanging] = useState(true);
 
   useEffect(() => {
     if (src !== currentSrc) {
       setPrevSrc(currentSrc);
       setCurrentSrc(src);
-      setIsChanging(true);
+      setIsChanging(true); // Bloqueamos la opacidad al cambiar de src
     }
   }, [src, currentSrc]);
 
@@ -27,6 +30,7 @@ const BackgroundVideo = ({ src }) => {
         overflow: "hidden",
       }}
     >
+      {/* Video de respaldo (el anterior) */}
       {prevSrc && (
         <video
           key={prevSrc}
@@ -46,17 +50,19 @@ const BackgroundVideo = ({ src }) => {
         </video>
       )}
 
+      {/* Video principal */}
       <video
         key={currentSrc}
         autoPlay
         loop
         muted
         playsInline
+        preload="auto"
         onLoadedData={() => {
-          setTimeout(() => {
-            setPrevSrc(null);
-            setIsChanging(false);
-          }, 500);
+          setIsChanging(false);
+          if (prevSrc) {
+            setTimeout(() => setPrevSrc(null), 600);
+          }
         }}
         style={{
           position: "absolute",
@@ -65,7 +71,7 @@ const BackgroundVideo = ({ src }) => {
           objectFit: "cover",
           zIndex: 2,
           opacity: isChanging ? 0 : 1,
-          transition: "opacity 0.6s ease-in-out",
+          transition: "opacity 0.4s ease-in-out",
         }}
       >
         <source src={currentSrc} type="video/mp4" />

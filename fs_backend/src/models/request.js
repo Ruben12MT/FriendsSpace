@@ -36,7 +36,16 @@ module.exports = function(sequelize, DataTypes) {
     body: {
       type: DataTypes.TEXT,
       allowNull: true
-    }
+    },
+    info_report: {
+      type: DataTypes.TEXT,
+      allowNull: true
+    },
+    visible: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: 1
+    },
   }, {
     sequelize,
     tableName: 'request',
