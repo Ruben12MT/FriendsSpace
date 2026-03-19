@@ -11,9 +11,9 @@ import {
 import PeopleIcon from "@mui/icons-material/People";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
-import { useAppTheme } from "../hooks/useAppTheme";
 import { useNavigate } from "react-router-dom";
 import InterestItem from "./InterestItem";
+import { useAppTheme } from "../hooks/useAppTheme";
 
 export default function UserCard({ user, variant = "card" }) {
   const theme = useAppTheme();
@@ -51,7 +51,8 @@ export default function UserCard({ user, variant = "card" }) {
         <Box
           sx={{
             height: 100,
-            background: theme.name === "dark" ? theme.primaryBack : theme.variantBack,
+            background:
+              theme.name === "dark" ? theme.primaryBack : theme.variantBack,
             display: "flex",
             justifyContent: "center",
             position: "relative",

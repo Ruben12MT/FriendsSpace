@@ -2,19 +2,20 @@ const requestService = require("../services/requestService");
 const logger = require("../utils/logger");
 
 class RequestController {
-  // Maneja la creación de solicitudes de amistad o reportes
   async createRequest(req, res) {
     try {
       const { receiver_id, body, is_report, info_report } = req.body;
 
       const newRequest = await requestService.createRequest({
-        sender_id: req.user.id, 
+        sender_id: req.user.id,
         receiver_id,
         body,
         is_report,
         info_report,
         status: "PENDING",
         is_read: false,
+        visible_sender: false,
+        visible_receiver: true,
       });
 
       res.status(201).json({ ok: true, datos: newRequest });
@@ -26,7 +27,96 @@ class RequestController {
     }
   }
 
-  // Devuelve el total de notificaciones no leídas
+  async accept(req, res) {
+    try {
+      const { id } = req.params;
+      const userId = req.user.id;
+
+      const reqToUpdate = await requestService.getRequestById(id);
+      if (!reqToUpdate || reqToUpdate.receiver_id !== userId) {
+        return res.status(403).json({
+          ok: false,
+          mensaje: "No tienes permiso para aceptar esta solicitud",
+        });
+      }
+
+      await requestService.updateRequest(id, {
+        status: "ACCEPTED",
+        visible_sender: true,
+        visible_receiver: true,
+        is_read: false,
+      });
+
+      res.status(200).json({ ok: true, mensaje: "Solicitud aceptada" });
+    } catch (err) {
+      logger.error("Error en accept: " + err.message);
+      res
+        .status(500)
+        .json({ ok: false, mensaje: "Error al aceptar la solicitud" });
+    }
+  }
+
+  async reject(req, res) {
+    try {
+      const { id } = req.params;
+      const userId = req.user.id;
+
+      const reqToUpdate = await requestService.getRequestById(id);
+      if (!reqToUpdate || reqToUpdate.receiver_id !== userId) {
+        return res.status(403).json({
+          ok: false,
+          mensaje: "No tienes permiso para rechazar esta solicitud",
+        });
+      }
+
+      await requestService.updateRequest(id, {
+        status: "REJECTED",
+        visible_sender: true,
+        visible_receiver: true,
+        is_read: false,
+      });
+
+      res.status(200).json({ ok: true, mensaje: "Solicitud rechazada" });
+    } catch (err) {
+      logger.error("Error en reject: " + err.message);
+      res
+        .status(500)
+        .json({ ok: false, mensaje: "Error al rechazar la solicitud" });
+    }
+  }
+
+  async invisible(req, res) {
+    try {
+      const { id } = req.params;
+      const userId = req.user.id;
+
+      const reqToUpdate = await requestService.getRequestById(id);
+      if (
+        !reqToUpdate ||
+        (reqToUpdate.sender_id !== userId && reqToUpdate.receiver_id !== userId)
+      ) {
+        return res.status(403).json({
+          ok: false,
+          mensaje: "No tienes permiso para editar esta solicitud",
+        });
+      }
+
+      const updateData = {};
+      if (reqToUpdate.sender_id === userId) updateData.visible_sender = false;
+      if (reqToUpdate.receiver_id === userId)
+        updateData.visible_receiver = false;
+
+      await requestService.updateRequest(id, updateData);
+
+      res.status(200).json({ ok: true, mensaje: "Notificación ocultada" });
+    } catch (err) {
+      logger.error("Error en invisible: " + err.message);
+      res
+        .status(500)
+        .json({ ok: false, mensaje: "Error al ocultar la solicitud" });
+    }
+  }
+
   async getUnreadCount(req, res) {
     try {
       const count = await requestService.getUnreadCount(req.user.id);
@@ -39,7 +129,6 @@ class RequestController {
     }
   }
 
-  // Cambia el estado de las notificaciones a leídas
   async markAsRead(req, res) {
     try {
       await requestService.markAllAsRead(req.user.id);
@@ -54,10 +143,11 @@ class RequestController {
     }
   }
 
-  // Obtiene el historial de solicitudes recibidas
   async getMyNotifications(req, res) {
     try {
-      const notifications = await requestService.getMyRequests(req.user.id);
+      const notifications = await requestService.getAllVisibleRequests(
+        req.user.id,
+      );
       res.status(200).json({ ok: true, datos: notifications });
     } catch (err) {
       logger.error("Error en getMyNotifications: " + err.message);

@@ -187,7 +187,11 @@ export default function SearchNewFriendsPage() {
                 return (
                   <Grid
                     key={user.id}
-                    size={{ xs: viewMode === "card" ? 6 : 12, md: viewMode === "card" ? 6 : 12 , lg: viewMode === "card" ? 4 : 12 }}
+                    size={{
+                      xs: viewMode === "card" ? 6 : 12,
+                      md: viewMode === "card" ? 6 : 12,
+                      lg: viewMode === "card" ? 4 : 12,
+                    }}
                     sx={{ pt: 1 }}
                   >
                     <UserCard user={user} variant={viewMode} />

@@ -53,9 +53,17 @@ class UserController {
         maxAge: 1000 * 60 * 60,
       });
       logger.info("LOGIN EXITOSO");
-      return res
-        .status(200)
-        .json({ ok: true, usuario: usuarioBuscado, mensaje: "Bienvenido" });
+      return res.status(200).json({
+        ok: true,
+        usuario: {
+          id: usuarioBuscado.id,
+          name: usuarioBuscado.name,
+          url_image: usuarioBuscado.url_image,
+          role: usuarioBuscado.role,
+          first_login: usuarioBuscado.first_login,
+        },
+        mensaje: "Bienvenido",
+      });
     } catch (err) {
       logger.error("HA OCURRIDO UN ERROR DURANTE EL LOGIN");
       return res

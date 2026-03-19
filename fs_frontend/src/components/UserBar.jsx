@@ -254,7 +254,7 @@ export default function UserBar() {
                   </MenuItem>
                 </Menu>
 
-                <IconButton aria-label="notificaciones" size="large">
+                <IconButton aria-label="notificaciones" size="large" onClick={()=>{navigate("/app/requests")}}>
                   <NotificationsIcon
                     fontSize="inherit"
                     sx={{ color: theme.navBar.textColor }}
@@ -299,8 +299,6 @@ export default function UserBar() {
           left: 0,
           right: 0,
           zIndex: 1100,
-          backgroundColor: theme.navBar.whiteSpace,
-          pb: 2,
 
         }}
       >
@@ -308,10 +306,7 @@ export default function UserBar() {
           position="relative"
           elevation={4}
           sx={{
-            mt: 2,
-            mx: 2,
             width: "auto",
-            borderRadius: 4,
             backgroundColor: theme.navBar.backColor,
             color: theme.navBar.textColor,
           }}
@@ -325,8 +320,8 @@ export default function UserBar() {
                 style={{
                   marginTop: "20px",
                   marginBottom: "20px",
-                  width: "70px",
-                  height: "70px",
+                  width: "50px",
+                  height: "50px",
                   marginRight: "15px",
                   cursor: "pointer",
                 }}
@@ -484,7 +479,7 @@ export default function UserBar() {
                   </MenuItem>
                 </Menu>
 
-                <IconButton aria-label="notificaciones" size="large">
+                <IconButton aria-label="notificaciones" size="large" onClick={()=>{navigate("/app/requests")}}>
                   <NotificationsIcon
                     fontSize="inherit"
                     sx={{ color: theme.navBar.textColor }}

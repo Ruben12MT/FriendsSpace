@@ -13,6 +13,7 @@ import EditUserPage from "./pages/EditUserPage";
 import { useAppTheme } from "./hooks/useAppTheme";
 import AdsPage from "./pages/AdsPage";
 import SearchNewFriendsPage from "./pages/SearchNewFriendsPage";
+import RequestsPages from "./pages/RequestsPage";
 
 const router = createBrowserRouter([
   {
@@ -40,9 +41,10 @@ const router = createBrowserRouter([
       </ProtectedRoute>
     ),
     children: [
-      { path: "searchnewfriends", element: <SearchNewFriendsPage/> },
-      { path: "ads", element: <AdsPage/>},
+      { path: "searchnewfriends", element: <SearchNewFriendsPage /> },
+      { path: "ads", element: <AdsPage /> },
       { path: "chats", element: <h3>Chats</h3> },
+      { path: "requests", element: <RequestsPages /> },
 
       { path: ":id", element: <UserPage /> },
       { path: "user/edit", element: <EditUserPage /> },
@@ -61,17 +63,17 @@ function App() {
         overflowX: "hidden",
         display: "flex",
         flexDirection: "column",
-        position: "relative", // Importante
+        position: "relative",
       }}
     >
-    <Box
+      <Box
         sx={{
           position: "fixed",
           top: 0,
           left: 0,
           width: "100%",
           height: "100%",
-          zIndex: -2, 
+          zIndex: -2,
           backgroundImage: `url(${theme.backgroundImage})`,
           backgroundSize: "cover",
           backgroundPosition: "center",
