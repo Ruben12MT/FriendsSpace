@@ -3,26 +3,22 @@ const router = express.Router();
 const connectionController = require('../controllers/connectionController');
 const { validarToken } = require('../middlewares/validarToken');
 
-// AVISO: Si no estás logueado no podrás acceder a ninguna de estas opciones
-//------------------------------------------------------------------------------------
+// Todas las rutas requieren token de usuario logueado
+// ------------------------------------------------------------------------------------
 
-// Ruta para obtener todas las connexiones del usuario loggeado
+// Obtener todas las conexiones activas del usuario
 router.get('/', validarToken, connectionController.getAllMyConnections);
 
-// Ruta para crear una conexión entre dos usuarios
-router.post('/', validarToken, connectionController.createConnection);
-
-// Ruta para activar una conexión entre dos usuarios (Hacer que se pueda mandar solicitud para abrirla de nuevo pues no se borran)
+// Activar o desbloquear una conexion existente por su ID
 router.put('/:id/activate', validarToken, connectionController.activateConnection);
 
-// Ruta para terminar una conexión
+// Finalizar una conexion (cambia estado a FINISHED)
 router.put('/:id/finish', validarToken, connectionController.finishConnection);
 
-// Ruta para bloquear una conexión
+// Bloquear una conexion (cambia estado a BLOCKED)
 router.put('/:id/block', validarToken, connectionController.blockConnection);
 
-
-
-
+// Ruta para verificar si ya existe una amistad activa con un usuario
+router.get("/check/:profileId", validarToken, connectionController.checkFriendship);
 
 module.exports = router;

@@ -15,7 +15,10 @@ module.exports = function(sequelize, DataTypes) {
   }, {
     sequelize,
     tableName: 'connection',
-    timestamps: true,
+    timestamps: true, 
+    underscored: true, 
+    updatedAt: false,
+    createdAt: 'created_at' ,
     indexes: [
       {
         name: "PRIMARY",

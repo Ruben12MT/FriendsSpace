@@ -4,7 +4,14 @@ import CloseIcon from "@mui/icons-material/Close";
 import CheckIcon from "@mui/icons-material/Check";
 import { useAppTheme } from "../hooks/useAppTheme";
 
-export default function ConfirmModal({ open, handleClose, onConfirm, title, message }) {
+export default function ConfirmModal({
+  open,
+  handleClose,
+  onCancel = () => {},
+  onConfirm,
+  title,
+  message,
+}) {
   const theme = useAppTheme();
 
   return (
@@ -24,8 +31,16 @@ export default function ConfirmModal({ open, handleClose, onConfirm, title, mess
           outline: "none",
         }}
       >
-        <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-          <Typography variant="h6" sx={{ color: theme.primaryText, fontWeight: "bold" }}>
+        <Box
+          display="flex"
+          justifyContent="space-between"
+          alignItems="center"
+          mb={2}
+        >
+          <Typography
+            variant="h6"
+            sx={{ color: theme.primaryText, fontWeight: "bold" }}
+          >
             {title}
           </Typography>
           <IconButton onClick={handleClose}>
@@ -33,13 +48,16 @@ export default function ConfirmModal({ open, handleClose, onConfirm, title, mess
           </IconButton>
         </Box>
 
-        <Typography sx={{ color: theme.fieldsText, mb: 4 }}>
-          {message}
-        </Typography>
+        <Box sx={{ color: theme.fieldsText, mb: 4 }}>{message}</Box>
 
         <Box display="flex" justifyContent="space-around">
-          <Tooltip title="Cancelar" arrow>
-            <IconButton onClick={handleClose}>
+          <Tooltip title="Rechazar" arrow>
+            <IconButton
+              onClick={() => {
+                onCancel();
+                handleClose();
+              }}
+            >
               <CloseIcon sx={{ color: "#d32f2f" }} />
             </IconButton>
           </Tooltip>

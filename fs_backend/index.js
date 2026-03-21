@@ -18,7 +18,7 @@ const userRoutes = require("./routes/userRoutes");
 const interestRoutes = require("./routes/interestRoutes");
 const adRoutes = require("./routes/adRoutes");
 const requestRoutes = require("./routes/requestRoutes");
-
+const connectionRoutes = require("./routes/connectionRoutes");
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -42,6 +42,8 @@ app.use("/api/users", userRoutes);
 app.use("/api/interests", interestRoutes);
 app.use("/api/ads", adRoutes);
 app.use("/api/requests", requestRoutes);
+app.use("/api/connections", connectionRoutes);
+
 
 
 // Configurar el middleware para servir archivos estáticos desde el directorio 'public'
