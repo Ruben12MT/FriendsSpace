@@ -1,11 +1,22 @@
-import { Avatar, Box, Typography, Button, Grid } from "@mui/material";
+import {
+  Avatar,
+  Box,
+  Typography,
+  Button,
+  Grid,
+  IconButton,
+} from "@mui/material";
 import React from "react";
 import { useAppTheme } from "../hooks/useAppTheme";
 import { useUser } from "../hooks/useUser";
+import DeleteIcon from "@mui/icons-material/Delete";
 import { X, Check } from "lucide-react";
-export default function RequestCard({ request }) {
+import { useNavigate } from "react-router-dom";
+
+export default function RequestCard({ request, onAccept, onReject, onDelete }) {
   const theme = useAppTheme();
   const { loggedUser } = useUser();
+  const navigate = useNavigate();
 
   const obtenerTiempoTranscurrido = (fechaString) => {
     const ahora = new Date();
@@ -30,6 +41,8 @@ export default function RequestCard({ request }) {
   const soyEmisor = request.sender_id === loggedUser.id;
   const soyReceptor = request.receiver_id === loggedUser.id;
 
+  const usuarioReferencia = soyEmisor ? request.receiver : request.sender;
+
   const obtenerMensaje = () => {
     if (soyReceptor && pendiente)
       return " te ha enviado una solicitud de amistad.";
@@ -38,6 +51,7 @@ export default function RequestCard({ request }) {
       return "Has rechazado la solicitud de amistad de ";
     if (soyEmisor && rechazada) return " ha rechazado tu solicitud de amistad.";
     if (soyEmisor && aceptada) return " ha aceptado tu solicitud de amistad.";
+    return "";
   };
 
   return (
@@ -62,33 +76,46 @@ export default function RequestCard({ request }) {
         sx={{ width: "100%", mb: 1.5 }}
       >
         <Avatar
-          src={
-            soyReceptor ? request.sender.url_image : request.receiver.url_image
-          }
+          src={usuarioReferencia?.url_image || "/no_user_avatar_image.png"}
           sx={{
             width: 40,
             height: 40,
             border: `1px solid ${theme.primaryBack}`,
+            cursor: "pointer",
           }}
+          onClick={() => navigate("/app/" + usuarioReferencia?.id)}
         />
         <Typography sx={{ color: theme.primaryText }}>
           {!(soyReceptor && rechazada) && (
             <span style={{ fontWeight: "bold" }}>
-              @{soyReceptor ? request.sender.name : request.receiver.name}
+              @{usuarioReferencia.name}
             </span>
           )}
+
           {obtenerMensaje()}
+
           {soyReceptor && rechazada && (
-            <>
-              <span style={{ fontWeight: "bold" }}>
-                @{soyReceptor ? request.sender.name : request.receiver.name}
-              </span>
-              .
-            </>
+            <span style={{ fontWeight: "bold" }}>
+              @{usuarioReferencia.name}
+            </span>
           )}
         </Typography>
         {rechazada && <X size={16} color="#ff0000" strokeWidth={1.75} />}
         {aceptada && <Check size={16} color="#009e12" strokeWidth={1.75} />}
+
+        {!pendiente && (
+          <Box display="flex" flexGrow={1} justifyContent="flex-end">
+            <IconButton
+              aria-label="delete"
+              size="large"
+              onClick={() => {
+                onDelete(request.id);
+              }}
+            >
+              <DeleteIcon fontSize="inherit" sx={{ color: "#ff0000" }} />
+            </IconButton>
+          </Box>
+        )}
       </Box>
 
       {request.body && pendiente && (
@@ -120,6 +147,7 @@ export default function RequestCard({ request }) {
               <Button
                 variant="contained"
                 size="small"
+                onClick={pendiente ? () => onAccept(request.id) : () => {}}
                 sx={{
                   backgroundColor: theme.primaryText,
                   color: theme.secondaryBack,
@@ -131,13 +159,14 @@ export default function RequestCard({ request }) {
                   },
                 }}
               >
-                 {aceptada ? "Enviar mensaje" : "Aceptar"}
+                {aceptada ? "Enviar mensaje" : "Aceptar"}
               </Button>
 
               {pendiente && (
                 <Button
                   variant="contained"
                   size="small"
+                  onClick={() => onReject(request.id)}
                   sx={{
                     backgroundColor: theme.secondaryText,
                     color: "white",
@@ -157,7 +186,7 @@ export default function RequestCard({ request }) {
           variant="caption"
           sx={{ color: theme.secondaryText, fontStyle: "italic" }}
         >
-          {obtenerTiempoTranscurrido(request.created_at)}
+          {obtenerTiempoTranscurrido(request.updated_at || request.created_at)}
         </Typography>
       </Box>
     </Grid>

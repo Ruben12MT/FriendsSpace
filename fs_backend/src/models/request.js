@@ -51,17 +51,31 @@ module.exports = function (sequelize, DataTypes) {
         type: DataTypes.BOOLEAN,
         defaultValue: true,
       },
-      // AGREGAMOS LA COLUMNA MANUALMENTE AQUÍ:
       created_at: {
         type: DataTypes.DATE,
         allowNull: true,
-        // Si en la base de datos se llena sola, no necesitas defaultValue aquí
+      },
+
+      updated_at: {
+        type: DataTypes.DATE,
+        allowNull: true,
+      },
+
+      is_read_sender: {
+        type: DataTypes.BOOLEAN,
+        allowNull: true,
+        defaultValue: false,
+      },
+      is_read_receiver: {
+        type: DataTypes.BOOLEAN,
+        allowNull: true,
+        defaultValue: false,
       },
     },
     {
       sequelize,
       tableName: "request",
-      timestamps: false, // Lo dejamos en false como querías
+      timestamps: false, 
       indexes: [
         {
           name: "PRIMARY",

@@ -5,7 +5,6 @@ class RequestController {
   async createRequest(req, res) {
     try {
       const { receiver_id, body, is_report, info_report } = req.body;
-
       const newRequest = await requestService.createRequest({
         sender_id: req.user.id,
         receiver_id,
@@ -13,17 +12,15 @@ class RequestController {
         is_report,
         info_report,
         status: "PENDING",
-        is_read: false,
+        is_read_sender: true,
+        is_read_receiver: false,
         visible_sender: false,
         visible_receiver: true,
       });
-
       res.status(201).json({ ok: true, datos: newRequest });
     } catch (err) {
       logger.error("Error en createRequest: " + err.message);
-      res
-        .status(500)
-        .json({ ok: false, mensaje: "Error al enviar la solicitud" });
+      res.status(500).json({ ok: false, mensaje: "Error al enviar la solicitud" });
     }
   }
 
@@ -31,28 +28,22 @@ class RequestController {
     try {
       const { id } = req.params;
       const userId = req.user.id;
-
       const reqToUpdate = await requestService.getRequestById(id);
       if (!reqToUpdate || reqToUpdate.receiver_id !== userId) {
-        return res.status(403).json({
-          ok: false,
-          mensaje: "No tienes permiso para aceptar esta solicitud",
-        });
+        return res.status(403).json({ ok: false, mensaje: "No tienes permiso para aceptar esta solicitud" });
       }
-
       await requestService.updateRequest(id, {
         status: "ACCEPTED",
         visible_sender: true,
         visible_receiver: true,
-        is_read: false,
+        is_read_receiver: true,
+        is_read_sender: false,
+        updated_at: new Date()
       });
-
       res.status(200).json({ ok: true, mensaje: "Solicitud aceptada" });
     } catch (err) {
       logger.error("Error en accept: " + err.message);
-      res
-        .status(500)
-        .json({ ok: false, mensaje: "Error al aceptar la solicitud" });
+      res.status(500).json({ ok: false, mensaje: "Error al aceptar la solicitud" });
     }
   }
 
@@ -60,28 +51,22 @@ class RequestController {
     try {
       const { id } = req.params;
       const userId = req.user.id;
-
       const reqToUpdate = await requestService.getRequestById(id);
       if (!reqToUpdate || reqToUpdate.receiver_id !== userId) {
-        return res.status(403).json({
-          ok: false,
-          mensaje: "No tienes permiso para rechazar esta solicitud",
-        });
+        return res.status(403).json({ ok: false, mensaje: "No tienes permiso para rechazar esta solicitud" });
       }
-
       await requestService.updateRequest(id, {
         status: "REJECTED",
         visible_sender: true,
         visible_receiver: true,
-        is_read: false,
+        is_read_receiver: true,
+        is_read_sender: false,
+        updated_at: new Date()
       });
-
       res.status(200).json({ ok: true, mensaje: "Solicitud rechazada" });
     } catch (err) {
       logger.error("Error en reject: " + err.message);
-      res
-        .status(500)
-        .json({ ok: false, mensaje: "Error al rechazar la solicitud" });
+      res.status(500).json({ ok: false, mensaje: "Error al rechazar la solicitud" });
     }
   }
 
@@ -89,31 +74,24 @@ class RequestController {
     try {
       const { id } = req.params;
       const userId = req.user.id;
-
       const reqToUpdate = await requestService.getRequestById(id);
-      if (
-        !reqToUpdate ||
-        (reqToUpdate.sender_id !== userId && reqToUpdate.receiver_id !== userId)
-      ) {
-        return res.status(403).json({
-          ok: false,
-          mensaje: "No tienes permiso para editar esta solicitud",
-        });
+      if (!reqToUpdate || (reqToUpdate.sender_id !== userId && reqToUpdate.receiver_id !== userId)) {
+        return res.status(403).json({ ok: false, mensaje: "No tienes permiso para editar esta solicitud" });
       }
-
-      const updateData = {};
-      if (reqToUpdate.sender_id === userId) updateData.visible_sender = false;
-      if (reqToUpdate.receiver_id === userId)
+      const updateData = { updated_at: new Date() };
+      if (reqToUpdate.sender_id === userId) {
+        updateData.visible_sender = false;
+        updateData.is_read_sender = true;
+      }
+      if (reqToUpdate.receiver_id === userId) {
         updateData.visible_receiver = false;
-
+        updateData.is_read_receiver = true;
+      }
       await requestService.updateRequest(id, updateData);
-
       res.status(200).json({ ok: true, mensaje: "Notificación ocultada" });
     } catch (err) {
       logger.error("Error en invisible: " + err.message);
-      res
-        .status(500)
-        .json({ ok: false, mensaje: "Error al ocultar la solicitud" });
+      res.status(500).json({ ok: false, mensaje: "Error al ocultar la solicitud" });
     }
   }
 
@@ -123,37 +101,27 @@ class RequestController {
       res.status(200).json({ ok: true, datos: count });
     } catch (err) {
       logger.error("Error en getUnreadCount: " + err.message);
-      res
-        .status(500)
-        .json({ ok: false, mensaje: "Error al obtener el contador" });
+      res.status(500).json({ ok: false, mensaje: "Error al obtener el contador" });
     }
   }
 
   async markAsRead(req, res) {
     try {
       await requestService.markAllAsRead(req.user.id);
-      res
-        .status(200)
-        .json({ ok: true, mensaje: "Notificaciones marcadas como leídas" });
+      res.status(200).json({ ok: true, mensaje: "Notificaciones marcadas como leídas" });
     } catch (err) {
       logger.error("Error en markAsRead: " + err.message);
-      res
-        .status(500)
-        .json({ ok: false, mensaje: "Error al actualizar notificaciones" });
+      res.status(500).json({ ok: false, mensaje: "Error al actualizar notificaciones" });
     }
   }
 
   async getMyNotifications(req, res) {
     try {
-      const notifications = await requestService.getAllVisibleRequests(
-        req.user.id,
-      );
+      const notifications = await requestService.getAllVisibleRequests(req.user.id);
       res.status(200).json({ ok: true, datos: notifications });
     } catch (err) {
       logger.error("Error en getMyNotifications: " + err.message);
-      res
-        .status(500)
-        .json({ ok: false, mensaje: "Error al obtener el listado" });
+      res.status(500).json({ ok: false, mensaje: "Error al obtener el listado" });
     }
   }
 }

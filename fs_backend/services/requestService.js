@@ -22,24 +22,42 @@ class RequestService {
     return await request.count({
       where: {
         [Op.or]: [
-          { receiver_id: userId, visible_receiver: true },
-          { sender_id: userId, visible_sender: true }
-        ],
-        is_read: false
+          { 
+            receiver_id: userId, 
+            visible_receiver: true, 
+            is_read_receiver: false 
+          },
+          { 
+            sender_id: userId, 
+            visible_sender: true, 
+            is_read_sender: false 
+          }
+        ]
       }
     });
   }
 
   async markAllAsRead(userId) {
-    return await request.update(
-      { is_read: true },
+    // Actualizamos las recibidas por el usuario
+    await request.update(
+      { is_read_receiver: true },
       {
         where: {
-          [Op.or]: [
-            { receiver_id: userId, visible_receiver: true },
-            { sender_id: userId, visible_sender: true }
-          ],
-          is_read: false
+          receiver_id: userId,
+          visible_receiver: true,
+          is_read_receiver: false
+        }
+      }
+    );
+
+    // Actualizamos las enviadas por el usuario (que tienen respuesta)
+    await request.update(
+      { is_read_sender: true },
+      {
+        where: {
+          sender_id: userId,
+          visible_sender: true,
+          is_read_sender: false
         }
       }
     );
@@ -57,7 +75,7 @@ class RequestService {
         { model: user, as: "sender", attributes: ["id", "email", "name", "url_image"] },
         { model: user, as: "receiver", attributes: ["id", "email", "name", "url_image"] }
       ],
-      order: [["created_at", "DESC"]]
+      order: [["updated_at", "DESC"]]
     });
   }
 }

@@ -1,22 +1,24 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Grid, Box, Typography, Button, ButtonGroup } from "@mui/material";
 import { useAppTheme } from "../hooks/useAppTheme";
 import { useUser } from "../hooks/useUser";
-import { useState } from "react";
-import { useEffect } from "react";
 import api from "../utils/api";
 import RequestCard from "../components/RequestCard";
+import ConfirmModal from "../components/ConfirmModal";
 
 export default function RequestsPages() {
-  const navbarHeight = "160px";
+  const navbarHeight = "140px";
   const theme = useAppTheme();
   const { loggedUser } = useUser();
 
   const [allUserRequests, setAllUserRequests] = useState([]);
-  const [loadingReq, setLoadingReq] = useState(false);
+  const [requestsToShow, setRequestsToShow] = useState([]);
+  
+  const [openDeleteModal, setOpenDeleteModal] = useState(false);
+  const [requestToDelete, setRequestToDelete] = useState(null);
 
   const [types, setTypes] = useState({
-    ALL: false,
+    ALL: true,
     PENDING: false,
     ACCEPTED: false,
     REJECTED: false,
@@ -36,97 +38,133 @@ export default function RequestsPages() {
     },
   };
 
+  const ordenarRequestsPorFecha = (lista) => {
+    return [...lista].sort((a, b) => {
+      const fechaA = new Date(a.updated_at || a.created_at);
+      const fechaB = new Date(b.updated_at || b.created_at);
+      return fechaB - fechaA;
+    });
+  };
+
   useEffect(() => {
     async function fetchMyRequests() {
       try {
         const res = await api.get("/requests/list");
-
-        if (!loggedUser) return;
-        setAllUserRequests(res.data.datos);
+        if (res.data.ok && loggedUser) {
+          setAllUserRequests(ordenarRequestsPorFecha(res.data.datos));
+        }
       } catch (error) {
         console.error(error.message);
       }
     }
-
     fetchMyRequests();
   }, [loggedUser]);
 
-  console.log(allUserRequests);
+  useEffect(() => {
+    let filtradas = [...allUserRequests];
+    if (types.PENDING) filtradas = allUserRequests.filter(r => r.status === "PENDING");
+    else if (types.ACCEPTED) filtradas = allUserRequests.filter(r => r.status === "ACCEPTED");
+    else if (types.REJECTED) filtradas = allUserRequests.filter(r => r.status === "REJECTED");
+    setRequestsToShow(filtradas);
+  }, [allUserRequests, types]);
+
+  const handleOpenDelete = (idReq) => {
+    setRequestToDelete(idReq);
+    setOpenDeleteModal(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!requestToDelete) return;
+    try {
+      const res = await api.put(`/requests/${requestToDelete}/invisible`);
+      if (res.data.ok) {
+        setAllUserRequests((prev) => prev.filter((req) => req.id !== requestToDelete));
+      }
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setOpenDeleteModal(false);
+      setRequestToDelete(null);
+    }
+  };
+
+  const onAccept = async (idReq) => {
+    try {
+      const res = await api.put(`/requests/${idReq}/accept`);
+      if (res.data.ok) {
+        setAllUserRequests((prev) => {
+          const nuevas = prev.map((req) =>
+            req.id === idReq ? { 
+              ...req, 
+              status: "ACCEPTED", 
+              is_read_receiver: true, 
+              is_read_sender: false, 
+              updated_at: new Date().toISOString() 
+            } : req
+          );
+          return ordenarRequestsPorFecha(nuevas);
+        });
+      }
+    } catch (error) { console.error(error); }
+  };
+
+  const onReject = async (idReq) => {
+    try {
+      const res = await api.put(`/requests/${idReq}/reject`);
+      if (res.data.ok) {
+        setAllUserRequests((prev) => {
+          const nuevas = prev.map((req) =>
+            req.id === idReq ? { 
+              ...req, 
+              status: "REJECTED", 
+              is_read_receiver: true, 
+              is_read_sender: false, 
+              updated_at: new Date().toISOString() 
+            } : req
+          );
+          return ordenarRequestsPorFecha(nuevas);
+        });
+      }
+    } catch (error) { console.error(error); }
+  };
 
   return (
-    <Box
-      sx={{
-        position: "fixed",
-        top: navbarHeight,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        display: "flex",
-        flexDirection: "column", 
-        alignItems: "center",
-        p: 2,
-        overflowY: "auto", 
-        width: "100%",
-      }}
-    >
-      <Box
-        sx={{
-          width: { xs: "100%", md: "80%", lg: "70%" },
-          mt: 2,
-          flexShrink: 0,
-        }}
-      >
-        <Typography
-          variant="h4"
-          sx={{
-            mb: 3,
-            fontWeight: "bold",
-            textAlign: "left",
-            color: theme.primaryText,
-          }}
-        >
+    <Box sx={{ position: "fixed", top: navbarHeight, left: 0, right: 0, bottom: 0, display: "flex", flexDirection: "column", alignItems: "center", p: 2, overflowY: "auto", width: "100%" }}>
+      
+      <ConfirmModal 
+        open={openDeleteModal}
+        handleClose={() => setOpenDeleteModal(false)}
+        onConfirm={confirmDelete}
+        title="Eliminar notificación"
+        message="¿Estás seguro de que quieres ocultar esta notificación?"
+      />
+
+      <Box sx={{ width: { xs: "100%", md: "80%", lg: "70%" }, mt: 2, flexShrink: 0 }}>
+        <Typography variant="h4" sx={{ mb: 3, fontWeight: "bold", color: theme.primaryText }}>
           Notificaciones
         </Typography>
 
-        <ButtonGroup
-          variant="contained"
-          fullWidth
-          disableElevation
-          sx={{
-            mb: 4,
-            borderRadius: 2,
-            overflow: "hidden",
-            boxShadow: "none",
-            backgroundColor: "transparent",
-          }}
-        >
-          <Button sx={staticButtonStyle}>TODAS</Button>
-          <Button sx={staticButtonStyle}>PENDIENTES</Button>
-          <Button sx={staticButtonStyle}>ACEPTADAS</Button>
-          <Button sx={staticButtonStyle}>RECHAZADAS</Button>
-          {loggedUser.role === "ADMIN" && (
-            <Button sx={staticButtonStyle}>REPORTES</Button>
-          )}
+        <ButtonGroup variant="contained" fullWidth disableElevation sx={{ mb: 4, borderRadius: 2, overflow: "hidden" }}>
+          <Button sx={staticButtonStyle} onClick={() => setTypes({ ALL: true, PENDING: false, ACCEPTED: false, REJECTED: false })}>TODAS</Button>
+          <Button sx={staticButtonStyle} onClick={() => setTypes({ ALL: false, PENDING: true, ACCEPTED: false, REJECTED: false })}>PENDIENTES</Button>
+          <Button sx={staticButtonStyle} onClick={() => setTypes({ ALL: false, PENDING: false, ACCEPTED: true, REJECTED: false })}>ACEPTADAS</Button>
+          <Button sx={staticButtonStyle} onClick={() => setTypes({ ALL: false, PENDING: false, ACCEPTED: false, REJECTED: true })}>RECHAZADAS</Button>
         </ButtonGroup>
       </Box>
 
-      <Box
-        sx={{
-          width: { xs: "100%", md: "80%", lg: "70%" },
-          display: "flex",
-          flexDirection: "column",
-          gap: 2,
-          pb: 4,
-        }}
-      >
-        {allUserRequests.length > 0 ? (
-          allUserRequests.map((req) => (
-            <RequestCard key={req.id} request={req} />
+      <Box sx={{ width: { xs: "100%", md: "80%", lg: "70%" }, display: "flex", flexDirection: "column", gap: 2, pb: 4 }}>
+        {requestsToShow.length > 0 ? (
+          requestsToShow.map((req) => (
+            <RequestCard 
+              key={req.id} 
+              request={req} 
+              onAccept={onAccept} 
+              onReject={onReject} 
+              onDelete={handleOpenDelete} 
+            />
           ))
         ) : (
-          <Typography
-            sx={{ color: theme.secondaryText, textAlign: "center", mt: 4 }}
-          >
+          <Typography sx={{ color: theme.secondaryText, textAlign: "center", mt: 4 }}>
             No tienes notificaciones
           </Typography>
         )}

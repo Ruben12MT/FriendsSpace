@@ -19,7 +19,7 @@ router.put("/read-all", validarToken, requestController.markAsRead);
 router.put("/:id/accept", validarToken, requestController.accept);
 
 // Rechazar request  (Comprobar primero si soy el receptor) Al rechazar haces visible esa request para el usuario receptor variable status y las variables de visibilidad
-router.put("/:id/rejected", validarToken, requestController.reject);
+router.put("/:id/reject", validarToken, requestController.reject);
 
 // Quitar visible request  (Comprobar primero si estoy dentro de esa solicitud) Al desvisivilizar haces invisible esa request para el usuario que la edite en caso de que haya rechazado ya que el verá el mensaje de que ha rechazado
 router.put("/:id/invisible", validarToken, requestController.invisible);
