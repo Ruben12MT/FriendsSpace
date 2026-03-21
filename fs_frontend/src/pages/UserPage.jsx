@@ -1,4 +1,4 @@
-import { Avatar, Button, Grid, Typography, Backdrop, CircularProgress, Box } from "@mui/material";
+import { Avatar, Button, Grid, Typography, Backdrop, CircularProgress, Box, TextField, Modal, IconButton, Tooltip } from "@mui/material";
 import React, { useEffect, useState, useCallback } from "react";
 import { useUser } from "../hooks/useUser";
 import InterestItem from "../components/InterestItem";
@@ -7,6 +7,9 @@ import api from "../utils/api";
 import { useAppTheme } from "../hooks/useAppTheme";
 import GradeIcon from "@mui/icons-material/Grade";
 import ConfirmModal from "../components/ConfirmModal";
+import CloseIcon from "@mui/icons-material/Close";
+import SendIcon from "@mui/icons-material/Send";
+import DeleteSweepIcon from "@mui/icons-material/DeleteSweep";
 
 export default function UserPage() {
   const navigate = useNavigate();
@@ -18,18 +21,27 @@ export default function UserPage() {
   const [userInterests, setUserInterests] = useState([]);
   const theme = useAppTheme();
 
-  const [activeConnId, setActiveConnId] = useState(null); // Guardamos el id de la conexion si ya son amigos para poder finalizarla
-  const [pendingReqData, setPendingReqData] = useState(null); // Guardamos los datos de la solicitud pendiente para usar su ID o mensaje
-  const [buttonDisable, setButtonDisable] = useState(true); // Controlamos si el boton principal esta bloqueado mientras carga la api
-  const [openConfirm, setOpenConfirm] = useState(false); // Estado para abrir o cerrar el modal de confirmacion
-  const [modalMode, setModalMode] = useState("DELETE"); // Controlamos si el modal se comporta como borrar amigo o aceptar solicitud
+  const [activeConnId, setActiveConnId] = useState(null);
+  const [pendingReqData, setPendingReqData] = useState(null);
+  const [buttonDisable, setButtonDisable] = useState(true);
+  const [openConfirm, setOpenConfirm] = useState(false);
+  const [modalMode, setModalMode] = useState("DELETE");
 
-  const enviarSolicitud = async () => {
+  const [openMessageModal, setOpenMessageModal] = useState(false);
+  const [requestMessage, setRequestMessage] = useState("Hola, me gustaría conectar contigo.");
+  const [sendingLoader, setSendingLoader] = useState(false);
+
+  const preEnviarSolicitud = () => {
+    setOpenMessageModal(true);
+  };
+
+  const enviarSolicitudFinal = async () => {
     try {
+      setSendingLoader(true);
       setButtonDisable(true);
       await api.post("/requests", { 
         receiver_id: userIdAct,
-        body: "Hola, me gustaría conectar contigo." 
+        body: requestMessage 
       });
 
       setOtherUserButton({
@@ -37,10 +49,12 @@ export default function UserPage() {
         function: () => {},
       });
 
+      setOpenMessageModal(false);
       await hacerComprobaciones();
     } catch (error) {
       console.error(error);
     } finally {
+      setSendingLoader(false);
       setButtonDisable(false);
     }
   };
@@ -71,7 +85,7 @@ export default function UserPage() {
       
       setOtherUserButton({
         text: "Enviar Solicitud",
-        function: enviarSolicitud,
+        function: preEnviarSolicitud,
       });
 
       setActiveConnId(null);
@@ -85,8 +99,8 @@ export default function UserPage() {
 
   const [otherUserButton, setOtherUserButton] = useState({
     text: "Enviar Solicitud",
-    function: enviarSolicitud,
-  }); // Estado que maneja que texto y que funcion dispara el boton segun la relacion de los usuarios
+    function: preEnviarSolicitud,
+  });
 
   const hacerComprobaciones = useCallback(async () => {
     if (!userIdAct || loggedUser?.id == userIdAct) return;
@@ -120,7 +134,7 @@ export default function UserPage() {
 
       setOtherUserButton({
         text: "Enviar Solicitud",
-        function: enviarSolicitud,
+        function: preEnviarSolicitud,
       });
     } catch (error) {
       console.error(error);
@@ -134,12 +148,7 @@ export default function UserPage() {
       try {
         const res = await api.get("/users/" + userIdAct);
         const usuarioBuscado = res.data.usuario;
-
-        if (usuarioBuscado) {
-          setVisitedUser(usuarioBuscado);
-        } else {
-          return;
-        }
+        if (usuarioBuscado) setVisitedUser(usuarioBuscado);
 
         const res2 = await api.get(`/users/${userIdAct}/interests`);
         setUserInterests(res2.data.datos || []);
@@ -154,13 +163,27 @@ export default function UserPage() {
     hacerComprobaciones();
   }, [visitedUser, loggedUser, hacerComprobaciones]);
 
+  const modalStyle = {
+    position: "absolute",
+    top: "50%",
+    left: "50%",
+    transform: "translate(-50%, -50%)",
+    width: 450,
+    bgcolor: theme.secondaryBack,
+    border: `2px solid ${theme.primaryText}`,
+    borderRadius: 4,
+    boxShadow: 24,
+    p: 4,
+    outline: 'none'
+  };
+
   return (
     <Grid container maxWidth="xxl" justifyContent="center" sx={{ minHeight: "100%" }}>
       <Grid container direction="column" spacing={2} size={{ xs: 12, md: 9 }} sx={{ background: theme.secondaryBack, borderRadius: 3, p: 3 }}>
         <Grid size={{ xs: 12 }}>
           <Grid sx={{ background: theme.primaryBack, borderRadius: "12px 12px 0 0", height: "12px" }} />
           <Grid container spacing={2} justifyContent={"end"} sx={{ background: theme.tertiaryBack, borderRadius: "0 0 12px 12px", p: 3 }}>
-            <Grid container direction="row" size={{ xs: 12 }} spacing={2} alignItems="flex-start" >
+            <Grid container direction="row" size={{ xs: 12 }} spacing={2} alignItems="flex-start">
               <Grid>
                 <Avatar src={visitedUser.url_image ?? "/no_user_avatar_image.png"} onClick={() => setOpenZoom(true)} sx={{ width: 90, height: 90, border: theme.primaryBack + " solid 3px", cursor: "pointer", ":hover": { border: theme.primaryText + " solid 3px" } }} />
               </Grid>
@@ -214,11 +237,48 @@ export default function UserPage() {
         )}
       </Grid>
 
+      <Modal open={openMessageModal} onClose={() => setOpenMessageModal(false)}>
+        <Box sx={modalStyle}>
+          <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+            <Typography variant="h6" sx={{color: theme.primaryText, fontWeight: 'bold'}}>Solicitud de conexión</Typography>
+            <IconButton onClick={() => setOpenMessageModal(false)}><CloseIcon sx={{color: theme.primaryText}}/></IconButton>
+          </Box>
+          <TextField
+            fullWidth
+            multiline
+            rows={4}
+            value={requestMessage}
+            onChange={(e) => setRequestMessage(e.target.value)}
+            sx={{
+              mb: 3,
+              '& .MuiOutlinedInput-root': {
+                color: theme.fieldsText,
+                '& fieldset': { borderColor: theme.primaryText },
+              },
+            }}
+          />
+          <Box display="flex" justifyContent="space-between">
+            <Tooltip title="Limpiar campos">
+              <IconButton onClick={() => setRequestMessage("")}><DeleteSweepIcon sx={{color: theme.secondaryText}}/></IconButton>
+            </Tooltip>
+            <Button 
+              variant="contained" 
+              onClick={enviarSolicitudFinal}
+              disabled={sendingLoader || !requestMessage.trim()}
+              startIcon={sendingLoader ? <CircularProgress size={20}/> : <SendIcon/>}
+              sx={{background: theme.variantBack, borderRadius: 2}}
+            >
+              Enviar
+            </Button>
+          </Box>
+        </Box>
+      </Modal>
+
       <ConfirmModal 
         open={openConfirm}
         handleClose={() => setOpenConfirm(false)}
+        onCancel={modalMode === "ACCEPT" ? () => gestionarSolicitud("reject") : () => setOpenConfirm(false)}
         onConfirm={modalMode === "DELETE" ? eliminarAmigo : () => gestionarSolicitud("accept")}
-        onCancel={()=> gestionarSolicitud("reject")}
         title={modalMode === "DELETE" ? "Eliminar amigo" : "Responder Solicitud"}
         message={
           modalMode === "DELETE" 
@@ -229,14 +289,13 @@ export default function UserPage() {
               <Typography sx={{fontStyle: 'italic', background: 'rgba(0,0,0,0.1)', p: 1, borderRadius: 1, color: theme.fieldsText, mb: 2}}>
                 "{pendingReqData?.body || 'Sin mensaje'}"
               </Typography>
-              <Typography sx={{mb: 2, color: theme.primaryText}}>¿Quieres aceptar la conexión?</Typography>
             </Box>
           )
         }
       />
 
-      <Backdrop sx={{ color: "#fff", zIndex: (theme) => theme.zIndex.drawer + 100, backgroundColor: "rgba(0, 0, 0, 0.8)" }} open={openZoom} onClick={() => setOpenZoom(false)}>
-        <img src={visitedUser.url_image ?? "/no_user_avatar_image.png"} alt="Avatar Zoom" style={{ width: "500px", height: "500px", borderRadius: 1000, boxShadow: "0 0 30px rgba(0,0,0,0.7)" }} />
+      <Backdrop sx={{ color: "#fff", zIndex: 1000, backgroundColor: "rgba(0, 0, 0, 0.8)" }} open={openZoom} onClick={() => setOpenZoom(false)}>
+        <img src={visitedUser.url_image ?? "/no_user_avatar_image.png"} alt="Zoom" style={{ width: "500px", height: "500px", borderRadius: 1000 }} />
       </Backdrop>
     </Grid>
   );
