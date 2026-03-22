@@ -14,6 +14,7 @@ import { useAppTheme } from "./hooks/useAppTheme";
 import AdsPage from "./pages/AdsPage";
 import SearchNewFriendsPage from "./pages/SearchNewFriendsPage";
 import RequestsPages from "./pages/RequestsPage";
+import { SocketProvider } from "./context/SocketProvider";
 
 const router = createBrowserRouter([
   {
@@ -66,22 +67,24 @@ function App() {
         position: "relative",
       }}
     >
-      <Box
-        sx={{
-          position: "fixed",
-          top: 0,
-          left: 0,
-          width: "100%",
-          height: "100%",
-          zIndex: -2,
-          backgroundImage: `url(${theme.backgroundImage})`,
-          backgroundSize: "cover",
-          backgroundPosition: "center",
-          pointerEvents: "none", // Para que no interfiera con clicks
-        }}
-      />
-      <CssBaseline />
-      <RouterProvider router={router} />
+      <SocketProvider>
+        <Box
+          sx={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            width: "100%",
+            height: "100%",
+            zIndex: -2,
+            backgroundImage: `url(${theme.backgroundImage})`,
+            backgroundSize: "cover",
+            backgroundPosition: "center",
+            pointerEvents: "none",
+          }}
+        />
+        <CssBaseline />
+        <RouterProvider router={router} />
+      </SocketProvider>
     </Box>
   );
 }

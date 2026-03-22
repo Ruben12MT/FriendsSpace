@@ -34,6 +34,17 @@ class RequestController {
         visible_receiver: true,
       });
 
+      const io = req.app.get("socketio");
+
+      if (io) {
+        io.to(`user_${receiver_id}`).emit("nueva_solicitud", {
+          message: `Has recibido una nueva solicitud de ${req.user.name}`,
+          data: newRequest,
+        });
+
+        logger.info(`Evento enviado hacia el buzon de: user_${receiver_id}`);
+      }
+
       res.status(201).json({ ok: true, datos: newRequest });
     } catch (err) {
       logger.error("Error en createRequest: " + err.message);

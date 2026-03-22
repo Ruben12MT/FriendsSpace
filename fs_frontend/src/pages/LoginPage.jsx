@@ -32,8 +32,9 @@ export default function LoginPage() {
 
   const theme = useAppTheme();
 
-  const iniciarSesion = async () => {
+  
 
+  const iniciarSesion = async () => {
     try {
       setErrorsBool({
         emailOrUsername: emailOrUsername === "",
@@ -51,14 +52,14 @@ export default function LoginPage() {
       if (res.data.usuario && res.data.usuario.first_login == 0) {
         console.log("El usuario ya ha iniciado sesión antes");
         navigate("/app/searchnewfriends");
-      } else if(res.data.usuario.first_login == 1) {
+      } else if (res.data.usuario.first_login == 1) {
         console.log("El usuario a entrado por primera vez");
 
         navigate("/app/user/edit");
       }
-      
-      if(res.data.ok){
-              console.log("MENSAJE: El login se ha llevado a cabo de manera exitosa");
+
+      if (res.data.ok) {
+        console.log("MENSAJE: El login se ha llevado a cabo de manera exitosa");
       }
     } catch (error) {
       setErrorMsg(error.response?.data?.mensaje || "Error al conectar");
@@ -72,7 +73,7 @@ export default function LoginPage() {
     <>
       <ThemeToggler />
       {theme.backgroundVideo && <BackgroundVideo src={theme.backgroundVideo} />}
-      
+
       <Paper
         elevation={8}
         sx={{
@@ -80,7 +81,7 @@ export default function LoginPage() {
           maxWidth: 400,
           margin: "20px auto",
           borderRadius: "20px",
-          background: theme.secondaryBack ,
+          background: theme.secondaryBack,
 
           position: "fixed",
           top: "50%",

@@ -4,10 +4,13 @@ import { checkSession } from "../utils/checkSession";
 import { CircularProgress, Box } from "@mui/material";
 import { useUser } from "../hooks/useUser";
 import { useFirstLogin } from "../hooks/useFirstLogin";
+import { useContext } from "react";
+import { SocketContext } from "../context/SocketContext";
 
 const ProtectedRoute = ({ children }) => {
   // Hook personalizado que maneja lógica de primer login (si lo tienes)
   useFirstLogin();
+  const { socket } = useContext(SocketContext);
 
   // Obtenemos la ruta actual. Cada vez que cambie, el useEffect se disparará.
   const { pathname } = useLocation();
@@ -20,9 +23,22 @@ const ProtectedRoute = ({ children }) => {
 
   useEffect(() => {
     async function validate() {
-  
       setLoading(true);
-      
+
+      const crearSalaUsuario = async (idUsuario) => {
+        if (idUsuario && socket) {
+          // Si el socket por lo que sea está desconectado, lo reconectamos
+          if (!socket.connected) {
+            socket.connect();
+          }
+
+          console.log("Enviando evento join para ID:", idUsuario);
+          socket.emit("join", idUsuario);
+        } else {
+          console.error("Error: No hay socket o ID de usuario");
+        }
+      };
+
       try {
         // Llamamos a tu utilidad que hace el GET a /check-auth
         const res = await checkSession();
@@ -31,10 +47,12 @@ const ProtectedRoute = ({ children }) => {
           // Si el servidor dice que no hay sesión:
           setIsAuth(false);
           setLoggedUser(null); // Limpiamos Zustand para que la App sepa que no hay nadie
+          if (socket) socket.disconnect();
         } else {
           // Si la sesión es válida:
           setLoggedUser(res.user); // Sincronizamos los datos del usuario
           setIsAuth(true);
+          crearSalaUsuario(res.user.id);
         }
       } catch (err) {
         // Si hay un error de red o el servidor responde con error
@@ -47,14 +65,21 @@ const ProtectedRoute = ({ children }) => {
     }
 
     validate();
-    
+
     // Al poner 'pathname' aquí, la validación se ejecuta cada vez que el usuario navega
-  }, [pathname, setLoggedUser]);
+  }, [pathname, setLoggedUser, socket]);
 
   // Mientras se está validando la primera vez, mostramos el spinner
   if (loading) {
     return (
-      <Box sx={{ minHeight: "100vh", display: "flex", justifyContent: "center", alignItems: "center" }}>
+      <Box
+        sx={{
+          minHeight: "100vh",
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+        }}
+      >
         <CircularProgress sx={{ color: "#C9A227" }} />
       </Box>
     );
