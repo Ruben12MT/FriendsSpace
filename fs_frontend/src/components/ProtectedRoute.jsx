@@ -22,21 +22,22 @@ const ProtectedRoute = ({ children }) => {
       const crearSalaUsuario = (idUsuario) => {
         if (idUsuario && socket) {
           if (!socket.connected) socket.connect();
-          console.log("Enviando evento join para ID:", idUsuario);
           socket.emit("join", idUsuario);
-        } else {
-          console.error("Error: No hay socket o ID de usuario");
         }
       };
 
       try {
         const res = await checkSession();
+
         if (!res.isAuth) {
           setIsAuth(false);
           setLoggedUser(null);
           if (socket) socket.disconnect();
         } else {
-          setLoggedUser(res.user);
+          // Solo actualizamos Zustand si los datos han cambiado
+          if (JSON.stringify(res.user) !== JSON.stringify(loggedUser)) {
+            setLoggedUser(res.user);
+          }
           setIsAuth(true);
           crearSalaUsuario(res.user.id);
         }
@@ -51,12 +52,10 @@ const ProtectedRoute = ({ children }) => {
     validate();
   }, [pathname, setLoggedUser, socket]);
 
-  // Escucha reconexiones del socket y vuelve a unirse a la sala
   useEffect(() => {
     if (!socket || !loggedUser?.id) return;
 
     const onReconnect = () => {
-      console.log("Socket reconectado, re-emitiendo join para:", loggedUser.id);
       socket.emit("join", loggedUser.id);
     };
 

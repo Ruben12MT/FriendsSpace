@@ -1,13 +1,17 @@
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 
-const useAuthStore = create((set) => ({
-  loggedUser: null, 
-
-  // Esta función sirve para el Login y para actualizar el perfil
-  setLoggedUser: (user) => set({ loggedUser: user }),
-
-  // Al cerrar sesión, limpiamos todo el objeto
-  clearAuth: () => set({ loggedUser: null }),
-}));
+const useAuthStore = create(
+  persist(
+    (set) => ({
+      loggedUser: null,
+      setLoggedUser: (user) => set({ loggedUser: user }),
+      clearAuth: () => set({ loggedUser: null }),
+    }),
+    {
+      name: 'auth-storage',
+    }
+  )
+);
 
 export default useAuthStore;
