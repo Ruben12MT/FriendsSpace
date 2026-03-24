@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useContext } from "react";
-import { Grid, Box, Typography, Button, ButtonGroup } from "@mui/material";
+import { Box, Typography, Button, ButtonGroup } from "@mui/material";
 import { useAppTheme } from "../hooks/useAppTheme";
 import { useUser } from "../hooks/useUser";
 import api from "../utils/api";
 import RequestCard from "../components/RequestCard";
 import ConfirmModal from "../components/ConfirmModal";
 import { SocketContext } from "../context/SocketContext";
+import useAuthStore from "../store/useAuthStore";
 
 export default function RequestsPages() {
   const navbarHeight = "140px";
@@ -17,6 +18,8 @@ export default function RequestsPages() {
   const [requestsToShow, setRequestsToShow] = useState([]);
   const [openDeleteModal, setOpenDeleteModal] = useState(false);
   const [requestToDelete, setRequestToDelete] = useState(null);
+
+  const resetUnread = useAuthStore((state) => state.resetUnread);
 
   const [types, setTypes] = useState({
     ALL: true,
@@ -47,11 +50,12 @@ export default function RequestsPages() {
     });
   };
 
+  // Cargar requests al entrar
   useEffect(() => {
     async function fetchMyRequests() {
       try {
-        await api.put("/requests/read-all", {});
         const res = await api.get("/requests/list");
+
         if (res.data.ok && loggedUser) {
           setAllUserRequests(ordenarRequestsPorFecha(res.data.datos));
         }
@@ -60,33 +64,45 @@ export default function RequestsPages() {
       }
     }
     fetchMyRequests();
+  }, [loggedUser?.id]);
 
-    if (socket && loggedUser) {
-      const escucharSocket = (payload) => {
-        const data = payload.data || payload;
-        const rId = data.receiver_id;
+  // Escuchar socket
+  useEffect(() => {
+    if (!socket || !loggedUser) return;
 
-        if (String(rId) === String(loggedUser?.id)) {
-          const nuevaReqFormateada = {
-            ...data,
-            sender: data.sender || { 
-              name: data.sender_name || "Usuario", 
-              url_image: data.sender_image || null 
-            },
-            created_at: data.created_at || new Date().toISOString()
-          };
+    const escucharSocket = (payload) => {
+      const data = payload.data || payload;
+      const rId = data.receiver_id;
 
-          setAllUserRequests((prev) => {
-            if (prev.find(r => r.id === nuevaReqFormateada.id)) return prev;
-            return ordenarRequestsPorFecha([nuevaReqFormateada, ...prev]);
-          });
-        }
-      };
+      if (String(rId) === String(loggedUser?.id)) {
+        const nuevaReqFormateada = {
+          ...data,
+          sender: data.sender || {
+            name: data.sender_name || "Usuario",
+            url_image: data.sender_image || null,
+          },
+          created_at: data.created_at || new Date().toISOString(),
+        };
 
-      socket.on("nueva_solicitud", escucharSocket);
-      return () => socket.off("nueva_solicitud", escucharSocket);
-    }
-  }, [loggedUser?.id, socket]);
+        setAllUserRequests((prev) => {
+          if (prev.find((r) => r.id === nuevaReqFormateada.id)) return prev;
+          return ordenarRequestsPorFecha([nuevaReqFormateada, ...prev]);
+        });
+      }
+    };
+
+    socket.on("nueva_solicitud", escucharSocket);
+    return () => socket.off("nueva_solicitud", escucharSocket);
+  }, [socket, loggedUser?.id]);
+
+  // Marcar como leídas al salir
+  useEffect(() => {
+    return () => {
+
+      api.put("/requests/read-all", {}).catch(() => {});
+      resetUnread();
+    };
+  }, [resetUnread]);
 
   useEffect(() => {
     let filtradas = [...allUserRequests];
@@ -214,33 +230,73 @@ export default function RequestsPages() {
           sx={{ mb: 4, borderRadius: 2, overflow: "hidden" }}
         >
           <Button
-            sx={{...staticButtonStyle, backgroundColor: types.ALL ? theme.primaryBack : theme.secondaryBack}}
+            sx={{
+              ...staticButtonStyle,
+              backgroundColor: types.ALL
+                ? theme.primaryBack
+                : theme.secondaryBack,
+            }}
             onClick={() =>
-              setTypes({ ALL: true, PENDING: false, ACCEPTED: false, REJECTED: false })
+              setTypes({
+                ALL: true,
+                PENDING: false,
+                ACCEPTED: false,
+                REJECTED: false,
+              })
             }
           >
             TODAS
           </Button>
           <Button
-            sx={{...staticButtonStyle, backgroundColor: types.PENDING ? theme.primaryBack : theme.secondaryBack}}
+            sx={{
+              ...staticButtonStyle,
+              backgroundColor: types.PENDING
+                ? theme.primaryBack
+                : theme.secondaryBack,
+            }}
             onClick={() =>
-              setTypes({ ALL: false, PENDING: true, ACCEPTED: false, REJECTED: false })
+              setTypes({
+                ALL: false,
+                PENDING: true,
+                ACCEPTED: false,
+                REJECTED: false,
+              })
             }
           >
             PENDIENTES
           </Button>
           <Button
-            sx={{...staticButtonStyle, backgroundColor: types.ACCEPTED ? theme.primaryBack : theme.secondaryBack}}
+            sx={{
+              ...staticButtonStyle,
+              backgroundColor: types.ACCEPTED
+                ? theme.primaryBack
+                : theme.secondaryBack,
+            }}
             onClick={() =>
-              setTypes({ ALL: false, PENDING: false, ACCEPTED: true, REJECTED: false })
+              setTypes({
+                ALL: false,
+                PENDING: false,
+                ACCEPTED: true,
+                REJECTED: false,
+              })
             }
           >
             ACEPTADAS
           </Button>
           <Button
-            sx={{...staticButtonStyle, backgroundColor: types.REJECTED ? theme.primaryBack : theme.secondaryBack}}
+            sx={{
+              ...staticButtonStyle,
+              backgroundColor: types.REJECTED
+                ? theme.primaryBack
+                : theme.secondaryBack,
+            }}
             onClick={() =>
-              setTypes({ ALL: false, PENDING: false, ACCEPTED: false, REJECTED: true })
+              setTypes({
+                ALL: false,
+                PENDING: false,
+                ACCEPTED: false,
+                REJECTED: true,
+              })
             }
           >
             RECHAZADAS

@@ -180,17 +180,16 @@ class RequestService {
     });
   }
 
-  async getRequestsWithoutRead(userId) {
-    return await request.findOne({
-      where: {
-        [Op.or]: [
-          { sender_id: userId1, is_read_sender: false  },
-          { receiver_id: userId1, is_read_receiver: false },
-        ],
-        
-      },
-    });
-  }
+ async getRequestsWithoutRead(userId) {
+  return await request.findAll({
+    where: {
+      [Op.or]: [
+        { sender_id: userId, is_read_sender: false, visible_sender: true },
+        { receiver_id: userId, is_read_receiver: false, visible_receiver: true },
+      ],
+    },
+  });
+}
 
 }
 

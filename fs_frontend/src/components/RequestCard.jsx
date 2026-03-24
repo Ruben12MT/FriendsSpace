@@ -81,12 +81,14 @@ export default function RequestCard({ request, onAccept, onReject, onDelete }) {
           variant="dot"
           overlap="circular"
           anchorOrigin={{ vertical: "top", horizontal: "right" }}
-          invisible={request.is_read_receiver}
+          invisible={
+            soyEmisor ? request.is_read_sender : request.is_read_receiver
+          }
           sx={{
             "& .MuiBadge-badge": {
               border: `2px solid ${theme.secondaryBack}`, // El color de fondo de tu Card
               padding: "4px 4px",
-              borderRadius: 999
+              borderRadius: 999,
             },
           }}
         >

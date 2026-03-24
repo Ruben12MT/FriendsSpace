@@ -1,4 +1,5 @@
 const requestService = require("../services/requestService");
+const message = require("../src/models/message");
 const logger = require("../utils/logger");
 
 class RequestController {
@@ -230,8 +231,8 @@ class RequestController {
         numRequests: requests.length,
       });
     } catch (err) {
-      logger.error("Error en checkPendingRequest: " + err.message);
-      res.status(500).json({ ok: false });
+      logger.error("Error en getRequestsWithoutRead: " + err.message);
+      res.status(500).json({ ok: false, mensaje: "Error: en getRequestsWithoutRead" });
     }
   }
 }
