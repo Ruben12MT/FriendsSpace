@@ -5,6 +5,7 @@ import {
   Button,
   Grid,
   IconButton,
+  Badge,
 } from "@mui/material";
 import React from "react";
 import { useAppTheme } from "../hooks/useAppTheme";
@@ -75,16 +76,32 @@ export default function RequestCard({ request, onAccept, onReject, onDelete }) {
         alignItems="center"
         sx={{ width: "100%", mb: 1.5 }}
       >
-        <Avatar
-          src={usuarioReferencia?.url_image || "/no_user_avatar_image.png"}
+        <Badge
+          color="error"
+          variant="dot"
+          overlap="circular"
+          anchorOrigin={{ vertical: "top", horizontal: "right" }}
+          invisible={request.is_read_receiver}
           sx={{
-            width: 40,
-            height: 40,
-            border: `1px solid ${theme.primaryBack}`,
-            cursor: "pointer",
+            "& .MuiBadge-badge": {
+              border: `2px solid ${theme.secondaryBack}`, // El color de fondo de tu Card
+              padding: "4px 4px",
+              borderRadius: 999
+            },
           }}
-          onClick={() => navigate("/app/" + usuarioReferencia?.id)}
-        />
+        >
+          {" "}
+          <Avatar
+            src={usuarioReferencia?.url_image || "/no_user_avatar_image.png"}
+            sx={{
+              width: 40,
+              height: 40,
+              border: `1px solid ${theme.primaryBack}`,
+              cursor: "pointer",
+            }}
+            onClick={() => navigate("/app/" + usuarioReferencia?.id)}
+          />
+        </Badge>
         <Typography sx={{ color: theme.primaryText }}>
           {!(soyReceptor && rechazada) && (
             <span style={{ fontWeight: "bold" }}>

@@ -6,7 +6,24 @@ const { Op } = require("sequelize");
 class RequestService {
   // Crea el registro de la solicitud
   async createRequest(data) {
-    return await request.create(data);
+    const nuevaReq = await request.create(data);
+
+    const reqCompleta = await request.findByPk(nuevaReq.id, {
+      include: [
+        {
+          model: user,
+          as: "sender",
+          attributes: ["name", "url_image"],
+        },
+        {
+          model: user,
+          as: "receiver",
+          attributes: ["name", "url_image"],
+        },
+      ],
+    });
+
+    return reqCompleta;
   }
 
   // Busca una solicitud por su ID
@@ -162,6 +179,19 @@ class RequestService {
       },
     });
   }
+
+  async getRequestsWithoutRead(userId) {
+    return await request.findOne({
+      where: {
+        [Op.or]: [
+          { sender_id: userId1, is_read_sender: false  },
+          { receiver_id: userId1, is_read_receiver: false },
+        ],
+        
+      },
+    });
+  }
+
 }
 
 module.exports = new RequestService();

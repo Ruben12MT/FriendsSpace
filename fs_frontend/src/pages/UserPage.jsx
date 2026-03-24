@@ -175,8 +175,7 @@ export default function UserPage() {
       socket.on("nueva_solicitud", escucharSocket);
       return () => socket.off("nueva_solicitud", escucharSocket);
     }
-  }, [userIdAct, socket, loggedUser?.id, isLoggedUser]); // eslint-disable-line react-hooks/exhaustive-deps
-
+  }, [userIdAct, socket, loggedUser?.id, isLoggedUser]);
   return (
     <Grid container maxWidth="xxl" justifyContent="center" sx={{ minHeight: "100%" }}>
       <Grid container direction="column" spacing={2} size={{ xs: 12, md: 9 }} sx={{ background: theme.secondaryBack, borderRadius: 3, p: 3 }}>
@@ -292,7 +291,7 @@ export default function UserPage() {
               <TextField fullWidth multiline rows={3} value={requestBody} onChange={(e) => setRequestBody(e.target.value)} />
             </Box>
           ) : modalMode === "DELETE" ? (
-            `¿Estás seguro de que quieres eliminar la conexión con @${visitedUser.name}?`
+            `¿Estás seguro de que quieres eliminar tu amistad con @${visitedUser.name}?`
           ) : (
             <Box>
               <Typography>@{visitedUser.name} dice:</Typography>

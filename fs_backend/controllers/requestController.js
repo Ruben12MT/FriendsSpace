@@ -217,6 +217,23 @@ class RequestController {
       res.status(500).json({ ok: false });
     }
   }
+  // Devolver la cantidad de request sin leer tiene lel usuario
+
+  async getRequestsWithoutRead(req, res) {
+    try {
+      const myId = req.user.id;
+
+      const requests = await requestService.getRequestsWithoutRead(myId);
+
+      return res.status(200).json({
+        ok: true,
+        numRequests: requests.length,
+      });
+    } catch (err) {
+      logger.error("Error en checkPendingRequest: " + err.message);
+      res.status(500).json({ ok: false });
+    }
+  }
 }
 
 module.exports = new RequestController();
