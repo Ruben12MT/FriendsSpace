@@ -38,6 +38,7 @@ class RequestController {
       const io = req.app.get("socketio");
 
       if (io) {
+        // Notificar al receptor
         io.to(`user_${receiver_id}`).emit("nueva_solicitud", {
           message: `Has recibido una nueva solicitud de ${req.user.name}`,
           data: newRequest,
@@ -83,6 +84,21 @@ class RequestController {
 
       await requestService.acceptRequest(id, userId, reqFound.sender_id);
 
+      // Obtener la solicitud actualizada con datos de sender/receiver
+      const reqActualizada = await requestService.getRequestByIdWithUsers(id);
+
+      const io = req.app.get("socketio");
+
+      if (io) {
+        // Notificar al emisor original (sender) que su solicitud fue aceptada
+        io.to(`user_${reqFound.sender_id}`).emit("solicitud_respondida", {
+          message: `${req.user.name} ha aceptado tu solicitud de amistad`,
+          data: reqActualizada,
+        });
+
+        logger.info(`Evento solicitud_respondida enviado a user_${reqFound.sender_id}`);
+      }
+
       res.status(200).json({ ok: true, mensaje: "Solicitud aceptada" });
     } catch (err) {
       logger.error("Error en accept: " + err.message);
@@ -110,6 +126,21 @@ class RequestController {
         is_read_sender: false,
         updated_at: new Date(),
       });
+
+      // Obtener la solicitud actualizada con datos de sender/receiver
+      const reqActualizada = await requestService.getRequestByIdWithUsers(id);
+
+      const io = req.app.get("socketio");
+
+      if (io) {
+        // Notificar al emisor original (sender) que su solicitud fue rechazada
+        io.to(`user_${reqFound.sender_id}`).emit("solicitud_respondida", {
+          message: `${req.user.name} ha rechazado tu solicitud de amistad`,
+          data: reqActualizada,
+        });
+
+        logger.info(`Evento solicitud_respondida enviado a user_${reqFound.sender_id}`);
+      }
 
       res.status(200).json({ ok: true, mensaje: "Solicitud rechazada" });
     } catch (err) {
@@ -201,7 +232,6 @@ class RequestController {
       );
 
       if (pending) {
-        // Si el sender_id de la DdBb es mi Id, yo la envié. Si no, yo la recibí.
         const type = pending.sender_id === myId ? "SENT" : "RECEIVED";
 
         return res.status(200).json({
@@ -218,12 +248,11 @@ class RequestController {
       res.status(500).json({ ok: false });
     }
   }
-  // Devolver la cantidad de request sin leer tiene lel usuario
 
+  // Devolver la cantidad de request sin leer tiene el usuario
   async getRequestsWithoutRead(req, res) {
     try {
       const myId = req.user.id;
-
       const requests = await requestService.getRequestsWithoutRead(myId);
 
       return res.status(200).json({

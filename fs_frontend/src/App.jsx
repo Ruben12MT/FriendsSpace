@@ -15,6 +15,7 @@ import AdsPage from "./pages/AdsPage";
 import SearchNewFriendsPage from "./pages/SearchNewFriendsPage";
 import RequestsPages from "./pages/RequestsPage";
 import { SocketProvider } from "./context/SocketProvider";
+import { AuthProvider } from "./components/AuthProvider"; // ← NUEVO
 
 const router = createBrowserRouter([
   {
@@ -46,7 +47,6 @@ const router = createBrowserRouter([
       { path: "ads", element: <AdsPage /> },
       { path: "chats", element: <h3>Chats</h3> },
       { path: "requests", element: <RequestsPages /> },
-
       { path: ":id", element: <UserPage /> },
       { path: "user/edit", element: <EditUserPage /> },
     ],
@@ -67,25 +67,29 @@ function App() {
         position: "relative",
       }}
     >
-      <SocketProvider>
-        <Box
-          sx={{
-            position: "fixed",
-            top: 0,
-            left: 0,
-            width: "100%",
-            height: "100%",
-            zIndex: -2,
-            backgroundImage: `url(${theme.backgroundImage})`,
-            backgroundSize: "cover",
-            backgroundPosition: "center",
-            pointerEvents: "none",
-          }}
-        />
-        <CssBaseline />
-        <RouterProvider router={router} />
-      </SocketProvider>
+      <AuthProvider>
+        <SocketProvider>
+          <Box
+            sx={{
+              position: "fixed",
+              top: 0,
+              left: 0,
+              width: "100%",
+              height: "100%",
+              zIndex: -2,
+              background: theme.primaryBack ,
+              // backgroundImage: `url(${theme.backgroundImage})`,
+              backgroundSize: "cover",
+              backgroundPosition: "center",
+              pointerEvents: "none",
+            }}
+          />
+          <CssBaseline />
+          <RouterProvider router={router} />
+        </SocketProvider>
+      </AuthProvider>
     </Box>
   );
 }
+
 export default App;

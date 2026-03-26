@@ -20,8 +20,11 @@ export default function RequestCard({ request, onAccept, onReject, onDelete }) {
   const navigate = useNavigate();
 
   const obtenerTiempoTranscurrido = (fechaString) => {
-    const ahora = new Date();
+    if (!fechaString) return "fecha desconocida";
     const pasado = new Date(fechaString);
+    if (isNaN(pasado.getTime())) return "fecha desconocida";
+
+    const ahora = new Date();
     const diferenciaEnSegundos = Math.floor((ahora - pasado) / 1000);
 
     if (diferenciaEnSegundos < 60) return "ahora mismo";
@@ -34,7 +37,6 @@ export default function RequestCard({ request, onAccept, onReject, onDelete }) {
     const semanas = Math.floor(dias / 7);
     return `hace ${semanas} sem`;
   };
-
   const pendiente = request.status === "PENDING" && !request.is_report;
   const rechazada = request.status === "REJECTED" && !request.is_report;
   const aceptada = request.status === "ACCEPTED" && !request.is_report;
@@ -43,6 +45,9 @@ export default function RequestCard({ request, onAccept, onReject, onDelete }) {
   const soyReceptor = request.receiver_id === loggedUser.id;
 
   const usuarioReferencia = soyEmisor ? request.receiver : request.sender;
+
+  if (!usuarioReferencia) return null;
+
 
   const obtenerMensaje = () => {
     if (soyReceptor && pendiente)

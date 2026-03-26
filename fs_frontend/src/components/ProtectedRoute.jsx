@@ -1,79 +1,32 @@
-import React, { useEffect, useState } from "react";
-import { Navigate, useLocation } from "react-router-dom";
-import { checkSession } from "../utils/checkSession";
+import React from "react";
+import { Navigate } from "react-router-dom";
 import { CircularProgress, Box } from "@mui/material";
-import { useUser } from "../hooks/useUser";
-import { useFirstLogin } from "../hooks/useFirstLogin";
-import { useContext } from "react";
-import { SocketContext } from "../context/SocketContext";
-
+import useAuthStore from "../store/useAuthStore";
+ 
 const ProtectedRoute = ({ children }) => {
-  useFirstLogin();
-  const { socket } = useContext(SocketContext);
-  const { pathname } = useLocation();
-  const [loading, setLoading] = useState(true);
-  const [isAuth, setIsAuth] = useState(false);
-  const { loggedUser, setLoggedUser } = useUser();
-
-  useEffect(() => {
-    async function validate() {
-      setLoading(true);
-
-      const crearSalaUsuario = (idUsuario) => {
-        if (idUsuario && socket) {
-          if (!socket.connected) socket.connect();
-          socket.emit("join", idUsuario);
-        }
-      };
-
-      try {
-        const res = await checkSession();
-
-        if (!res.isAuth) {
-          setIsAuth(false);
-          setLoggedUser(null);
-          if (socket) socket.disconnect();
-        } else {
-          // Solo actualizamos Zustand si los datos han cambiado
-          if (JSON.stringify(res.user) !== JSON.stringify(loggedUser)) {
-            setLoggedUser(res.user);
-          }
-          setIsAuth(true);
-          crearSalaUsuario(res.user.id);
-        }
-      } catch (err) {
-        setIsAuth(false);
-        setLoggedUser(null);
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    validate();
-  }, [pathname, setLoggedUser, socket]);
-
-  useEffect(() => {
-    if (!socket || !loggedUser?.id) return;
-
-    const onReconnect = () => {
-      socket.emit("join", loggedUser.id);
-    };
-
-    socket.on("connect", onReconnect);
-    return () => socket.off("connect", onReconnect);
-  }, [socket, loggedUser?.id]);
-
-  if (loading) {
+  const { loggedUser, isLoading } = useAuthStore();
+ 
+  // Mientras AuthProvider verifica la sesión al arrancar, mostramos spinner
+  if (isLoading) {
     return (
-      <Box sx={{ minHeight: "100vh", display: "flex", justifyContent: "center", alignItems: "center" }}>
+      <Box
+        sx={{
+          minHeight: "100vh",
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+        }}
+      >
         <CircularProgress sx={{ color: "#C9A227" }} />
       </Box>
     );
   }
-
-  if (!isAuth) return <Navigate to="/login" replace />;
-
+ 
+  // Si no hay usuario logueado, redirigir al login
+  if (!loggedUser) return <Navigate to="/login" replace />;
+ 
+  // Si hay sesión, renderizar la página normalmente
   return children;
 };
-
+ 
 export default ProtectedRoute;

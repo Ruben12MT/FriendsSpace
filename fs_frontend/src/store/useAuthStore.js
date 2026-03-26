@@ -1,13 +1,15 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-
+ 
 const useAuthStore = create(
   persist(
     (set) => ({
       loggedUser: null,
-      setLoggedUser: (user) => set({ loggedUser: user }),
-      clearAuth: () => set({ loggedUser: null }),
-
+      isLoading: true,
+ 
+      setLoggedUser: (user) => set({ loggedUser: user, isLoading: false }),
+      clearAuth: () => set({ loggedUser: null, isLoading: false }),
+ 
       unreadCount: 0,
       setUnreadCount: (count) => set({ unreadCount: count }),
       incrementUnread: () => set((state) => ({ unreadCount: state.unreadCount + 1 })),
@@ -15,8 +17,12 @@ const useAuthStore = create(
     }),
     {
       name: 'auth-storage',
+      partialize: (state) => ({
+        loggedUser: state.loggedUser,
+        unreadCount: state.unreadCount,
+      }),
     }
   )
 );
-
+ 
 export default useAuthStore;

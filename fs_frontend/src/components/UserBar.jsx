@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Link, Outlet } from "react-router-dom";
+import { Link, Outlet, useLocation } from "react-router-dom";
 import AppBar from "@mui/material/AppBar";
 import Box from "@mui/material/Box";
 import Toolbar from "@mui/material/Toolbar";
@@ -22,6 +22,7 @@ import ThemeToggler from "../components/ThemeToggler";
 import { useContext } from "react";
 import { SocketContext } from "../context/SocketContext.jsx";
 import useAuthStore from "../store/useAuthStore.js";
+import { useFirstLogin } from "../hooks/useFirstLogin";
 
 const pages = [
   { "/app/searchnewfriends": "Buscar friends" },
@@ -31,6 +32,7 @@ const pages = [
 
 export default function UserBar() {
   const navigate = useNavigate();
+  const { pathname } = useLocation();
   const { loggedUser } = useUser();
   const [anchorElNav, setAnchorElNav] = React.useState(null);
   const [anchorElUser, setAnchorElUser] = React.useState(null);
@@ -44,6 +46,13 @@ export default function UserBar() {
 
   const unreadCount = useAuthStore((state) => state.unreadCount);
   const setUnreadCount = useAuthStore((state) => state.setUnreadCount);
+  const incrementUnread = useAuthStore((state) => state.incrementUnread);
+  const clearAuth = useAuthStore((state) => state.clearAuth);
+
+  useFirstLogin();
+
+  // True si el usuario está actualmente viendo la página de solicitudes
+  const estaEnRequests = pathname === "/app/requests";
 
   const showUserProfile = () => {
     handleCloseUserMenu();
@@ -54,47 +63,53 @@ export default function UserBar() {
     try {
       handleCloseUserMenu();
       await api.post("/users/logout/");
-
       if (socket) socket.disconnect();
-
+      clearAuth();
       navigate("/");
     } catch (error) {
       console.error("Error al cerrar sesión:", error);
     }
   };
 
+  // Cargar el número de notificaciones sin leer al montar (una sola vez)
   useEffect(() => {
-  if (unreadCount > 0) return;
-  
-  async function getNotReadedNotifications() {
-    try {
-      const res = await api.get("/requests/withoutread");
-      setUnreadCount(res.data.numRequests);
-    } catch (error) {
-      console.error(error.message);
+    if (unreadCount > 0) return;
+
+    async function getNotReadedNotifications() {
+      try {
+        const res = await api.get("/requests/withoutread");
+        setUnreadCount(res.data.numRequests);
+      } catch (error) {
+        console.error(error.message);
+      }
     }
-  }
-  getNotReadedNotifications();
-}, []); // eslint-disable-line react-hooks/exhaustive-deps
+    getNotReadedNotifications();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Escuchar socket: incrementar contador solo si NO estamos en la página de requests
+  useEffect(() => {
+    if (!socket) return;
+
+    const onNuevaSolicitud = () => {
+      if (!estaEnRequests) incrementUnread();
+    };
+
+    const onSolicitudRespondida = () => {
+      if (!estaEnRequests) incrementUnread();
+    };
+
+    socket.on("nueva_solicitud", onNuevaSolicitud);
+    socket.on("solicitud_respondida", onSolicitudRespondida);
+
+    return () => {
+      socket.off("nueva_solicitud", onNuevaSolicitud);
+      socket.off("solicitud_respondida", onSolicitudRespondida);
+    };
+  }, [socket, estaEnRequests, incrementUnread]);
 
   return (
-    <Box
-      sx={{
-        display: "flex",
-        flexDirection: "column",
-        minHeight: "100vh",
-        width: "100%",
-      }}
-    >
-      <Box
-        sx={{
-          position: "fixed",
-          top: 0,
-          left: 0,
-          right: 0,
-          zIndex: 1100,
-        }}
-      >
+    <Box sx={{ display: "flex", flexDirection: "column", minHeight: "100vh", width: "100%" }}>
+      <Box sx={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 1100 }}>
         <AppBar
           position="relative"
           elevation={4}
@@ -110,67 +125,32 @@ export default function UserBar() {
                 src="/logo.png"
                 onClick={() => navigate("/")}
                 sx={{ display: { xs: "none", md: "flex" } }}
-                style={{
-                  marginTop: "20px",
-                  marginBottom: "20px",
-                  width: "50px",
-                  height: "50px",
-                  marginRight: "15px",
-                  cursor: "pointer",
-                }}
+                style={{ marginTop: "20px", marginBottom: "20px", width: "50px", height: "50px", marginRight: "15px", cursor: "pointer" }}
               />
 
               <Typography
-                variant="h5"
-                noWrap
-                component="a"
-                href="/"
-                sx={{
-                  mr: 2,
-                  display: { xs: "none", md: "flex" },
-                  fontFamily: "monospace",
-                  color: "inherit",
-                  textDecoration: "none",
-                }}
+                variant="h5" noWrap component="a" href="/"
+                sx={{ mr: 2, display: { xs: "none", md: "flex" }, fontFamily: "monospace", color: "inherit", textDecoration: "none" }}
               >
                 Friends Space
               </Typography>
 
               <Box sx={{ flexGrow: 1, display: { xs: "flex", md: "none" } }}>
-                <IconButton
-                  size="large"
-                  aria-label="menu"
-                  aria-controls="menu-appbar"
-                  aria-haspopup="true"
-                  onClick={handleOpenNavMenu}
-                  color="inherit"
-                >
+                <IconButton size="large" aria-label="menu" aria-controls="menu-appbar" aria-haspopup="true" onClick={handleOpenNavMenu} color="inherit">
                   <MenuIcon />
                 </IconButton>
-
                 <Menu
-                  id="menu-appbar"
-                  anchorEl={anchorElNav}
+                  id="menu-appbar" anchorEl={anchorElNav}
                   anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
-                  keepMounted
-                  transformOrigin={{ vertical: "top", horizontal: "left" }}
-                  open={Boolean(anchorElNav)}
-                  onClose={handleCloseNavMenu}
+                  keepMounted transformOrigin={{ vertical: "top", horizontal: "left" }}
+                  open={Boolean(anchorElNav)} onClose={handleCloseNavMenu}
                   sx={{ display: { xs: "block", md: "none" } }}
                 >
                   {pages.map((page) => {
                     const [key, label] = Object.entries(page)[0];
                     return (
                       <MenuItem key={key} onClick={handleCloseNavMenu}>
-                        <Typography
-                          component="a"
-                          href={`/${key}`}
-                          sx={{
-                            textAlign: "center",
-                            textDecoration: "none",
-                            color: "inherit",
-                          }}
-                        >
+                        <Typography component="a" href={`/${key}`} sx={{ textAlign: "center", textDecoration: "none", color: "inherit" }}>
                           {label}
                         </Typography>
                       </MenuItem>
@@ -179,59 +159,22 @@ export default function UserBar() {
                 </Menu>
               </Box>
 
-              <Button
-                component={Link}
-                to="/"
-                style={{ textDecoration: "none", color: "inherit" }}
-                sx={{ display: { xs: "flex", md: "none" } }}
-              >
-                <Avatar
-                  src="/logo.png"
-                  style={{ margin: "20px", width: "70px", height: "70px" }}
-                />
+              <Button component={Link} to="/" style={{ textDecoration: "none", color: "inherit" }} sx={{ display: { xs: "flex", md: "none" } }}>
+                <Avatar src="/logo.png" style={{ margin: "20px", width: "70px", height: "70px" }} />
               </Button>
 
               <Typography
-                variant="h5"
-                noWrap
-                component="a"
-                href="/"
-                sx={{
-                  mr: 2,
-                  display: { xs: "flex", md: "none" },
-                  flexGrow: 1,
-                  fontFamily: "monospace",
-                  fontWeight: 700,
-                  letterSpacing: ".3rem",
-                  color: "inherit",
-                  textDecoration: "none",
-                }}
+                variant="h5" noWrap component="a" href="/"
+                sx={{ mr: 2, display: { xs: "flex", md: "none" }, flexGrow: 1, fontFamily: "monospace", fontWeight: 700, letterSpacing: ".3rem", color: "inherit", textDecoration: "none" }}
               >
                 Friends Space
               </Typography>
 
-              <Box
-                sx={{
-                  flexGrow: 1,
-                  display: { xs: "none", md: "flex" },
-                  justifyContent: "end",
-                  margin: 2,
-                }}
-              >
+              <Box sx={{ flexGrow: 1, display: { xs: "none", md: "flex" }, justifyContent: "end", margin: 2 }}>
                 {pages.map((page) => {
                   const [key, label] = Object.entries(page)[0];
                   return (
-                    <Button
-                      key={key}
-                      onClick={() => {
-                        navigate(key);
-                      }}
-                      sx={{
-                        my: 0,
-                        color: theme.navBar.textColor,
-                        display: "block",
-                      }}
-                    >
+                    <Button key={key} onClick={() => navigate(key)} sx={{ my: 0, color: theme.navBar.textColor, display: "block" }}>
                       {label}
                     </Button>
                   );
@@ -250,40 +193,22 @@ export default function UserBar() {
                 </Tooltip>
 
                 <Menu
-                  sx={{ mt: "45px" }}
-                  id="menu-appbar"
-                  anchorEl={anchorElUser}
+                  sx={{ mt: "45px" }} id="menu-appbar" anchorEl={anchorElUser}
                   anchorOrigin={{ vertical: "top", horizontal: "right" }}
-                  keepMounted
-                  transformOrigin={{ vertical: "top", horizontal: "right" }}
-                  open={Boolean(anchorElUser)}
-                  onClose={handleCloseUserMenu}
+                  keepMounted transformOrigin={{ vertical: "top", horizontal: "right" }}
+                  open={Boolean(anchorElUser)} onClose={handleCloseUserMenu}
                 >
                   <MenuItem key={"userProfile"} onClick={showUserProfile}>
-                    <Typography sx={{ textAlign: "center" }}>
-                      Ver Perfil
-                    </Typography>
+                    <Typography sx={{ textAlign: "center" }}>Ver Perfil</Typography>
                   </MenuItem>
-
                   <MenuItem key={"logout"} onClick={logout}>
-                    <Typography sx={{ textAlign: "center" }}>
-                      Cerrar Sesión
-                    </Typography>
+                    <Typography sx={{ textAlign: "center" }}>Cerrar Sesión</Typography>
                   </MenuItem>
                 </Menu>
 
-                <IconButton
-                  aria-label="notificaciones"
-                  size="large"
-                  onClick={() => {
-                    navigate("/app/requests");
-                  }}
-                >
+                <IconButton aria-label="notificaciones" size="large" onClick={() => navigate("/app/requests")}>
                   <Badge color="error" badgeContent={unreadCount}>
-                    <NotificationsIcon
-                      fontSize="inherit"
-                      sx={{ color: theme.navBar.textColor }}
-                    />
+                    <NotificationsIcon fontSize="inherit" sx={{ color: theme.navBar.textColor }} />
                   </Badge>
                 </IconButton>
 
@@ -293,17 +218,8 @@ export default function UserBar() {
           </Container>
         </AppBar>
       </Box>
-      <Box
-        component="main"
-        sx={{
-          flexGrow: 1,
-          pt: "160px",
-          minHeight: "100vh",
-          display: "flex",
-          flexDirection: "column",
-          boxSizing: "border-box",
-        }}
-      >
+
+      <Box component="main" sx={{ flexGrow: 1, pt: "160px", minHeight: "100vh", display: "flex", flexDirection: "column", boxSizing: "border-box" }}>
         <Outlet />
       </Box>
     </Box>

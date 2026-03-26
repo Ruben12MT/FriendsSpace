@@ -6,19 +6,22 @@ const { Op } = require("sequelize");
 class RequestService {
   // Crea el registro de la solicitud
   async createRequest(data) {
-    const nuevaReq = await request.create(data);
-
+    const nuevaReq = await request.create({
+      ...data,
+      created_at: new Date(),
+    });
     const reqCompleta = await request.findByPk(nuevaReq.id, {
       include: [
         {
           model: user,
           as: "sender",
-          attributes: ["name", "url_image"],
+          attributes: ["id", "name", "url_image"],
         },
+
         {
           model: user,
           as: "receiver",
-          attributes: ["name", "url_image"],
+          attributes: ["id", "name", "url_image"],
         },
       ],
     });
@@ -26,9 +29,28 @@ class RequestService {
     return reqCompleta;
   }
 
-  // Busca una solicitud por su ID
+  // Busca una solicitud por su ID (sin joins)
   async getRequestById(id) {
     return await request.findByPk(id);
+  }
+
+  // Busca una solicitud por su ID incluyendo datos de sender y receiver
+  // Usado para enviar por socket datos completos al frontend
+  async getRequestByIdWithUsers(id) {
+    return await request.findByPk(id, {
+      include: [
+        {
+          model: user,
+          as: "sender",
+          attributes: ["id", "name", "url_image"],
+        },
+        {
+          model: user,
+          as: "receiver",
+          attributes: ["id", "name", "url_image"],
+        },
+      ],
+    });
   }
 
   // Busca solicitudes pendientes o amistades activas entre dos usuarios
@@ -65,7 +87,6 @@ class RequestService {
   async acceptRequest(requestId, receiverId, senderId) {
     const t = await sequelize.transaction();
     try {
-      // Actualiza el estado de la solicitud
       await request.update(
         {
           status: "ACCEPTED",
@@ -78,7 +99,6 @@ class RequestService {
         { where: { id: requestId }, transaction: t },
       );
 
-      // Crea la conexion y los vinculos en la tabla intermedia
       const newConn = await connection.create(
         { status: "ACTIVE" },
         { transaction: t },
@@ -167,7 +187,7 @@ class RequestService {
     });
   }
 
-  // Busca si el usuario loggeado tiene una solicitud pendiente enviada a un perfil concreto
+  // Busca si existe una solicitud pendiente entre dos usuarios
   async getPendingRequestBetweenUsers(userId1, userId2) {
     return await request.findOne({
       where: {
@@ -180,17 +200,21 @@ class RequestService {
     });
   }
 
- async getRequestsWithoutRead(userId) {
-  return await request.findAll({
-    where: {
-      [Op.or]: [
-        { sender_id: userId, is_read_sender: false, visible_sender: true },
-        { receiver_id: userId, is_read_receiver: false, visible_receiver: true },
-      ],
-    },
-  });
-}
-
+  // Devuelve las solicitudes sin leer del usuario
+  async getRequestsWithoutRead(userId) {
+    return await request.findAll({
+      where: {
+        [Op.or]: [
+          { sender_id: userId, is_read_sender: false, visible_sender: true },
+          {
+            receiver_id: userId,
+            is_read_receiver: false,
+            visible_receiver: true,
+          },
+        ],
+      },
+    });
+  }
 }
 
 module.exports = new RequestService();

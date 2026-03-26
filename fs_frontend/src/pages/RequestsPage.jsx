@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useContext } from "react";
-import { Box, Typography, Button, ButtonGroup } from "@mui/material";
+import { Box, Typography, Button, ButtonGroup, Tooltip } from "@mui/material";
 import { useAppTheme } from "../hooks/useAppTheme";
 import { useUser } from "../hooks/useUser";
 import api from "../utils/api";
@@ -7,6 +7,7 @@ import RequestCard from "../components/RequestCard";
 import ConfirmModal from "../components/ConfirmModal";
 import { SocketContext } from "../context/SocketContext";
 import useAuthStore from "../store/useAuthStore";
+import DeleteSweepIcon from "@mui/icons-material/DeleteSweep";
 
 export default function RequestsPages() {
   const navbarHeight = "140px";
@@ -17,6 +18,7 @@ export default function RequestsPages() {
   const [allUserRequests, setAllUserRequests] = useState([]);
   const [requestsToShow, setRequestsToShow] = useState([]);
   const [openDeleteModal, setOpenDeleteModal] = useState(false);
+  const [openClearModal, setOpenClearModal] = useState(false);
   const [requestToDelete, setRequestToDelete] = useState(null);
 
   const resetUnread = useAuthStore((state) => state.resetUnread);
@@ -50,12 +52,11 @@ export default function RequestsPages() {
     });
   };
 
-  // Cargar requests al entrar
+  // Cargar requests al entrar en la página
   useEffect(() => {
     async function fetchMyRequests() {
       try {
         const res = await api.get("/requests/list");
-
         if (res.data.ok && loggedUser) {
           setAllUserRequests(ordenarRequestsPorFecha(res.data.datos));
         }
@@ -66,44 +67,60 @@ export default function RequestsPages() {
     fetchMyRequests();
   }, [loggedUser?.id]);
 
-  // Escuchar socket
+  // Escuchar eventos de socket
   useEffect(() => {
     if (!socket || !loggedUser) return;
 
-    const escucharSocket = (payload) => {
+    const onNuevaSolicitud = (payload) => {
       const data = payload.data || payload;
-      const rId = data.receiver_id;
 
-      if (String(rId) === String(loggedUser?.id)) {
-        const nuevaReqFormateada = {
-          ...data,
-          sender: data.sender || {
-            name: data.sender_name || "Usuario",
-            url_image: data.sender_image || null,
-          },
-          created_at: data.created_at || new Date().toISOString(),
-        };
+      const nuevaReqFormateada = {
+        ...data,
+        sender: data.sender || {
+          id: data.sender_id,
+          name: data.sender_name || "Usuario",
+          url_image: data.sender_image || null,
+        },
+        created_at: data.created_at || new Date().toISOString(),
+      };
 
-        setAllUserRequests((prev) => {
-          if (prev.find((r) => r.id === nuevaReqFormateada.id)) return prev;
-          return ordenarRequestsPorFecha([nuevaReqFormateada, ...prev]);
-        });
-      }
+      setAllUserRequests((prev) => {
+        if (prev.find((r) => r.id === nuevaReqFormateada.id)) return prev;
+        return ordenarRequestsPorFecha([nuevaReqFormateada, ...prev]);
+      });
     };
 
-    socket.on("nueva_solicitud", escucharSocket);
-    return () => socket.off("nueva_solicitud", escucharSocket);
+    const onSolicitudRespondida = (payload) => {
+      const data = payload.data || payload;
+
+      setAllUserRequests((prev) => {
+        const existe = prev.find((r) => r.id === data.id);
+        if (existe) {
+          const actualizadas = prev.map((r) =>
+            r.id === data.id ? { ...r, ...data } : r,
+          );
+          return ordenarRequestsPorFecha(actualizadas);
+        }
+        return ordenarRequestsPorFecha([data, ...prev]);
+      });
+    };
+
+    socket.on("nueva_solicitud", onNuevaSolicitud);
+    socket.on("solicitud_respondida", onSolicitudRespondida);
+
+    return () => {
+      socket.off("nueva_solicitud", onNuevaSolicitud);
+      socket.off("solicitud_respondida", onSolicitudRespondida);
+    };
   }, [socket, loggedUser?.id]);
 
-  // Marcar como leídas al salir
+  // Al salir de la página: marcar todas como leídas y resetear el contador
   useEffect(() => {
-    return () => {
-
-      api.put("/requests/read-all", {}).catch(() => {});
-      resetUnread();
-    };
+    api.put("/requests/read-all", {}).catch(() => {});
+    resetUnread();
   }, [resetUnread]);
 
+  // Filtrar por tipo
   useEffect(() => {
     let filtradas = [...allUserRequests];
     if (types.PENDING)
@@ -136,6 +153,21 @@ export default function RequestsPages() {
       setRequestToDelete(null);
     }
   };
+
+  // Limpiar todas las no-pendientes de golpe
+  const confirmClearAll = async () => {
+    const noP = allUserRequests.filter((r) => r.status !== "PENDING");
+    try {
+      await Promise.all(noP.map((r) => api.put(`/requests/${r.id}/invisible`)));
+      setAllUserRequests((prev) => prev.filter((r) => r.status === "PENDING"));
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setOpenClearModal(false);
+    }
+  };
+
+  const hayLeidas = allUserRequests.some((r) => r.status !== "PENDING");
 
   const onAccept = async (idReq) => {
     try {
@@ -208,6 +240,13 @@ export default function RequestsPages() {
         title="Eliminar notificación"
         message="¿Estás seguro de que quieres ocultar esta notificación?"
       />
+      <ConfirmModal
+        open={openClearModal}
+        handleClose={() => setOpenClearModal(false)}
+        onConfirm={confirmClearAll}
+        title="Limpiar notificaciones"
+        message="Se ocultarán todas las notificaciones leídas (aceptadas y rechazadas). Las pendientes se conservan."
+      />
 
       <Box
         sx={{
@@ -216,12 +255,46 @@ export default function RequestsPages() {
           flexShrink: 0,
         }}
       >
-        <Typography
-          variant="h4"
-          sx={{ mb: 3, fontWeight: "bold", color: theme.primaryText }}
+        {/* Header con título y botón limpiar */}
+        <Box
+          display="flex"
+          alignItems="center"
+          justifyContent="space-between"
+          mb={3}
         >
-          Notificaciones
-        </Typography>
+          <Typography
+            variant="h4"
+            sx={{ fontWeight: "bold", color: theme.primaryText }}
+          >
+            Notificaciones
+          </Typography>
+
+          {hayLeidas && (
+            <Tooltip title="Ocultar todas las notificaciones leídas">
+              <Button
+                size="small"
+                startIcon={<DeleteSweepIcon fontSize="small" />}
+                onClick={() => setOpenClearModal(true)}
+                sx={{
+                  color: theme.secondaryText,
+                  border: `1px solid ${theme.secondaryText}40`,
+                  borderRadius: "10px",
+                  textTransform: "none",
+                  fontSize: "0.8rem",
+                  px: 1.5,
+                  py: 0.6,
+                  "&:hover": {
+                    color: "#f44336",
+                    borderColor: "#f44336",
+                    background: "rgba(244,67,54,0.06)",
+                  },
+                }}
+              >
+                Limpiar leídas
+              </Button>
+            </Tooltip>
+          )}
+        </Box>
 
         <ButtonGroup
           variant="contained"
