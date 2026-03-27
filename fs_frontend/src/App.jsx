@@ -16,6 +16,7 @@ import SearchNewFriendsPage from "./pages/SearchNewFriendsPage";
 import RequestsPages from "./pages/RequestsPage";
 import { SocketProvider } from "./context/SocketProvider";
 import { AuthProvider } from "./components/AuthProvider"; // ← NUEVO
+import ChatsPage from "./pages/ChatsPage";
 
 const router = createBrowserRouter([
   {
@@ -45,7 +46,7 @@ const router = createBrowserRouter([
     children: [
       { path: "searchnewfriends", element: <SearchNewFriendsPage /> },
       { path: "ads", element: <AdsPage /> },
-      { path: "chats", element: <h3>Chats</h3> },
+      { path: "chats", element: <ChatsPage /> },      
       { path: "requests", element: <RequestsPages /> },
       { path: ":id", element: <UserPage /> },
       { path: "user/edit", element: <EditUserPage /> },

@@ -25,6 +25,7 @@ const interestRoutes = require("./routes/interestRoutes");
 const adRoutes = require("./routes/adRoutes");
 const requestRoutes = require("./routes/requestRoutes");
 const connectionRoutes = require("./routes/connectionRoutes");
+const messageRoutes = require("./routes/messageRoutes");
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -64,6 +65,15 @@ io.on("connection", (socket) => {
     console.log(`Usuario ${userId} ha entrado en su sala privada`);
   });
 
+  socket.on("join_chat", (connectionId) => {
+  socket.join(`chat_${connectionId}`);
+  console.log(`Usuario entró al chat_${connectionId}`);
+});
+
+socket.on("leave_chat", (connectionId) => {
+  socket.leave(`chat_${connectionId}`);
+});
+
   socket.on("disconnect", () => {
     console.log("🔴 Usuario desconectado");
   });
@@ -75,6 +85,7 @@ app.use("/api/interests", interestRoutes);
 app.use("/api/ads", adRoutes);
 app.use("/api/requests", requestRoutes);
 app.use("/api/connections", connectionRoutes);
+app.use("/api/messages", messageRoutes);
 
 // Configurar el middleware para servir archivos estáticos desde el directorio 'public'
 app.use(express.static(path.join(__dirname, "public")));

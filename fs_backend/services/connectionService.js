@@ -25,19 +25,33 @@ class ConnectionService {
 
   // Obtener todas las conexiones activas de un usuario
   async getAllMyConnections(userId) {
-    return await models.connection.findAll({
-      where: { status: "ACTIVE" },
-      include: [
-        {
-          model: models.user_connection,
-          as: "user_connections",
-          where: { user_id: userId },
-          attributes: [], // No necesitamos mis datos aquí
-        },
-        ...ConnectionService.includeFriend(userId),
-      ],
-    });
-  }
+  // Primero buscamos los IDs de conexiones donde participa el usuario
+  const myConnections = await models.user_connection.findAll({
+    where: { user_id: userId },
+    attributes: ["connection_id"],
+  });
+
+  const connectionIds = myConnections.map((uc) => uc.connection_id);
+
+  if (connectionIds.length === 0) return [];
+
+  return await models.connection.findAll({
+    where: { status: "ACTIVE", id: connectionIds },
+    include: [
+      {
+        model: models.user_connection,
+        as: "user_connections",
+        include: [
+          {
+            model: models.user,
+            as: "user",
+            attributes: ["id", "name", "url_image"],
+          },
+        ],
+      },
+    ],
+  });
+}
 
   // Finalizar una conexión
   async finishConnection(id) {

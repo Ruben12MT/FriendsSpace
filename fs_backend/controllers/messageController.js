@@ -1,0 +1,166 @@
+const messageService = require("../services/messageService");
+const { uploadChat } = require("../config/cloudinary");
+const logger = require("../utils/logger");
+
+class MessageController {
+  async getMessages(req, res) {
+    try {
+      const { connectionId } = req.params;
+      const { limit = 30, beforeId = null } = req.query;
+      const userId = req.user.id;
+
+      const pertenece = await messageService.userBelongsToConnection(userId, connectionId);
+      if (!pertenece) {
+        return res.status(403).json({ ok: false, mensaje: "No perteneces a esta conversación" });
+      }
+
+      const messages = await messageService.getMessages(
+        connectionId,
+        parseInt(limit),
+        beforeId ? parseInt(beforeId) : null,
+      );
+
+      return res.status(200).json({ ok: true, datos: messages.reverse() });
+    } catch (err) {
+      logger.error("Error en getMessages: " + err.message);
+      return res.status(500).json({ ok: false, mensaje: "Error al obtener mensajes" });
+    }
+  }
+
+  // Envía un mensaje de texto
+  async sendTextMessage(req, res) {
+    try {
+      const { connectionId } = req.params;
+      const { body, reply_id } = req.body;
+      const userId = req.user.id;
+
+      const pertenece = await messageService.userBelongsToConnection(userId, connectionId);
+      if (!pertenece) {
+        return res.status(403).json({ ok: false, mensaje: "No perteneces a esta conversación" });
+      }
+
+      if (!body || !body.trim()) {
+        return res.status(400).json({ ok: false, mensaje: "El mensaje no puede estar vacío" });
+      }
+
+      const newMessage = await messageService.createMessage({
+        connection_id: connectionId,
+        user_id: userId,
+        type: "TEXT",
+        body: body.trim(),
+        reply_id: reply_id || null,
+      });
+
+      // Emitir por socket a la sala de la conexión
+      const io = req.app.get("socketio");
+      if (io) {
+        io.to(`chat_${connectionId}`).emit("nuevo_mensaje", { data: newMessage });
+      }
+
+      return res.status(201).json({ ok: true, datos: newMessage });
+    } catch (err) {
+      logger.error("Error en sendTextMessage: " + err.message);
+      return res.status(500).json({ ok: false, mensaje: "Error al enviar el mensaje" });
+    }
+  }
+
+  // Envía un mensaje con archivo multimedia (imagen, vídeo, audio, archivo)
+  // El archivo ya fue subido a Cloudinary por el middleware uploadChat
+  async sendMediaMessage(req, res) {
+    try {
+      const { connectionId } = req.params;
+      const { reply_id } = req.body;
+      const userId = req.user.id;
+
+      const pertenece = await messageService.userBelongsToConnection(userId, connectionId);
+      if (!pertenece) {
+        return res.status(403).json({ ok: false, mensaje: "No perteneces a esta conversación" });
+      }
+
+      if (!req.file) {
+        return res.status(400).json({ ok: false, mensaje: "No se recibió ningún archivo" });
+      }
+
+      // Detectar el tipo según el mimetype del archivo
+      const mime = req.file.mimetype || "";
+      let type = "FILE";
+      if (mime.startsWith("image/")) type = "IMAGE";
+      else if (mime.startsWith("video/")) type = "VIDEO";
+      else if (mime.startsWith("audio/")) type = "AUDIO";
+
+      const newMessage = await messageService.createMessage({
+        connection_id: connectionId,
+        user_id: userId,
+        type,
+        url: req.file.path,
+        reply_id: reply_id || null,
+      });
+
+      const io = req.app.get("socketio");
+      if (io) {
+        io.to(`chat_${connectionId}`).emit("nuevo_mensaje", { data: newMessage });
+      }
+
+      return res.status(201).json({ ok: true, datos: newMessage });
+    } catch (err) {
+      logger.error("Error en sendMediaMessage: " + err.message);
+      return res.status(500).json({ ok: false, mensaje: "Error al enviar el archivo" });
+    }
+  }
+
+  // Borrado lógico de un mensaje (solo el autor puede borrarlo)
+  async deleteMessage(req, res) {
+    try {
+      const { messageId } = req.params;
+      const userId = req.user.id;
+
+      const msg = await messageService.getMessageById(messageId);
+      if (!msg) {
+        return res.status(404).json({ ok: false, mensaje: "Mensaje no encontrado" });
+      }
+
+      await messageService.deleteMessage(messageId, userId);
+
+      // Notificar a los participantes que el mensaje fue borrado
+      const io = req.app.get("socketio");
+      if (io) {
+        io.to(`chat_${msg.connection_id}`).emit("mensaje_borrado", { messageId: parseInt(messageId) });
+      }
+
+      return res.status(200).json({ ok: true, mensaje: "Mensaje borrado" });
+    } catch (err) {
+      logger.error("Error en deleteMessage: " + err.message);
+      const status = err.message.includes("permiso") ? 403 : 500;
+      return res.status(status).json({ ok: false, mensaje: err.message });
+    }
+  }
+
+  // Edita el texto de un mensaje (solo el autor, solo mensajes TEXT)
+  async editMessage(req, res) {
+    try {
+      const { messageId } = req.params;
+      const { body } = req.body;
+      const userId = req.user.id;
+
+      if (!body || !body.trim()) {
+        return res.status(400).json({ ok: false, mensaje: "El mensaje no puede estar vacío" });
+      }
+
+      const updated = await messageService.editMessage(messageId, userId, body.trim());
+
+      // Notificar a los participantes del chat
+      const io = req.app.get("socketio");
+      if (io) {
+        io.to(`chat_${updated.connection_id}`).emit("mensaje_editado", { data: updated });
+      }
+
+      return res.status(200).json({ ok: true, datos: updated });
+    } catch (err) {
+      logger.error("Error en editMessage: " + err.message);
+      const status = err.message.includes("permiso") ? 403 : 500;
+      return res.status(status).json({ ok: false, mensaje: err.message });
+    }
+  }
+}
+
+module.exports = new MessageController();
