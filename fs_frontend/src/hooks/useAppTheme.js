@@ -45,6 +45,30 @@ const themes = {
     hoveredRow: "#5f4d12",
     links: "#c9a227",
   },
+
+  reformated: {
+    name: "default",
+    navBar: {
+      textColor: "#c9a227",
+      backColor: "#fffdf7",
+      whiteSpace: "#c5a34b",
+    },
+    fieldsText: "#1d1300",
+    primaryText: "#76520eff",
+    secondaryText: "#a89879",
+    variantText: "#ffffff",
+    primaryBack: "#c9a227",
+    secondaryBack: "#fcf1c7",
+    tertiaryBack: "#fffdf7",
+    variantBack: "#dbb42cff",
+    // backgroundImage: "/background.png",
+    backgroundVideo: "/background-video.mp4",
+    initialPoster: "/background-poster.jpg",
+    buttonHover: "#c9a227",
+    hoveredRow: "#ededed",
+
+    links: "#c9a227",
+  },
 };
 
 export function useAppTheme() {
