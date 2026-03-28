@@ -30,4 +30,6 @@ router.get("/:id/interests", validarToken, userController.getMyInterests);
 router.post("/:id/interests", validarToken, userController.addInterests);
 router.delete("/:id/interests", validarToken, userController.removeInterests);
 
+router.put("/:id/ban", validarToken, userController.banUser);
+
 module.exports = router;

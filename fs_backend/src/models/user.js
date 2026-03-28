@@ -32,9 +32,14 @@ module.exports = function (sequelize, DataTypes) {
         allowNull: true,
       },
       role: {
-        type: DataTypes.ENUM("USER", "ADMIN"),
+        type: DataTypes.ENUM("USER", "ADMIN", "DEVELOPER"),
         allowNull: true,
         defaultValue: "USER",
+      },
+      banned: {
+        type: DataTypes.BOOLEAN,
+        allowNull: false,
+        defaultValue: false,
       },
       goals: {
         type: DataTypes.TEXT,

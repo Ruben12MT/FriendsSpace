@@ -1,9 +1,7 @@
 const requestService = require("../services/requestService");
-const message = require("../src/models/message");
 const logger = require("../utils/logger");
 
 class RequestController {
-  // Comprueba si ya existe una relacion antes de crear la solicitud
   async createRequest(req, res) {
     try {
       const { receiver_id, body, is_report, info_report } = req.body;
@@ -13,9 +11,7 @@ class RequestController {
         await requestService.findExistingRelationship(sender_id, receiver_id);
 
       if (pending) {
-        return res
-          .status(400)
-          .json({ ok: false, mensaje: "Ya hay una solicitud pendiente" });
+        return res.status(400).json({ ok: false, mensaje: "Ya hay una solicitud pendiente" });
       }
 
       if (activeFriendship) {
@@ -36,27 +32,62 @@ class RequestController {
       });
 
       const io = req.app.get("socketio");
-
       if (io) {
-        // Notificar al receptor
         io.to(`user_${receiver_id}`).emit("nueva_solicitud", {
           message: `Has recibido una nueva solicitud de ${req.user.name}`,
           data: newRequest,
         });
-
         logger.info(`Evento enviado hacia el buzon de: user_${receiver_id}`);
       }
 
       res.status(201).json({ ok: true, datos: newRequest });
     } catch (err) {
       logger.error("Error en createRequest: " + err.message);
-      res
-        .status(500)
-        .json({ ok: false, mensaje: "Error al enviar la solicitud" });
+      res.status(500).json({ ok: false, mensaje: "Error al enviar la solicitud" });
     }
   }
 
-  // Valida permisos y estado antes de aceptar la solicitud
+  // Crea un reporte asignándolo automáticamente al admin con menos carga
+  // El body contiene el motivo y infoReport el objeto reportado (usuario, anuncio o solicitud)
+  async createReport(req, res) {
+    try {
+      const sender_id = req.user.id;
+      const { body, infoReport } = req.body;
+
+      if (!body || !body.trim()) {
+        return res.status(400).json({ ok: false, mensaje: "El motivo del reporte no puede estar vacío" });
+      }
+
+      if (!infoReport || !infoReport.type) {
+        return res.status(400).json({ ok: false, mensaje: "Debes indicar qué estás reportando" });
+      }
+
+      // Validar que no se reporte a sí mismo
+      if (infoReport.type === "USER" && String(infoReport.user_id) === String(sender_id)) {
+        return res.status(400).json({ ok: false, mensaje: "No puedes reportarte a ti mismo" });
+      }
+
+      const nuevoReporte = await requestService.createReport(sender_id, body.trim(), infoReport);
+
+      const io = req.app.get("socketio");
+      if (io) {
+        io.to(`user_${nuevoReporte.receiver_id}`).emit("nuevo_reporte", {
+          message: `Nuevo reporte asignado de ${req.user.name}`,
+          data: nuevoReporte,
+        });
+        logger.info(`Reporte asignado al admin user_${nuevoReporte.receiver_id}`);
+      }
+
+      res.status(201).json({ ok: true, datos: nuevoReporte });
+    } catch (err) {
+      logger.error("Error en createReport: " + err.message);
+      const mensaje = err.message === "No hay administradores disponibles"
+        ? err.message
+        : "Error al enviar el reporte";
+      res.status(500).json({ ok: false, mensaje });
+    }
+  }
+
   async accept(req, res) {
     try {
       const { id } = req.params;
@@ -65,37 +96,26 @@ class RequestController {
       const reqFound = await requestService.getRequestById(id);
 
       if (!reqFound) {
-        return res
-          .status(404)
-          .json({ ok: false, mensaje: "Solicitud no encontrada" });
+        return res.status(404).json({ ok: false, mensaje: "Solicitud no encontrada" });
       }
 
       if (reqFound.receiver_id !== userId) {
-        return res
-          .status(403)
-          .json({ ok: false, mensaje: "No tienes permiso" });
+        return res.status(403).json({ ok: false, mensaje: "No tienes permiso" });
       }
 
       if (reqFound.status !== "PENDING") {
-        return res
-          .status(400)
-          .json({ ok: false, mensaje: "La solicitud ya no esta pendiente" });
+        return res.status(400).json({ ok: false, mensaje: "La solicitud ya no esta pendiente" });
       }
 
       await requestService.acceptRequest(id, userId, reqFound.sender_id);
-
-      // Obtener la solicitud actualizada con datos de sender/receiver
       const reqActualizada = await requestService.getRequestByIdWithUsers(id);
 
       const io = req.app.get("socketio");
-
       if (io) {
-        // Notificar al emisor original (sender) que su solicitud fue aceptada
         io.to(`user_${reqFound.sender_id}`).emit("solicitud_respondida", {
           message: `${req.user.name} ha aceptado tu solicitud de amistad`,
           data: reqActualizada,
         });
-
         logger.info(`Evento solicitud_respondida enviado a user_${reqFound.sender_id}`);
       }
 
@@ -106,7 +126,6 @@ class RequestController {
     }
   }
 
-  // Valida permisos antes de rechazar
   async reject(req, res) {
     try {
       const { id } = req.params;
@@ -127,18 +146,14 @@ class RequestController {
         updated_at: new Date(),
       });
 
-      // Obtener la solicitud actualizada con datos de sender/receiver
       const reqActualizada = await requestService.getRequestByIdWithUsers(id);
 
       const io = req.app.get("socketio");
-
       if (io) {
-        // Notificar al emisor original (sender) que su solicitud fue rechazada
         io.to(`user_${reqFound.sender_id}`).emit("solicitud_respondida", {
           message: `${req.user.name} ha rechazado tu solicitud de amistad`,
           data: reqActualizada,
         });
-
         logger.info(`Evento solicitud_respondida enviado a user_${reqFound.sender_id}`);
       }
 
@@ -149,7 +164,6 @@ class RequestController {
     }
   }
 
-  // Valida pertenencia antes de ocultar la notificacion
   async invisible(req, res) {
     try {
       const { id } = req.params;
@@ -157,10 +171,7 @@ class RequestController {
 
       const reqFound = await requestService.getRequestById(id);
 
-      if (
-        !reqFound ||
-        (reqFound.sender_id !== userId && reqFound.receiver_id !== userId)
-      ) {
+      if (!reqFound || (reqFound.sender_id !== userId && reqFound.receiver_id !== userId)) {
         return res.status(403).json({ ok: false, mensaje: "No autorizado" });
       }
 
@@ -184,20 +195,16 @@ class RequestController {
     }
   }
 
-  // Obtiene el numero de notificaciones nuevas
   async getUnreadCount(req, res) {
     try {
       const count = await requestService.getUnreadCount(req.user.id);
       res.status(200).json({ ok: true, datos: count });
     } catch (err) {
       logger.error("Error en getUnreadCount: " + err.message);
-      res
-        .status(500)
-        .json({ ok: false, mensaje: "Error al contar notificaciones" });
+      res.status(500).json({ ok: false, mensaje: "Error al contar notificaciones" });
     }
   }
 
-  // Marca todas las notificaciones como vistas
   async markAsRead(req, res) {
     try {
       await requestService.markAllAsRead(req.user.id);
@@ -208,12 +215,9 @@ class RequestController {
     }
   }
 
-  // Lista las notificaciones para la bandeja de entrada
   async getMyNotifications(req, res) {
     try {
-      const notifications = await requestService.getAllVisibleRequests(
-        req.user.id,
-      );
+      const notifications = await requestService.getAllVisibleRequests(req.user.id);
       res.status(200).json({ ok: true, datos: notifications });
     } catch (err) {
       logger.error("Error en getMyNotifications: " + err.message);
@@ -226,20 +230,11 @@ class RequestController {
       const myId = req.user.id;
       const { receiverId } = req.params;
 
-      const pending = await requestService.getPendingRequestBetweenUsers(
-        myId,
-        receiverId,
-      );
+      const pending = await requestService.getPendingRequestBetweenUsers(myId, receiverId);
 
       if (pending) {
         const type = pending.sender_id === myId ? "SENT" : "RECEIVED";
-
-        return res.status(200).json({
-          ok: true,
-          exists: true,
-          type: type,
-          data: pending,
-        });
+        return res.status(200).json({ ok: true, exists: true, type, data: pending });
       }
 
       res.status(200).json({ ok: true, exists: false });
@@ -249,16 +244,11 @@ class RequestController {
     }
   }
 
-  // Devolver la cantidad de request sin leer tiene el usuario
   async getRequestsWithoutRead(req, res) {
     try {
       const myId = req.user.id;
       const requests = await requestService.getRequestsWithoutRead(myId);
-
-      return res.status(200).json({
-        ok: true,
-        numRequests: requests.length,
-      });
+      return res.status(200).json({ ok: true, numRequests: requests.length });
     } catch (err) {
       logger.error("Error en getRequestsWithoutRead: " + err.message);
       res.status(500).json({ ok: false, mensaje: "Error: en getRequestsWithoutRead" });

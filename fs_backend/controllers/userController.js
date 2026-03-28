@@ -109,7 +109,21 @@ class UserController {
   // Verifica el estado de autenticacion del usuario
   async checkAuth(req, res) {
     logger.info("DEVOLVIENDO EL USUARIO LOGUEADO");
-    return res.status(200).json({ ok: true, usuario: req.user });
+    try {
+      const usuarioActual = await userService.getUserById(req.user.id);
+      if (!usuarioActual) {
+        return res
+          .status(401)
+          .json({ ok: false, mensaje: "Usuario no encontrado" });
+      }
+      const { password, ...usuarioLimpio } = usuarioActual.toJSON();
+      return res.status(200).json({ ok: true, usuario: usuarioLimpio });
+    } catch (err) {
+      logger.error("Error en checkAuth: " + err.message);
+      return res
+        .status(500)
+        .json({ ok: false, mensaje: "Error al comprobar sesión" });
+    }
   }
 
   // Devuelve la lista completa de usuarios
@@ -256,6 +270,52 @@ class UserController {
       res
         .status(500)
         .json({ ok: false, mensaje: "Error al guardar intereses" });
+    }
+  }
+
+  async banUser(req, res) {
+    try {
+      const { id } = req.params;
+      const requestingRole = req.user.role;
+      const targetUser = await userService.getUserById(id);
+
+      if (!targetUser) {
+        return res
+          .status(404)
+          .json({ ok: false, mensaje: "Usuario no encontrado" });
+      }
+
+      const targetRole = targetUser.role;
+
+      if (
+        requestingRole === "ADMIN" &&
+        (targetRole === "ADMIN" || targetRole === "DEVELOPER")
+      ) {
+        return res.status(403).json({
+          ok: false,
+          mensaje: "No puedes banear a un admin o developer",
+        });
+      }
+
+      if (requestingRole === "DEVELOPER" && targetRole === "DEVELOPER") {
+        return res
+          .status(403)
+          .json({ ok: false, mensaje: "No puedes banear a otro developer" });
+      }
+
+      if (requestingRole === "USER") {
+        return res
+          .status(403)
+          .json({ ok: false, mensaje: "No tienes permiso" });
+      }
+
+      await userService.updateUser(id, { banned: true });
+      return res.status(200).json({ ok: true, mensaje: "Usuario baneado" });
+    } catch (err) {
+      logger.error("Error en banUser: " + err.message);
+      return res
+        .status(500)
+        .json({ ok: false, mensaje: "Error al banear usuario" });
     }
   }
 

@@ -6,6 +6,8 @@ const { validarToken } = require("../middlewares/validarToken");
 // Crear una nueva solicitud o reporte
 router.post("/", validarToken, requestController.createRequest);
 
+router.post("/report", validarToken, requestController.createReport);
+
 // Obtener el listado de solicitudes en relacion al usuario
 router.get("/list", validarToken, requestController.getMyNotifications);
 

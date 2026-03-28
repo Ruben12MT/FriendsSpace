@@ -4,7 +4,6 @@ const { request, user, connection, user_connection } = initModels(sequelize);
 const { Op } = require("sequelize");
 
 class RequestService {
-  // Crea el registro de la solicitud
   async createRequest(data) {
     const nuevaReq = await request.create({
       ...data,
@@ -12,48 +11,26 @@ class RequestService {
     });
     const reqCompleta = await request.findByPk(nuevaReq.id, {
       include: [
-        {
-          model: user,
-          as: "sender",
-          attributes: ["id", "name", "url_image"],
-        },
-
-        {
-          model: user,
-          as: "receiver",
-          attributes: ["id", "name", "url_image"],
-        },
+        { model: user, as: "sender", attributes: ["id", "name", "url_image"] },
+        { model: user, as: "receiver", attributes: ["id", "name", "url_image"] },
       ],
     });
-
     return reqCompleta;
   }
 
-  // Busca una solicitud por su ID (sin joins)
   async getRequestById(id) {
     return await request.findByPk(id);
   }
 
-  // Busca una solicitud por su ID incluyendo datos de sender y receiver
-  // Usado para enviar por socket datos completos al frontend
   async getRequestByIdWithUsers(id) {
     return await request.findByPk(id, {
       include: [
-        {
-          model: user,
-          as: "sender",
-          attributes: ["id", "name", "url_image"],
-        },
-        {
-          model: user,
-          as: "receiver",
-          attributes: ["id", "name", "url_image"],
-        },
+        { model: user, as: "sender", attributes: ["id", "name", "url_image"] },
+        { model: user, as: "receiver", attributes: ["id", "name", "url_image"] },
       ],
     });
   }
 
-  // Busca solicitudes pendientes o amistades activas entre dos usuarios
   async findExistingRelationship(userId1, userId2) {
     const pending = await request.findOne({
       where: {
@@ -66,16 +43,8 @@ class RequestService {
 
     const activeFriendship = await connection.findOne({
       include: [
-        {
-          model: user_connection,
-          as: "user_connections",
-          where: { user_id: userId1 },
-        },
-        {
-          model: user_connection,
-          as: "user_connections",
-          where: { user_id: userId2 },
-        },
+        { model: user_connection, as: "user_connections", where: { user_id: userId1 } },
+        { model: user_connection, as: "user_connections", where: { user_id: userId2 } },
       ],
       where: { status: "ACTIVE" },
     });
@@ -83,7 +52,6 @@ class RequestService {
     return { pending, activeFriendship };
   }
 
-  // Proceso de aceptacion con transaccion para asegurar la integridad de los datos
   async acceptRequest(requestId, receiverId, senderId) {
     const t = await sequelize.transaction();
     try {
@@ -99,19 +67,9 @@ class RequestService {
         { where: { id: requestId }, transaction: t },
       );
 
-      const newConn = await connection.create(
-        { status: "ACTIVE" },
-        { transaction: t },
-      );
-
-      await user_connection.create(
-        { user_id: senderId, connection_id: newConn.id },
-        { transaction: t },
-      );
-      await user_connection.create(
-        { user_id: receiverId, connection_id: newConn.id },
-        { transaction: t },
-      );
+      const newConn = await connection.create({ status: "ACTIVE" }, { transaction: t });
+      await user_connection.create({ user_id: senderId, connection_id: newConn.id }, { transaction: t });
+      await user_connection.create({ user_id: receiverId, connection_id: newConn.id }, { transaction: t });
 
       await t.commit();
       return true;
@@ -121,52 +79,32 @@ class RequestService {
     }
   }
 
-  // Actualiza cualquier campo de una solicitud
   async updateRequest(requestId, data) {
     return await request.update(data, { where: { id: requestId } });
   }
 
-  // Cuenta las notificaciones no leidas del usuario
   async getUnreadCount(userId) {
     return await request.count({
       where: {
         [Op.or]: [
-          {
-            receiver_id: userId,
-            visible_receiver: true,
-            is_read_receiver: false,
-          },
+          { receiver_id: userId, visible_receiver: true, is_read_receiver: false },
           { sender_id: userId, visible_sender: true, is_read_sender: false },
         ],
       },
     });
   }
 
-  // Marca como leidas las notificaciones del usuario
   async markAllAsRead(userId) {
     await request.update(
       { is_read_receiver: true },
-      {
-        where: {
-          receiver_id: userId,
-          visible_receiver: true,
-          is_read_receiver: false,
-        },
-      },
+      { where: { receiver_id: userId, visible_receiver: true, is_read_receiver: false } },
     );
     await request.update(
       { is_read_sender: true },
-      {
-        where: {
-          sender_id: userId,
-          visible_sender: true,
-          is_read_sender: false,
-        },
-      },
+      { where: { sender_id: userId, visible_sender: true, is_read_sender: false } },
     );
   }
 
-  // Lista todas las solicitudes visibles para el usuario
   async getAllVisibleRequests(userId) {
     return await request.findAll({
       where: {
@@ -177,17 +115,12 @@ class RequestService {
       },
       include: [
         { model: user, as: "sender", attributes: ["id", "name", "url_image"] },
-        {
-          model: user,
-          as: "receiver",
-          attributes: ["id", "name", "url_image"],
-        },
+        { model: user, as: "receiver", attributes: ["id", "name", "url_image"] },
       ],
       order: [["updated_at", "DESC"]],
     });
   }
 
-  // Busca si existe una solicitud pendiente entre dos usuarios
   async getPendingRequestBetweenUsers(userId1, userId2) {
     return await request.findOne({
       where: {
@@ -200,19 +133,100 @@ class RequestService {
     });
   }
 
-  // Devuelve las solicitudes sin leer del usuario
   async getRequestsWithoutRead(userId) {
     return await request.findAll({
       where: {
         [Op.or]: [
           { sender_id: userId, is_read_sender: false, visible_sender: true },
-          {
-            receiver_id: userId,
-            is_read_receiver: false,
-            visible_receiver: true,
-          },
+          { receiver_id: userId, is_read_receiver: false, visible_receiver: true },
         ],
       },
+    });
+  }
+
+  // Busca el admin con menos carga de trabajo sumando:
+  // - Reportes PENDING asignados a él
+  // - Conexiones ACTIVE donde él participa junto a un USER (chats de reporte activos)
+  async findAdminWithLeastWorkload() {
+    const admins = await user.findAll({
+      where: { role: { [Op.in]: ["ADMIN", "DEVELOPER"] }, banned: false },
+      attributes: ["id", "name"],
+    });
+
+    if (admins.length === 0) throw new Error("No hay administradores disponibles");
+
+    let adminConMenosCarga = null;
+    let menorCarga = Infinity;
+
+    for (const admin of admins) {
+      const reportesPendientes = await request.count({
+        where: {
+          receiver_id: admin.id,
+          is_report: true,
+          status: "PENDING",
+        },
+      });
+
+      const conexionesActivas = await connection.count({
+        where: { status: "ACTIVE" },
+        include: [
+          {
+            model: user_connection,
+            as: "user_connections",
+            where: { user_id: admin.id },
+            required: true,
+          },
+          {
+            model: user_connection,
+            as: "user_connections",
+            required: true,
+            include: [
+              {
+                model: user,
+                as: "user",
+                where: { role: "USER" },
+                required: true,
+              },
+            ],
+          },
+        ],
+      });
+
+      const cargaTotal = reportesPendientes + conexionesActivas;
+
+      if (cargaTotal < menorCarga) {
+        menorCarga = cargaTotal;
+        adminConMenosCarga = admin;
+      }
+    }
+
+    return adminConMenosCarga;
+  }
+
+  // Crea un reporte asignándolo automáticamente al admin con menos carga
+  async createReport(senderId, body, infoReport) {
+    const adminAsignado = await this.findAdminWithLeastWorkload();
+
+    const nuevoReporte = await request.create({
+      sender_id: senderId,
+      receiver_id: adminAsignado.id,
+      body,
+      is_report: true,
+      info_report: JSON.stringify(infoReport),
+      status: "PENDING",
+      is_read_sender: true,
+      is_read_receiver: false,
+      visible_sender: true,
+      visible_receiver: true,
+      created_at: new Date(),
+      updated_at: new Date(),
+    });
+
+    return await request.findByPk(nuevoReporte.id, {
+      include: [
+        { model: user, as: "sender", attributes: ["id", "name", "url_image"] },
+        { model: user, as: "receiver", attributes: ["id", "name", "url_image"] },
+      ],
     });
   }
 }

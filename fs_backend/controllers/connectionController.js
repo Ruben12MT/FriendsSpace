@@ -1,7 +1,6 @@
 const connectionService = require("../services/connectionService");
 const logger = require("../utils/logger");
 
-
 class ConnectionController {
   async getAllMyConnections(req, res) {
     try {
@@ -14,7 +13,15 @@ class ConnectionController {
 
   async activateConnection(req, res) {
     try {
-      await connectionService.activateConnection(req.params.id);
+      const userId = req.user.id;
+      const connectionId = req.params.id;
+
+      const pertenece = await connectionService.userBelongsToConnection(userId, connectionId);
+      if (!pertenece) {
+        return res.status(403).json({ ok: false, mensaje: "No tienes permiso para modificar esta conexión" });
+      }
+
+      await connectionService.activateConnection(connectionId);
       res.json({ ok: true, mensaje: "Conexión activada" });
     } catch (error) {
       res.status(500).json({ ok: false, mensaje: error.message });
@@ -23,7 +30,17 @@ class ConnectionController {
 
   async finishConnection(req, res) {
     try {
-      await connectionService.finishConnection(req.params.id);
+      const userId = req.user.id;
+      const connectionId = req.params.id;
+
+      const pertenece = await connectionService.userBelongsToConnection(userId, connectionId);
+      const esAdmin = req.user.role === "ADMIN" || req.user.role === "DEVELOPER";
+
+      if (!pertenece && !esAdmin) {
+        return res.status(403).json({ ok: false, mensaje: "No tienes permiso para finalizar esta conexión" });
+      }
+
+      await connectionService.finishConnection(connectionId);
       res.json({ ok: true, mensaje: "Conexión finalizada" });
     } catch (error) {
       res.status(500).json({ ok: false, mensaje: error.message });
@@ -32,7 +49,15 @@ class ConnectionController {
 
   async blockConnection(req, res) {
     try {
-      await connectionService.blockConnection(req.params.id, req.user.id);
+      const userId = req.user.id;
+      const connectionId = req.params.id;
+
+      const pertenece = await connectionService.userBelongsToConnection(userId, connectionId);
+      if (!pertenece) {
+        return res.status(403).json({ ok: false, mensaje: "No tienes permiso para bloquear esta conexión" });
+      }
+
+      await connectionService.blockConnection(connectionId, userId);
       res.json({ ok: true, mensaje: "Conexión bloqueada" });
     } catch (error) {
       res.status(500).json({ ok: false, mensaje: error.message });
@@ -44,25 +69,21 @@ class ConnectionController {
       const myId = req.user.id;
       const { profileId } = req.params;
 
-      const activeConn = await connectionService.findActiveConnection(
-        myId,
-        profileId,
-      );
+      const activeConn = await connectionService.findActiveConnection(myId, profileId);
 
       if (activeConn) {
         return res.status(200).json({
           ok: true,
           exists: true,
           connection_id: activeConn.id,
+          status: activeConn.status,
         });
       }
 
       res.status(200).json({ ok: true, exists: false });
     } catch (error) {
       logger.error("Error en checkFriendship: " + error.message);
-      res
-        .status(500)
-        .json({ ok: false, mensaje: "Error al comprobar la amistad" });
+      res.status(500).json({ ok: false, mensaje: "Error al comprobar la amistad" });
     }
   }
 }

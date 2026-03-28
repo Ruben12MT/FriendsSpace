@@ -7,6 +7,9 @@ import {
   CircularProgress,
   Box,
   TextField,
+  IconButton,
+  Menu,
+  MenuItem,
 } from "@mui/material";
 import React, { useEffect, useState, useContext } from "react";
 import { useUser } from "../hooks/useUser";
@@ -15,6 +18,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import api from "../utils/api";
 import { useAppTheme } from "../hooks/useAppTheme";
 import GradeIcon from "@mui/icons-material/Grade";
+import MoreVertIcon from "@mui/icons-material/MoreVert";
 import ConfirmModal from "../components/ConfirmModal";
 import { SocketContext } from "../context/SocketContext";
 
@@ -22,160 +26,249 @@ export default function UserPage() {
   const navigate = useNavigate();
   const { loggedUser } = useUser();
   const { socket } = useContext(SocketContext);
-  const [openZoom, setOpenZoom] = useState(false);
-  const { id: userIdAct } = useParams();
-  const isLoggedUser = String(loggedUser?.id) === String(userIdAct);
+  const [isAvatarZoomed, setIsAvatarZoomed] = useState(false);
+  const { id: visitedUserId } = useParams();
+  const isOwnProfile = String(loggedUser?.id) === String(visitedUserId);
   const theme = useAppTheme();
 
   const [visitedUser, setVisitedUser] = useState({});
   const [userInterests, setUserInterests] = useState([]);
+  const [activeConnectionId, setActiveConnectionId] = useState(null);
+  const [pendingRequestData, setPendingRequestData] = useState(null);
+  const [isButtonDisabled, setIsButtonDisabled] = useState(false);
+  const [isFriend, setIsFriend] = useState(false);
+  const [isBlocked, setIsBlocked] = useState(false);
+  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+  const [confirmModalMode, setConfirmModalMode] = useState("SEND");
+  const [requestBodyText, setRequestBodyText] = useState("Hola, me gustaría conectar contigo.");
+  const [reportMotivo, setReportMotivo] = useState("");
+  const [moreOptionsAnchor, setMoreOptionsAnchor] = useState(null);
+  const isMoreOptionsOpen = Boolean(moreOptionsAnchor);
 
-  const [activeConnId, setActiveConnId] = useState(null);
-  const [pendingReqData, setPendingReqData] = useState(null);
-  const [buttonDisable, setButtonDisable] = useState(false);
-
-  const [openConfirm, setOpenConfirm] = useState(false);
-  const [modalMode, setModalMode] = useState("SEND");
-  const [requestBody, setRequestBody] = useState("Hola, me gustaría conectar contigo.");
-
-  const [buttonConfig, setButtonConfig] = useState({
+  const [primaryButtonConfig, setPrimaryButtonConfig] = useState({
     text: "Enviar Solicitud",
     actionType: "SEND",
   });
 
-  const handleButtonClick = () => {
-    if (buttonConfig.actionType === "SEND") {
-      setModalMode("SEND");
-      setOpenConfirm(true);
-    } else if (buttonConfig.actionType === "ACCEPT") {
-      setModalMode("ACCEPT");
-      setOpenConfirm(true);
-    } else if (buttonConfig.actionType === "DELETE") {
-      setModalMode("DELETE");
-      setOpenConfirm(true);
+  const openMoreOptions = (e) => setMoreOptionsAnchor(e.currentTarget);
+  const closeMoreOptions = () => setMoreOptionsAnchor(null);
+
+  const handlePrimaryButtonClick = () => {
+    if (primaryButtonConfig.actionType === "SEND") {
+      setConfirmModalMode("SEND");
+      setIsConfirmModalOpen(true);
+    } else if (primaryButtonConfig.actionType === "ACCEPT") {
+      setConfirmModalMode("ACCEPT");
+      setIsConfirmModalOpen(true);
+    } else if (primaryButtonConfig.actionType === "MESSAGE") {
+      navigate("/app/chats", { state: { openConnectionId: activeConnectionId } });
+    } else if (primaryButtonConfig.actionType === "UNBLOCK") {
+      setConfirmModalMode("UNBLOCK");
+      setIsConfirmModalOpen(true);
     }
   };
 
-  const alConfirmarModal = async () => {
-    setOpenConfirm(false);
-    setButtonDisable(true);
+  const handleConfirmModal = async () => {
+    setIsConfirmModalOpen(false);
+    setIsButtonDisabled(true);
     try {
-      if (modalMode === "SEND") {
-        await api.post("/requests", { receiver_id: userIdAct, body: requestBody });
-      } else if (modalMode === "ACCEPT") {
-        await api.put(`/requests/${pendingReqData.id}/accept`);
-      } else if (modalMode === "DELETE") {
-        await api.put(`/connections/${activeConnId}/finish`);
+      if (confirmModalMode === "SEND") {
+        await api.post("/requests", { receiver_id: visitedUserId, body: requestBodyText });
+      } else if (confirmModalMode === "ACCEPT") {
+        await api.put(`/requests/${pendingRequestData.id}/accept`);
+      } else if (confirmModalMode === "DELETE_FRIEND") {
+        await api.put(`/connections/${activeConnectionId}/finish`);
+      } else if (confirmModalMode === "BLOCK") {
+        await api.put(`/connections/${activeConnectionId}/block`);
+      } else if (confirmModalMode === "UNBLOCK") {
+        await api.put(`/connections/${activeConnectionId}/activate`);
+      } else if (confirmModalMode === "BLOCK_AND_REPORT") {
+        // Primero bloqueamos
+        await api.put(`/connections/${activeConnectionId}/block`);
+        // Luego creamos el reporte con el usuario como prueba
+        await api.post("/requests/report", {
+          body: reportMotivo,
+          infoReport: {
+            type: "USER",
+            user_id: visitedUser.id,
+            user_name: visitedUser.name,
+            user_email: visitedUser.email,
+          },
+        });
+        setReportMotivo("");
       }
-      await refrescarEstadoBoton();
+      await refreshButtonState();
     } catch (error) {
       console.error(error);
     } finally {
-      setButtonDisable(false);
+      setIsButtonDisabled(false);
     }
   };
 
-  const alCancelarORechazar = async () => {
-    setOpenConfirm(false);
-    if (modalMode === "ACCEPT") {
-      setButtonDisable(true);
+  const handleCancelOrReject = async () => {
+    setIsConfirmModalOpen(false);
+    setReportMotivo("");
+    if (confirmModalMode === "ACCEPT") {
+      setIsButtonDisabled(true);
       try {
-        await api.put(`/requests/${pendingReqData.id}/reject`);
-        await refrescarEstadoBoton();
+        await api.put(`/requests/${pendingRequestData.id}/reject`);
+        await refreshButtonState();
       } catch (error) {
         console.error(error);
       } finally {
-        setButtonDisable(false);
+        setIsButtonDisabled(false);
       }
     }
   };
 
-  const refrescarEstadoBoton = async () => {
-    if (!userIdAct || isLoggedUser) return;
+  const handleDeleteFriend = () => {
+    closeMoreOptions();
+    setConfirmModalMode("DELETE_FRIEND");
+    setIsConfirmModalOpen(true);
+  };
+
+  const handleBlock = () => {
+    closeMoreOptions();
+    setConfirmModalMode("BLOCK");
+    setIsConfirmModalOpen(true);
+  };
+
+  const handleBlockAndReport = () => {
+    closeMoreOptions();
+    setReportMotivo("");
+    setConfirmModalMode("BLOCK_AND_REPORT");
+    setIsConfirmModalOpen(true);
+  };
+
+  const refreshButtonState = async () => {
+    if (!visitedUserId || isOwnProfile) return;
     try {
-      setButtonDisable(true);
-      const resEsAmigo = await api.get("/connections/check/" + userIdAct);
-      if (resEsAmigo.data.exists) {
-        setActiveConnId(resEsAmigo.data.connection_id);
-        setButtonConfig({ text: "Eliminar amigo", actionType: "DELETE" });
+      setIsButtonDisabled(true);
+      const friendshipRes = await api.get("/connections/check/" + visitedUserId);
+      if (friendshipRes.data.exists) {
+        setActiveConnectionId(friendshipRes.data.connection_id);
+        if (friendshipRes.data.status === "BLOCKED") {
+          setIsFriend(false);
+          setIsBlocked(true);
+          setPrimaryButtonConfig({ text: "Desbloquear usuario", actionType: "UNBLOCK" });
+        } else {
+          setIsFriend(true);
+          setIsBlocked(false);
+          setPrimaryButtonConfig({ text: "Enviar mensaje", actionType: "MESSAGE" });
+        }
       } else {
-        const resHaySolicitud = await api.get("/requests/check-pending/" + userIdAct);
-        if (resHaySolicitud.data.exists) {
-          setPendingReqData(resHaySolicitud.data.data);
-          if (resHaySolicitud.data.type === "SENT") {
-            setButtonConfig({ text: "Solicitud Pendiente", actionType: "NONE" });
+        setIsFriend(false);
+        setIsBlocked(false);
+        setActiveConnectionId(null);
+        const pendingRes = await api.get("/requests/check-pending/" + visitedUserId);
+        if (pendingRes.data.exists) {
+          setPendingRequestData(pendingRes.data.data);
+          if (pendingRes.data.type === "SENT") {
+            setPrimaryButtonConfig({ text: "Solicitud Pendiente", actionType: "NONE" });
           } else {
-            setButtonConfig({ text: "Responder Solicitud", actionType: "ACCEPT" });
+            setPrimaryButtonConfig({ text: "Responder Solicitud", actionType: "ACCEPT" });
           }
         } else {
-          setButtonConfig({ text: "Enviar Solicitud", actionType: "SEND" });
+          setPrimaryButtonConfig({ text: "Enviar Solicitud", actionType: "SEND" });
         }
       }
     } catch (error) {
-      console.error("Error comprobando:", error);
+      console.error("Error comprobando estado:", error);
     } finally {
-      setButtonDisable(false);
+      setIsButtonDisabled(false);
     }
   };
 
   useEffect(() => {
-    const hacerComprobaciones = async () => {
-      if (!userIdAct || isLoggedUser) return;
+    const fetchInitialData = async () => {
       try {
-        setButtonDisable(true);
-        const resEsAmigo = await api.get("/connections/check/" + userIdAct);
-        if (resEsAmigo.data.exists) {
-          setActiveConnId(resEsAmigo.data.connection_id);
-          setButtonConfig({ text: "Eliminar amigo", actionType: "DELETE" });
+        if (isOwnProfile) {
+          setVisitedUser(loggedUser);
         } else {
-          const resHaySolicitud = await api.get("/requests/check-pending/" + userIdAct);
-          if (resHaySolicitud.data.exists) {
-            setPendingReqData(resHaySolicitud.data.data);
-            if (resHaySolicitud.data.type === "SENT") {
-              setButtonConfig({ text: "Solicitud Pendiente", actionType: "NONE" });
-            } else {
-              setButtonConfig({ text: "Responder Solicitud", actionType: "ACCEPT" });
-            }
-          } else {
-            setButtonConfig({ text: "Enviar Solicitud", actionType: "SEND" });
-          }
+          const userRes = await api.get("/users/" + visitedUserId);
+          setVisitedUser(userRes.data.usuario || userRes.data);
         }
-      } catch (error) {
-        console.error("Error comprobando:", error);
-      } finally {
-        setButtonDisable(false);
-      }
-    };
-
-    const fetchInicial = async () => {
-      try {
-        const res = await api.get("/users/" + userIdAct);
-        setVisitedUser(res.data.usuario || res.data);
-        const res2 = await api.get(`/users/${userIdAct}/interests`);
-        setUserInterests(res2.data.datos || []);
-        await hacerComprobaciones();
+        const interestsRes = await api.get(`/users/${visitedUserId}/interests`);
+        setUserInterests(interestsRes.data.datos || []);
+        await refreshButtonState();
       } catch (error) {
         console.error(error);
       }
     };
 
-    fetchInicial();
+    fetchInitialData();
 
     if (socket) {
-      const escucharSocket = (payload) => {
-        const sId = payload.data?.sender_id || payload.sender_id;
-        const rId = payload.data?.receiver_id || payload.receiver_id;
-        if (
-          String(sId) === String(userIdAct) &&
-          String(rId) === String(loggedUser?.id)
-        ) {
-          hacerComprobaciones();
+      const onNewRequest = (payload) => {
+        const senderId = payload.data?.sender_id || payload.sender_id;
+        const receiverId = payload.data?.receiver_id || payload.receiver_id;
+        if (String(senderId) === String(visitedUserId) && String(receiverId) === String(loggedUser?.id)) {
+          refreshButtonState();
         }
       };
-      socket.on("nueva_solicitud", escucharSocket);
-      return () => socket.off("nueva_solicitud", escucharSocket);
+      socket.on("nueva_solicitud", onNewRequest);
+      return () => socket.off("nueva_solicitud", onNewRequest);
     }
-  }, [userIdAct, socket, loggedUser?.id, isLoggedUser]);
+  }, [visitedUserId, socket, loggedUser?.id, isOwnProfile]);
+
+  const getConfirmModalTitle = () => {
+    switch (confirmModalMode) {
+      case "SEND": return "Enviar solicitud";
+      case "ACCEPT": return "Responder solicitud";
+      case "DELETE_FRIEND": return "Eliminar amigo";
+      case "BLOCK": return "Bloquear usuario";
+      case "UNBLOCK": return "Desbloquear usuario";
+      case "BLOCK_AND_REPORT": return "Bloquear y reportar";
+      default: return "";
+    }
+  };
+
+  const getConfirmModalMessage = () => {
+    switch (confirmModalMode) {
+      case "SEND":
+        return (
+          <Box sx={{ pt: 1 }}>
+            <Typography sx={{ mb: 2 }}>Personaliza tu mensaje para @{visitedUser.name}:</Typography>
+            <TextField fullWidth multiline rows={3} value={requestBodyText} onChange={(e) => setRequestBodyText(e.target.value)} />
+          </Box>
+        );
+      case "DELETE_FRIEND":
+        return `¿Estás seguro de que quieres eliminar tu amistad con @${visitedUser.name}?`;
+      case "BLOCK":
+        return `¿Estás seguro de que quieres bloquear a @${visitedUser.name}? Ya no podrá contactarte.`;
+      case "UNBLOCK":
+        return `¿Quieres desbloquear a @${visitedUser.name}?`;
+      case "BLOCK_AND_REPORT":
+        return (
+          <Box sx={{ pt: 1 }}>
+            <Typography sx={{ mb: 1 }}>
+              Se bloqueará a <strong>@{visitedUser.name}</strong> y se enviará un reporte al equipo de administración.
+            </Typography>
+            <Typography sx={{ mb: 2, fontSize: "0.85rem", color: theme.secondaryText }}>
+              Describe el motivo del reporte:
+            </Typography>
+            <TextField
+              fullWidth multiline rows={3}
+              placeholder="Describe por qué reportas a este usuario..."
+              value={reportMotivo}
+              onChange={(e) => setReportMotivo(e.target.value)}
+            />
+          </Box>
+        );
+      case "ACCEPT":
+        return (
+          <Box>
+            <Typography>@{visitedUser.name} dice:</Typography>
+            <Typography sx={{ fontStyle: "italic", my: 2, p: 1, bgcolor: "action.hover", borderRadius: 1 }}>
+              "{pendingRequestData?.body || "Sin mensaje"}"
+            </Typography>
+            <Typography>¿Quieres aceptar la conexión?</Typography>
+          </Box>
+        );
+      default: return "";
+    }
+  };
+
   return (
     <Grid container maxWidth="xxl" justifyContent="center" sx={{ minHeight: "100%" }}>
       <Grid container direction="column" spacing={2} size={{ xs: 12, md: 9 }} sx={{ background: theme.secondaryBack, borderRadius: 3, p: 3 }}>
@@ -187,18 +280,17 @@ export default function UserPage() {
               <Grid>
                 <Avatar
                   src={visitedUser.url_image ?? "/no_user_avatar_image.png"}
-                  onClick={() => setOpenZoom(true)}
+                  onClick={() => setIsAvatarZoomed(true)}
                   sx={{ width: 90, height: 90, border: theme.primaryBack + " solid 3px", cursor: "pointer" }}
                 />
               </Grid>
               <Grid container direction="column" size={{ xs: "grow" }} spacing={0.5}>
                 <Typography sx={{ fontWeight: "bold", fontSize: "1.4rem", color: theme.primaryText }}>
                   @{visitedUser.name}{" "}
-                  {visitedUser.role === "ADMIN" && (
-                    <GradeIcon sx={{ color: "#FFD700", fontSize: "1rem", ml: 0.5 }} />
-                  )}
+                  {visitedUser.role === "ADMIN" && <GradeIcon sx={{ color: "#FFD700", fontSize: "1rem", ml: 0.5 }} />}
+                  {visitedUser.role === "DEVELOPER" && <GradeIcon sx={{ color: "#00bcd4", fontSize: "1rem", ml: 0.5 }} />}
                 </Typography>
-                {isLoggedUser && (
+                {isOwnProfile && (
                   <Typography sx={{ color: theme.secondaryText, fontSize: "0.9rem" }}>
                     {visitedUser.email}
                   </Typography>
@@ -207,23 +299,66 @@ export default function UserPage() {
                   {visitedUser.connections_count || 0} Conexiones
                 </Typography>
               </Grid>
+
               <Grid container direction="column" alignItems="flex-end" justifyContent="space-between" size={{ xs: "grow" }}>
                 <Typography sx={{ color: theme.secondaryText, fontSize: "0.85rem" }}>
-                  Se unió a nosotros el{" "}
+                  Se unió el{" "}
                   {visitedUser.created_at && new Date(visitedUser.created_at).toLocaleDateString("es-ES", {
                     day: "numeric", month: "long", year: "numeric",
                   })}
                 </Typography>
-                {!isLoggedUser ? (
-                  <Button variant="contained" disabled={buttonDisable}
-                    sx={{ mt: 1, background: theme.variantBack, borderRadius: 2 }}
-                    onClick={handleButtonClick}>
-                    {buttonDisable ? <CircularProgress size={20} color="inherit" /> : buttonConfig.text}
-                  </Button>
+
+                {!isOwnProfile ? (
+                  <Box display="flex" alignItems="center" gap={1} mt={1}>
+                    <Button
+                      variant="contained"
+                      disabled={isButtonDisabled || primaryButtonConfig.actionType === "NONE"}
+                      sx={{ background: theme.variantBack, borderRadius: 2 }}
+                      onClick={handlePrimaryButtonClick}
+                    >
+                      {isButtonDisabled ? <CircularProgress size={20} color="inherit" /> : primaryButtonConfig.text}
+                    </Button>
+
+                    {isFriend && (
+                      <>
+                        <IconButton onClick={openMoreOptions} size="small" sx={{ color: theme.primaryText }}>
+                          <MoreVertIcon />
+                        </IconButton>
+                        <Menu
+                          anchorEl={moreOptionsAnchor}
+                          open={isMoreOptionsOpen}
+                          onClose={closeMoreOptions}
+                          anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+                          transformOrigin={{ vertical: "top", horizontal: "right" }}
+                          PaperProps={{
+                            sx: {
+                              borderRadius: "12px",
+                              background: theme.secondaryBack,
+                              border: `1px solid ${theme.primaryBack}30`,
+                              boxShadow: "0 8px 24px rgba(0,0,0,0.12)",
+                              minWidth: 180,
+                            },
+                          }}
+                        >
+                          <MenuItem onClick={handleDeleteFriend} sx={{ color: theme.primaryText, fontSize: "0.875rem", py: 1.25 }}>
+                            Eliminar amigo
+                          </MenuItem>
+                          <MenuItem onClick={handleBlock} sx={{ color: theme.primaryText, fontSize: "0.875rem", py: 1.25 }}>
+                            Bloquear
+                          </MenuItem>
+                          <MenuItem onClick={handleBlockAndReport} sx={{ color: "#f44336", fontSize: "0.875rem", py: 1.25 }}>
+                            Bloquear y reportar
+                          </MenuItem>
+                        </Menu>
+                      </>
+                    )}
+                  </Box>
                 ) : (
-                  <Button variant="contained"
+                  <Button
+                    variant="contained"
                     sx={{ mt: 1, background: theme.variantBack, borderRadius: 2 }}
-                    onClick={() => navigate("/app/user/edit")}>
+                    onClick={() => navigate("/app/user/edit")}
+                  >
                     Editar perfil
                   </Button>
                 )}
@@ -275,36 +410,15 @@ export default function UserPage() {
       </Grid>
 
       <ConfirmModal
-        open={openConfirm}
-        handleClose={() => setOpenConfirm(false)}
-        onConfirm={alConfirmarModal}
-        onCancel={alCancelarORechazar}
-        title={
-          modalMode === "SEND" ? "Enviar solicitud" :
-          modalMode === "DELETE" ? "Eliminar amigo" :
-          "Responder solicitud"
-        }
-        message={
-          modalMode === "SEND" ? (
-            <Box sx={{ pt: 1 }}>
-              <Typography sx={{ mb: 2 }}>Personaliza tu mensaje para @{visitedUser.name}:</Typography>
-              <TextField fullWidth multiline rows={3} value={requestBody} onChange={(e) => setRequestBody(e.target.value)} />
-            </Box>
-          ) : modalMode === "DELETE" ? (
-            `¿Estás seguro de que quieres eliminar tu amistad con @${visitedUser.name}?`
-          ) : (
-            <Box>
-              <Typography>@{visitedUser.name} dice:</Typography>
-              <Typography sx={{ fontStyle: "italic", my: 2, p: 1, bgcolor: "action.hover", borderRadius: 1 }}>
-                "{pendingReqData?.body || "Sin mensaje"}"
-              </Typography>
-              <Typography>¿Quieres aceptar la conexión?</Typography>
-            </Box>
-          )
-        }
+        open={isConfirmModalOpen}
+        handleClose={() => { setIsConfirmModalOpen(false); setReportMotivo(""); }}
+        onConfirm={handleConfirmModal}
+        onCancel={handleCancelOrReject}
+        title={getConfirmModalTitle()}
+        message={getConfirmModalMessage()}
       />
 
-      <Backdrop sx={{ zIndex: 9999 }} open={openZoom} onClick={() => setOpenZoom(false)}>
+      <Backdrop sx={{ zIndex: 9999 }} open={isAvatarZoomed} onClick={() => setIsAvatarZoomed(false)}>
         <img src={visitedUser.url_image ?? "/no_user_avatar_image.png"} style={{ width: "500px", borderRadius: "50%" }} alt="Zoom" />
       </Backdrop>
     </Grid>
