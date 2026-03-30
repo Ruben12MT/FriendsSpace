@@ -11,6 +11,7 @@ router.get("/:connectionId", validarToken, messageController.getMessages);
 // Enviar mensaje de texto
 router.post("/:connectionId/text", validarToken, messageController.sendTextMessage);
 
+router.get("/:messageId/download", validarToken, messageController.downloadFile);
 // Enviar mensaje con archivo multimedia (imagen, vídeo, audio, archivo)
 router.post(
   "/:connectionId/media",

@@ -1,6 +1,6 @@
-const cloudinary = require('cloudinary').v2;
-const { CloudinaryStorage } = require('multer-storage-cloudinary');
-const multer = require('multer');
+const cloudinary = require("cloudinary").v2;
+const { CloudinaryStorage } = require("multer-storage-cloudinary");
+const multer = require("multer");
 
 console.log("CLOUDINARY_CLOUD_NAME:", process.env.CLOUDINARY_CLOUD_NAME);
 console.log("CLOUDINARY_API_KEY:", process.env.CLOUDINARY_API_KEY);
@@ -15,18 +15,26 @@ cloudinary.config({
 const avatarStorage = new CloudinaryStorage({
   cloudinary,
   params: {
-    folder: 'friendsspace/avatars',
-    allowed_formats: ['jpg', 'jpeg', 'png', 'webp'],
-    transformation: [{ width: 300, height: 300, crop: 'fill' }],
+    folder: "friendsspace/avatars",
+    allowed_formats: ["jpg", "jpeg", "png", "webp"],
+    transformation: [{ width: 300, height: 300, crop: "fill" }],
   },
 });
 
 // Storage para chats, cualquier tipo de archivo
 const chatStorage = new CloudinaryStorage({
   cloudinary,
-  params: {
-    folder: 'friendsspace/chats',
-    resource_type: 'auto',
+  params: async (req, file) => {
+    const mime = file.mimetype || "";
+    const esImagen = mime.startsWith("image/");
+    const esVideo = mime.startsWith("video/");
+    const esAudio = mime.startsWith("audio/");
+    const esMultimedia = esImagen || esVideo || esAudio;
+
+    return {
+      folder: "friendsspace/chats",
+      resource_type: esMultimedia ? "auto" : "raw",
+    };
   },
 });
 

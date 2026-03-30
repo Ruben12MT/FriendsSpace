@@ -13,7 +13,7 @@ import ReportIcon from "@mui/icons-material/Report";
 import NotificationsIcon from "@mui/icons-material/Notifications";
 
 export default function RequestsPages() {
-  const navbarHeight = "140px";
+  const navbarHeight = "52px";
   const theme = useAppTheme();
   const { loggedUser } = useUser();
   const { socket } = useContext(SocketContext);
@@ -171,7 +171,7 @@ export default function RequestsPages() {
   const solicitudesPendientes = allUserRequests.filter((r) => r.status === "PENDING").length;
 
   return (
-    <Box sx={{ position: "fixed", top: navbarHeight, left: 0, right: 0, bottom: 0, display: "flex", flexDirection: "column", alignItems: "center", p: 2, overflowY: "auto", width: "100%" }}>
+    <Box sx={{ position: "fixed", top: navbarHeight, left: "68px", right: 0, bottom: 0, display: "flex", flexDirection: "column", alignItems: "center", p: 2, overflowY: "auto", width: "100%" }}>
       <ConfirmModal open={openDeleteModal} handleClose={() => setOpenDeleteModal(false)} onConfirm={confirmDelete} title="Eliminar notificación" message="¿Estás seguro de que quieres ocultar esta notificación?" />
       <ConfirmModal open={openClearModal} handleClose={() => setOpenClearModal(false)} onConfirm={confirmClearAll} title="Limpiar notificaciones" message="Se ocultarán todas las notificaciones leídas. Las pendientes se conservan." />
 

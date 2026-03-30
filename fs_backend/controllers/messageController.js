@@ -9,9 +9,14 @@ class MessageController {
       const { limit = 30, beforeId = null } = req.query;
       const userId = req.user.id;
 
-      const pertenece = await messageService.userBelongsToConnection(userId, connectionId);
+      const pertenece = await messageService.userBelongsToConnection(
+        userId,
+        connectionId,
+      );
       if (!pertenece) {
-        return res.status(403).json({ ok: false, mensaje: "No perteneces a esta conversación" });
+        return res
+          .status(403)
+          .json({ ok: false, mensaje: "No perteneces a esta conversación" });
       }
 
       const messages = await messageService.getMessages(
@@ -23,7 +28,9 @@ class MessageController {
       return res.status(200).json({ ok: true, datos: messages.reverse() });
     } catch (err) {
       logger.error("Error en getMessages: " + err.message);
-      return res.status(500).json({ ok: false, mensaje: "Error al obtener mensajes" });
+      return res
+        .status(500)
+        .json({ ok: false, mensaje: "Error al obtener mensajes" });
     }
   }
 
@@ -34,13 +41,20 @@ class MessageController {
       const { body, reply_id } = req.body;
       const userId = req.user.id;
 
-      const pertenece = await messageService.userBelongsToConnection(userId, connectionId);
+      const pertenece = await messageService.userBelongsToConnection(
+        userId,
+        connectionId,
+      );
       if (!pertenece) {
-        return res.status(403).json({ ok: false, mensaje: "No perteneces a esta conversación" });
+        return res
+          .status(403)
+          .json({ ok: false, mensaje: "No perteneces a esta conversación" });
       }
 
       if (!body || !body.trim()) {
-        return res.status(400).json({ ok: false, mensaje: "El mensaje no puede estar vacío" });
+        return res
+          .status(400)
+          .json({ ok: false, mensaje: "El mensaje no puede estar vacío" });
       }
 
       const newMessage = await messageService.createMessage({
@@ -54,31 +68,40 @@ class MessageController {
       // Emitir por socket a la sala de la conexión
       const io = req.app.get("socketio");
       if (io) {
-        io.to(`chat_${connectionId}`).emit("nuevo_mensaje", { data: newMessage });
+        io.to(`chat_${connectionId}`).emit("nuevo_mensaje", {
+          data: newMessage,
+        });
       }
 
       return res.status(201).json({ ok: true, datos: newMessage });
     } catch (err) {
       logger.error("Error en sendTextMessage: " + err.message);
-      return res.status(500).json({ ok: false, mensaje: "Error al enviar el mensaje" });
+      return res
+        .status(500)
+        .json({ ok: false, mensaje: "Error al enviar el mensaje" });
     }
   }
 
-  // Envía un mensaje con archivo multimedia (imagen, vídeo, audio, archivo)
-  // El archivo ya fue subido a Cloudinary por el middleware uploadChat
   async sendMediaMessage(req, res) {
     try {
       const { connectionId } = req.params;
-      const { reply_id } = req.body;
+      const { reply_id, body } = req.body;
       const userId = req.user.id;
 
-      const pertenece = await messageService.userBelongsToConnection(userId, connectionId);
+      const pertenece = await messageService.userBelongsToConnection(
+        userId,
+        connectionId,
+      );
       if (!pertenece) {
-        return res.status(403).json({ ok: false, mensaje: "No perteneces a esta conversación" });
+        return res
+          .status(403)
+          .json({ ok: false, mensaje: "No perteneces a esta conversación" });
       }
 
       if (!req.file) {
-        return res.status(400).json({ ok: false, mensaje: "No se recibió ningún archivo" });
+        return res
+          .status(400)
+          .json({ ok: false, mensaje: "No se recibió ningún archivo" });
       }
 
       // Detectar el tipo según el mimetype del archivo
@@ -93,18 +116,23 @@ class MessageController {
         user_id: userId,
         type,
         url: req.file.path,
+        body: body || null,
         reply_id: reply_id || null,
       });
 
       const io = req.app.get("socketio");
       if (io) {
-        io.to(`chat_${connectionId}`).emit("nuevo_mensaje", { data: newMessage });
+        io.to(`chat_${connectionId}`).emit("nuevo_mensaje", {
+          data: newMessage,
+        });
       }
 
       return res.status(201).json({ ok: true, datos: newMessage });
     } catch (err) {
       logger.error("Error en sendMediaMessage: " + err.message);
-      return res.status(500).json({ ok: false, mensaje: "Error al enviar el archivo" });
+      return res
+        .status(500)
+        .json({ ok: false, mensaje: "Error al enviar el archivo" });
     }
   }
 
@@ -116,7 +144,9 @@ class MessageController {
 
       const msg = await messageService.getMessageById(messageId);
       if (!msg) {
-        return res.status(404).json({ ok: false, mensaje: "Mensaje no encontrado" });
+        return res
+          .status(404)
+          .json({ ok: false, mensaje: "Mensaje no encontrado" });
       }
 
       await messageService.deleteMessage(messageId, userId);
@@ -124,7 +154,9 @@ class MessageController {
       // Notificar a los participantes que el mensaje fue borrado
       const io = req.app.get("socketio");
       if (io) {
-        io.to(`chat_${msg.connection_id}`).emit("mensaje_borrado", { messageId: parseInt(messageId) });
+        io.to(`chat_${msg.connection_id}`).emit("mensaje_borrado", {
+          messageId: parseInt(messageId),
+        });
       }
 
       return res.status(200).json({ ok: true, mensaje: "Mensaje borrado" });
@@ -143,15 +175,23 @@ class MessageController {
       const userId = req.user.id;
 
       if (!body || !body.trim()) {
-        return res.status(400).json({ ok: false, mensaje: "El mensaje no puede estar vacío" });
+        return res
+          .status(400)
+          .json({ ok: false, mensaje: "El mensaje no puede estar vacío" });
       }
 
-      const updated = await messageService.editMessage(messageId, userId, body.trim());
+      const updated = await messageService.editMessage(
+        messageId,
+        userId,
+        body.trim(),
+      );
 
       // Notificar a los participantes del chat
       const io = req.app.get("socketio");
       if (io) {
-        io.to(`chat_${updated.connection_id}`).emit("mensaje_editado", { data: updated });
+        io.to(`chat_${updated.connection_id}`).emit("mensaje_editado", {
+          data: updated,
+        });
       }
 
       return res.status(200).json({ ok: true, datos: updated });
@@ -161,6 +201,28 @@ class MessageController {
       return res.status(status).json({ ok: false, mensaje: err.message });
     }
   }
+
+  async downloadFile(req, res) {
+  try {
+    const { messageId } = req.params;
+    const msg = await messageService.getMessageById(messageId);
+    if (!msg || !msg.url) return res.status(404).json({ ok: false });
+
+    const axios = require("axios");
+
+    const response = await axios.get(msg.url, {
+      responseType: "arraybuffer",
+    });
+
+    const fileName = msg.body || "archivo";
+    res.setHeader("Content-Disposition", `attachment; filename="${fileName}"`);
+    res.setHeader("Content-Type", response.headers["content-type"] || "application/octet-stream");
+    res.send(Buffer.from(response.data));
+  } catch (err) {
+    logger.error("Error en downloadFile: " + err.message);
+    res.status(500).json({ ok: false });
+  }
+}
 }
 
 module.exports = new MessageController();

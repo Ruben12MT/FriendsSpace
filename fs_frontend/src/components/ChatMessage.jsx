@@ -1,18 +1,51 @@
 import React from "react";
 import { Box, Avatar, Typography } from "@mui/material";
 import InsertDriveFileIcon from "@mui/icons-material/InsertDriveFile";
+import DownloadIcon from "@mui/icons-material/Download";
 import { useAppTheme } from "../hooks/useAppTheme";
 
-export default function ChatMessage({ message, isMine, friendAvatarUrl, onContextMenu }) {
+export default function ChatMessage({
+  message,
+  isMine,
+  friendAvatarUrl,
+  onContextMenu,
+}) {
   const theme = useAppTheme();
   const accentColor = theme.primaryBack;
   const textColor = theme.primaryText;
   const subtleColor = theme.secondaryText;
 
+  const handleDownload = async (messageId, fileName) => {
+  try {
+    const res = await fetch(
+      `${window.__APP_CONFIG__?.API_URL}/messages/${messageId}/download`,
+      { credentials: "include" }
+    );
+    const blob = await res.blob();
+    const blobUrl = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = blobUrl;
+    a.download = fileName || "archivo";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(blobUrl);
+  } catch (e) {
+    console.error(e);
+  }
+};
+
   const renderMessageContent = () => {
     if (message.deleted) {
       return (
-        <Typography sx={{ fontSize: "0.82rem", fontStyle: "italic", opacity: 0.5, color: textColor }}>
+        <Typography
+          sx={{
+            fontSize: "0.82rem",
+            fontStyle: "italic",
+            opacity: 0.5,
+            color: textColor,
+          }}
+        >
           Mensaje eliminado
         </Typography>
       );
@@ -24,7 +57,13 @@ export default function ChatMessage({ message, isMine, friendAvatarUrl, onContex
           <Box
             component="img"
             src={message.url}
-            sx={{ maxWidth: 220, maxHeight: 200, borderRadius: "10px", display: "block", cursor: "pointer" }}
+            sx={{
+              maxWidth: 220,
+              maxHeight: 200,
+              borderRadius: "10px",
+              display: "block",
+              cursor: "pointer",
+            }}
             onClick={() => window.open(message.url, "_blank")}
           />
         );
@@ -39,24 +78,73 @@ export default function ChatMessage({ message, isMine, friendAvatarUrl, onContex
         );
       case "AUDIO":
         return (
-          <Box component="audio" src={message.url} controls sx={{ width: 200, display: "block" }} />
+          <Box
+            component="audio"
+            src={message.url}
+            controls
+            sx={{ width: 200, display: "block" }}
+          />
         );
       case "FILE":
         return (
           <Box
             display="flex"
             alignItems="center"
-            gap={1}
-            sx={{ cursor: "pointer" }}
-            onClick={() => window.open(message.url, "_blank")}
+            gap={1.5}
+            onClick={() => handleDownload(message.id, message.body)}
+            sx={{
+              cursor: "pointer",
+              p: 0.5,
+              borderRadius: "8px",
+              transition: "opacity 0.15s",
+              "&:hover": { opacity: 0.75 },
+            }}
           >
-            <InsertDriveFileIcon sx={{ color: accentColor }} />
-            <Typography sx={{ fontSize: "0.82rem", color: textColor }}>Descargar archivo</Typography>
+            <Box
+              sx={{
+                width: 36,
+                height: 36,
+                borderRadius: "8px",
+                background: `${accentColor}25`,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                flexShrink: 0,
+              }}
+            >
+              <InsertDriveFileIcon sx={{ color: accentColor, fontSize: 20 }} />
+            </Box>
+            <Box sx={{ minWidth: 0 }}>
+              <Typography
+                sx={{
+                  fontSize: "0.82rem",
+                  color: textColor,
+                  fontWeight: 600,
+                  lineHeight: 1.3,
+                }}
+                noWrap
+              >
+                {message.body || "Archivo"}
+              </Typography>
+              <Box display="flex" alignItems="center" gap={0.5}>
+                <DownloadIcon sx={{ fontSize: 11, color: subtleColor }} />
+                <Typography sx={{ fontSize: "0.7rem", color: subtleColor }}>
+                  Descargar
+                </Typography>
+              </Box>
+            </Box>
           </Box>
         );
       default:
         return (
-          <Typography sx={{ fontSize: "0.875rem", color: textColor, wordBreak: "break-word", lineHeight: 1.5 }}>
+          <Typography
+            sx={{
+              fontSize: "0.875rem",
+              color: textColor,
+              wordBreak: "break-word",
+              lineHeight: 1.5,
+            }}
+          >
             {message.body}
           </Typography>
         );
@@ -65,13 +153,21 @@ export default function ChatMessage({ message, isMine, friendAvatarUrl, onContex
 
   const hasReply = message.parent_message && !message.parent_message.deleted;
   const bubbleBorderRadius = isMine
-    ? hasReply ? "0 0 4px 12px" : "12px 4px 12px 12px"
-    : hasReply ? "0 0 12px 4px" : "4px 12px 12px 12px";
+    ? hasReply
+      ? "0 0 4px 12px"
+      : "12px 4px 12px 12px"
+    : hasReply
+      ? "0 0 12px 4px"
+      : "4px 12px 12px 12px";
 
   return (
     <Box
       onContextMenu={(e) => onContextMenu(e, message)}
-      sx={{ display: "flex", justifyContent: isMine ? "flex-end" : "flex-start", mb: 0.25 }}
+      sx={{
+        display: "flex",
+        justifyContent: isMine ? "flex-end" : "flex-start",
+        mb: 0.25,
+      }}
     >
       {!isMine && (
         <Avatar
@@ -82,41 +178,77 @@ export default function ChatMessage({ message, isMine, friendAvatarUrl, onContex
 
       <Box sx={{ maxWidth: "65%" }}>
         {hasReply && (
-          <Box sx={{
-            mb: 0.5, px: 1.5, py: 0.75,
-            borderLeft: `3px solid ${accentColor}`,
-            borderRadius: "8px 8px 0 0",
-            background: `${accentColor}18`,
-          }}>
-            <Typography sx={{ fontSize: "0.72rem", fontWeight: 700, color: accentColor, mb: 0.25 }}>
+          <Box
+            sx={{
+              mb: 0.5,
+              px: 1.5,
+              py: 0.75,
+              borderLeft: `3px solid ${accentColor}`,
+              borderRadius: "8px 8px 0 0",
+              background: `${accentColor}18`,
+            }}
+          >
+            <Typography
+              sx={{
+                fontSize: "0.72rem",
+                fontWeight: 700,
+                color: accentColor,
+                mb: 0.25,
+              }}
+            >
               {message.parent_message.author?.name}
             </Typography>
-            <Typography sx={{ fontSize: "0.75rem", color: textColor, opacity: 0.8 }} noWrap>
+            <Typography
+              sx={{ fontSize: "0.75rem", color: textColor, opacity: 0.8 }}
+              noWrap
+            >
               {message.parent_message.body || "Archivo multimedia"}
             </Typography>
           </Box>
         )}
 
-        <Box sx={{
-          px: 1.5, py: 1,
-          background: isMine
-            ? `linear-gradient(135deg, ${accentColor}, ${theme.variantBack})`
-            : theme.secondaryBack,
-          borderRadius: bubbleBorderRadius,
-          boxShadow: "0 1px 4px rgba(0,0,0,0.08)",
-          cursor: "context-menu",
-        }}>
+        <Box
+          sx={{
+            px: 1.5,
+            py: 1,
+            background: isMine
+              ? `linear-gradient(135deg, ${accentColor}, ${theme.variantBack})`
+              : theme.secondaryBack,
+            borderRadius: bubbleBorderRadius,
+            boxShadow: "0 1px 4px rgba(0,0,0,0.08)",
+            cursor: "context-menu",
+          }}
+        >
           {renderMessageContent()}
 
-          <Box display="flex" alignItems="center" justifyContent="flex-end" gap={0.5} mt={0.25}>
+          <Box
+            display="flex"
+            alignItems="center"
+            justifyContent="flex-end"
+            gap={0.5}
+            mt={0.25}
+          >
             {message.is_edited && !message.deleted && (
-              <Typography sx={{ fontSize: "0.65rem", color: isMine ? "rgba(255,255,255,0.6)" : subtleColor }}>
+              <Typography
+                sx={{
+                  fontSize: "0.65rem",
+                  color: isMine ? "rgba(255,255,255,0.6)" : subtleColor,
+                }}
+              >
                 editado
               </Typography>
             )}
-            <Typography sx={{ fontSize: "0.65rem", color: isMine ? "rgba(255,255,255,0.65)" : subtleColor }}>
+            <Typography
+              sx={{
+                fontSize: "0.65rem",
+                color: isMine ? "rgba(255,255,255,0.65)" : subtleColor,
+              }}
+            >
               {message.createdAt
-                ? new Date(message.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+                ? new Date(message.createdAt).toLocaleTimeString([], {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })
                 : ""}
             </Typography>
           </Box>

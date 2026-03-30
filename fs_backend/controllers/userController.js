@@ -310,6 +310,15 @@ class UserController {
       }
 
       await userService.updateUser(id, { banned: true });
+
+      // Notificar en tiempo real al usuario baneado
+      const io = req.app.get("socketio");
+      if (io) {
+        io.to(`user_${id}`).emit("usuario_baneado", {
+          mensaje: "Tu cuenta ha sido suspendida",
+        });
+      }
+
       return res.status(200).json({ ok: true, mensaje: "Usuario baneado" });
     } catch (err) {
       logger.error("Error en banUser: " + err.message);
@@ -318,6 +327,36 @@ class UserController {
         .json({ ok: false, mensaje: "Error al banear usuario" });
     }
   }
+
+  async unbanUser(req, res) {
+  try {
+    const { id } = req.params;
+    const requestingRole = req.user.role;
+
+    if (requestingRole === "USER") {
+      return res.status(403).json({ ok: false, mensaje: "No tienes permiso" });
+    }
+
+    const targetUser = await userService.getUserById(id);
+    if (!targetUser) {
+      return res.status(404).json({ ok: false, mensaje: "Usuario no encontrado" });
+    }
+
+    await userService.updateUser(id, { banned: false });
+
+    const io = req.app.get("socketio");
+    if (io) {
+      io.to(`user_${id}`).emit("usuario_desbaneado", {
+        mensaje: "Tu cuenta ha sido reactivada",
+      });
+    }
+
+    return res.status(200).json({ ok: true, mensaje: "Usuario desbaneado" });
+  } catch (err) {
+    logger.error("Error en unbanUser: " + err.message);
+    return res.status(500).json({ ok: false, mensaje: "Error al desbanear usuario" });
+  }
+}
 
   async removeInterests(req, res) {
     try {

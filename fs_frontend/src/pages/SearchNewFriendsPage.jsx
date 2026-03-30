@@ -30,7 +30,7 @@ export default function SearchNewFriendsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [viewMode, setViewMode] = useState("card");
 
-  const navbarHeight = "160px";
+  const navbarHeight = "52px";
 
   const fetchAllUsers = async () => {
     setIsLoading(true);
@@ -105,7 +105,7 @@ export default function SearchNewFriendsPage() {
       sx={{
         position: "fixed",
         top: navbarHeight,
-        left: 0,
+        left: "68px",
         right: 0,
         bottom: 0,
         display: "flex",

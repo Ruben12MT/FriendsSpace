@@ -28,7 +28,6 @@ class ConnectionService {
     });
 
     const connectionIds = myConnections.map((uc) => uc.connection_id);
-
     if (connectionIds.length === 0) return [];
 
     return await models.connection.findAll({
@@ -63,12 +62,10 @@ class ConnectionService {
         { status: "BLOCKED" },
         { where: { id: connectionId }, transaction },
       );
-
       await models.user_connection.update(
         { blocked_by: userId },
         { where: { connection_id: connectionId, user_id: userId }, transaction },
       );
-
       await transaction.commit();
       return true;
     } catch (error) {
@@ -84,12 +81,10 @@ class ConnectionService {
         { status: "ACTIVE" },
         { where: { id: connectionId }, transaction },
       );
-
       await models.user_connection.update(
         { blocked_by: null },
         { where: { connection_id: connectionId }, transaction },
       );
-
       await transaction.commit();
       return true;
     } catch (error) {
@@ -99,26 +94,37 @@ class ConnectionService {
   }
 
   async findActiveConnection(myId, profileId) {
+    const myConnections = await models.user_connection.findAll({
+      where: { user_id: myId },
+      attributes: ["connection_id"],
+    });
+
+    const connectionIds = myConnections.map((uc) => uc.connection_id);
+    if (connectionIds.length === 0) return null;
+
+    const profileConnections = await models.user_connection.findAll({
+      where: { user_id: profileId, connection_id: { [Op.in]: connectionIds } },
+      attributes: ["connection_id"],
+    });
+
+    const sharedIds = profileConnections.map((uc) => uc.connection_id);
+    if (sharedIds.length === 0) return null;
+
     return await models.connection.findOne({
       where: {
+        id: { [Op.in]: sharedIds },
         status: { [Op.in]: ["ACTIVE", "BLOCKED"] },
       },
       include: [
         {
           model: models.user_connection,
           as: "user_connections",
-          where: { user_id: myId },
-        },
-        {
-          model: models.user_connection,
-          as: "user_connections",
-          where: { user_id: profileId },
+          attributes: ["user_id", "connection_id", "blocked_by"],
         },
       ],
     });
   }
 
-  // Comprueba si un usuario pertenece a una conexión concreta
   async userBelongsToConnection(userId, connectionId) {
     const uc = await models.user_connection.findOne({
       where: { user_id: userId, connection_id: connectionId },

@@ -1,225 +1,354 @@
 import React, { useEffect, useState } from "react";
-import { Link, Outlet, useLocation } from "react-router-dom";
-import AppBar from "@mui/material/AppBar";
-import Box from "@mui/material/Box";
-import Toolbar from "@mui/material/Toolbar";
-import IconButton from "@mui/material/IconButton";
-import Typography from "@mui/material/Typography";
-import Menu from "@mui/material/Menu";
-import MenuIcon from "@mui/icons-material/Menu";
-import Container from "@mui/material/Container";
-import Avatar from "@mui/material/Avatar";
-import Button from "@mui/material/Button";
-import Tooltip from "@mui/material/Tooltip";
-import MenuItem from "@mui/material/MenuItem";
+import { Outlet, useLocation, useNavigate } from "react-router-dom";
+import {
+  Box, Avatar, Typography, IconButton, Tooltip,
+  Badge, Menu, MenuItem, Divider,
+} from "@mui/material";
 import NotificationsIcon from "@mui/icons-material/Notifications";
-import { Badge, Grid } from "@mui/material";
-import { useNavigate } from "react-router-dom";
-import api from "../utils/api";
-import { useUser } from "../hooks/useUser";
-import { useAppTheme } from "../hooks/useAppTheme";
-import ThemeToggler from "../components/ThemeToggler";
+import PersonSearchIcon from "@mui/icons-material/PersonSearch";
+import CampaignIcon from "@mui/icons-material/Campaign";
+import ChatBubbleOutlineIcon from "@mui/icons-material/ChatBubbleOutline";
+import LogoutIcon from "@mui/icons-material/Logout";
+import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 import { useContext } from "react";
 import { SocketContext } from "../context/SocketContext.jsx";
 import useAuthStore from "../store/useAuthStore.js";
+import { useUser } from "../hooks/useUser";
+import { useAppTheme } from "../hooks/useAppTheme";
+import ThemeToggler from "../components/ThemeToggler";
 import { useFirstLogin } from "../hooks/useFirstLogin";
+import api from "../utils/api";
 
-const pages = [
-  { "/app/searchnewfriends": "Buscar friends" },
-  { "/app/ads": "Anuncios" },
-  { "/app/chats": "Chats" },
+const SIDEBAR_W = 68;
+const TOPBAR_H = 52;
+
+const navItems = [
+  { path: "/app/searchnewfriends", icon: <PersonSearchIcon />, label: "Buscar amigos" },
+  { path: "/app/ads",              icon: <CampaignIcon />,      label: "Anuncios" },
+  { path: "/app/chats",            icon: <ChatBubbleOutlineIcon />, label: "Chats" },
 ];
 
 export default function UserBar() {
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const { loggedUser } = useUser();
-  const [anchorElNav, setAnchorElNav] = React.useState(null);
-  const [anchorElUser, setAnchorElUser] = React.useState(null);
-
-  const handleOpenNavMenu = (event) => setAnchorElNav(event.currentTarget);
-  const handleOpenUserMenu = (event) => setAnchorElUser(event.currentTarget);
-  const handleCloseNavMenu = () => setAnchorElNav(null);
-  const handleCloseUserMenu = () => setAnchorElUser(null);
   const theme = useAppTheme();
   const { socket } = useContext(SocketContext);
 
-  const unreadCount = useAuthStore((state) => state.unreadCount);
-  const setUnreadCount = useAuthStore((state) => state.setUnreadCount);
-  const incrementUnread = useAuthStore((state) => state.incrementUnread);
-  const clearAuth = useAuthStore((state) => state.clearAuth);
+  const unreadCount    = useAuthStore((s) => s.unreadCount);
+  const setUnreadCount = useAuthStore((s) => s.setUnreadCount);
+  const incrementUnread = useAuthStore((s) => s.incrementUnread);
+  const clearAuth      = useAuthStore((s) => s.clearAuth);
+
+  const [anchorElUser, setAnchorElUser] = useState(null);
 
   useFirstLogin();
 
-  // True si el usuario está actualmente viendo la página de solicitudes
   const estaEnRequests = pathname === "/app/requests";
 
-  const showUserProfile = () => {
-    handleCloseUserMenu();
-    navigate("/app/" + loggedUser.id);
-  };
+  // Notificaciones iniciales
+  useEffect(() => {
+    if (unreadCount > 0) return;
+    api.get("/requests/withoutread")
+      .then((res) => setUnreadCount(res.data.numRequests))
+      .catch(console.error);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Socket
+  useEffect(() => {
+    if (!socket) return;
+    const inc = () => { if (!estaEnRequests) incrementUnread(); };
+    socket.on("nueva_solicitud", inc);
+    socket.on("solicitud_respondida", inc);
+    return () => {
+      socket.off("nueva_solicitud", inc);
+      socket.off("solicitud_respondida", inc);
+    };
+  }, [socket, estaEnRequests, incrementUnread]);
 
   const logout = async () => {
     try {
-      handleCloseUserMenu();
+      setAnchorElUser(null);
       await api.post("/users/logout/");
       if (socket) socket.disconnect();
       clearAuth();
       navigate("/");
-    } catch (error) {
-      console.error("Error al cerrar sesión:", error);
-    }
+    } catch (e) { console.error(e); }
   };
 
-  // Cargar el número de notificaciones sin leer al montar (una sola vez)
-  useEffect(() => {
-    if (unreadCount > 0) return;
+  // Tokens de color
+  const bg       = theme.navBar.backColor;
+  const fg       = theme.navBar.textColor;
+  const accent   = theme.primaryBack;
+  const border   = theme.name === "dark"
+    ? "rgba(255,255,255,0.07)"
+    : "rgba(0,0,0,0.08)";
+  const hoverBg  = theme.name === "dark"
+    ? "rgba(201,162,39,0.12)"
+    : "rgba(201,162,39,0.10)";
+  const activeBg = theme.name === "dark"
+    ? "rgba(201,162,39,0.20)"
+    : "rgba(201,162,39,0.15)";
 
-    async function getNotReadedNotifications() {
-      try {
-        const res = await api.get("/requests/withoutread");
-        setUnreadCount(res.data.numRequests);
-      } catch (error) {
-        console.error(error.message);
-      }
-    }
-    getNotReadedNotifications();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  const isActive = (path) => pathname.startsWith(path);
 
-  // Escuchar socket: incrementar contador solo si NO estamos en la página de requests
-  useEffect(() => {
-    if (!socket) return;
-
-    const onNuevaSolicitud = () => {
-      if (!estaEnRequests) incrementUnread();
-    };
-
-    const onSolicitudRespondida = () => {
-      if (!estaEnRequests) incrementUnread();
-    };
-
-    socket.on("nueva_solicitud", onNuevaSolicitud);
-    socket.on("solicitud_respondida", onSolicitudRespondida);
-
-    return () => {
-      socket.off("nueva_solicitud", onNuevaSolicitud);
-      socket.off("solicitud_respondida", onSolicitudRespondida);
-    };
-  }, [socket, estaEnRequests, incrementUnread]);
+  // Botón de navegación lateral
+  const NavBtn = ({ path, icon, label }) => {
+    const active = isActive(path);
+    return (
+      <Tooltip title={label} placement="right">
+        <Box sx={{ position: "relative", width: "100%", display: "flex", justifyContent: "center" }}>
+          {/* Indicador activo izquierda */}
+          {active && (
+            <Box sx={{
+              position: "absolute",
+              left: 0,
+              top: "50%",
+              transform: "translateY(-50%)",
+              width: 3,
+              height: 22,
+              borderRadius: "0 3px 3px 0",
+              background: accent,
+            }} />
+          )}
+          <IconButton
+            onClick={() => navigate(path)}
+            sx={{
+              width: 44, height: 44,
+              borderRadius: "12px",
+              color: active ? accent : fg,
+              background: active ? activeBg : "transparent",
+              border: `1px solid ${active ? accent + "40" : "transparent"}`,
+              transition: "all 0.15s ease",
+              "&:hover": { background: hoverBg, color: accent },
+            }}
+          >
+            {icon}
+          </IconButton>
+        </Box>
+      </Tooltip>
+    );
+  };
 
   return (
-    <Box sx={{ display: "flex", flexDirection: "column", minHeight: "100vh", width: "100%" }}>
-      <Box sx={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 1100 }}>
-        <AppBar
-          position="relative"
-          elevation={4}
+    <Box sx={{ display: "flex", minHeight: "100vh" }}>
+
+      <Box
+        sx={{
+          position: "fixed",
+          top: 0, left: 0, right: 0,
+          height: TOPBAR_H,
+          zIndex: 1200,
+          background: bg,
+          borderBottom: `1px solid ${border}`,
+          display: "flex",
+          alignItems: "center",
+          pl: `${SIDEBAR_W}px`,
+          pr: 2,
+          gap: 1,
+        }}
+      >
+        <Box
+          onClick={() => navigate("/")}
           sx={{
-            width: "auto",
-            backgroundColor: theme.navBar.backColor,
-            color: theme.navBar.textColor,
+            position: "absolute",
+            left: 0, top: 0,
+            width: SIDEBAR_W,
+            height: TOPBAR_H,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            cursor: "pointer",
+            "&:hover img, &:hover .MuiAvatar-root": { opacity: 0.8 },
+            transition: "opacity 0.15s",
           }}
         >
-          <Container maxWidth="xxl">
-            <Toolbar disableGutters>
-              <Avatar
-                src="/logo.png"
-                onClick={() => navigate("/")}
-                sx={{ display: { xs: "none", md: "flex" } }}
-                style={{ marginTop: "20px", marginBottom: "20px", width: "50px", height: "50px", marginRight: "15px", cursor: "pointer" }}
-              />
+          <Avatar src="/logo.png" sx={{ width: 30, height: 30 }} />
+        </Box>
 
-              <Typography
-                variant="h5" noWrap component="a" href="/"
-                sx={{ mr: 2, display: { xs: "none", md: "flex" }, fontFamily: "monospace", color: "inherit", textDecoration: "none" }}
-              >
-                Friends Space
-              </Typography>
+        <Typography
+          onClick={() => navigate("/")}
+          sx={{
+            fontFamily: "monospace",
+            fontWeight: 700,
+            fontSize: "0.95rem",
+            color: fg,
+            letterSpacing: "0.06em",
+            cursor: "pointer",
+            userSelect: "none",
+            transition: "color 0.15s",
+            "&:hover": { color: accent },
+          }}
+        >
+          Friends Space
+        </Typography>
 
-              <Box sx={{ flexGrow: 1, display: { xs: "flex", md: "none" } }}>
-                <IconButton size="large" aria-label="menu" aria-controls="menu-appbar" aria-haspopup="true" onClick={handleOpenNavMenu} color="inherit">
-                  <MenuIcon />
-                </IconButton>
-                <Menu
-                  id="menu-appbar" anchorEl={anchorElNav}
-                  anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
-                  keepMounted transformOrigin={{ vertical: "top", horizontal: "left" }}
-                  open={Boolean(anchorElNav)} onClose={handleCloseNavMenu}
-                  sx={{ display: { xs: "block", md: "none" } }}
-                >
-                  {pages.map((page) => {
-                    const [key, label] = Object.entries(page)[0];
-                    return (
-                      <MenuItem key={key} onClick={handleCloseNavMenu}>
-                        <Typography component="a" href={`/${key}`} sx={{ textAlign: "center", textDecoration: "none", color: "inherit" }}>
-                          {label}
-                        </Typography>
-                      </MenuItem>
-                    );
-                  })}
-                </Menu>
-              </Box>
+        <Box sx={{ flex: 1 }} />
 
-              <Button component={Link} to="/" style={{ textDecoration: "none", color: "inherit" }} sx={{ display: { xs: "flex", md: "none" } }}>
-                <Avatar src="/logo.png" style={{ margin: "20px", width: "70px", height: "70px" }} />
-              </Button>
+        <Tooltip title="Notificaciones">
+          <IconButton
+            onClick={() => navigate("/app/requests")}
+            sx={{
+              width: 36, height: 36,
+              borderRadius: "10px",
+              color: estaEnRequests ? accent : fg,
+              background: estaEnRequests ? activeBg : "transparent",
+              border: `1px solid ${estaEnRequests ? accent + "50" : "transparent"}`,
+              transition: "all 0.15s",
+              "&:hover": { background: hoverBg, color: accent },
+            }}
+          >
+            <Badge
+              badgeContent={unreadCount}
+              color="error"
+              sx={{
+                "& .MuiBadge-badge": {
+                  fontSize: "0.6rem",
+                  minWidth: 15,
+                  height: 15,
+                  padding: "0 3px",
+                },
+              }}
+            >
+              <NotificationsIcon sx={{ fontSize: 19 }} />
+            </Badge>
+          </IconButton>
+        </Tooltip>
 
-              <Typography
-                variant="h5" noWrap component="a" href="/"
-                sx={{ mr: 2, display: { xs: "flex", md: "none" }, flexGrow: 1, fontFamily: "monospace", fontWeight: 700, letterSpacing: ".3rem", color: "inherit", textDecoration: "none" }}
-              >
-                Friends Space
-              </Typography>
-
-              <Box sx={{ flexGrow: 1, display: { xs: "none", md: "flex" }, justifyContent: "end", margin: 2 }}>
-                {pages.map((page) => {
-                  const [key, label] = Object.entries(page)[0];
-                  return (
-                    <Button key={key} onClick={() => navigate(key)} sx={{ my: 0, color: theme.navBar.textColor, display: "block" }}>
-                      {label}
-                    </Button>
-                  );
-                })}
-              </Box>
-
-              <Box display={"flex"} alignItems={"center"} sx={{ flexGrow: 0 }}>
-                <Tooltip title="Ajustes del Usuario">
-                  <IconButton onClick={handleOpenUserMenu} sx={{ p: 0 }}>
-                    <Avatar
-                      alt="Foto del usuario"
-                      sx={{ border: theme.navBar.textColor + " solid 1px" }}
-                      src={loggedUser.url_image || "/no_user_avatar_image.png"}
-                    />
-                  </IconButton>
-                </Tooltip>
-
-                <Menu
-                  sx={{ mt: "45px" }} id="menu-appbar" anchorEl={anchorElUser}
-                  anchorOrigin={{ vertical: "top", horizontal: "right" }}
-                  keepMounted transformOrigin={{ vertical: "top", horizontal: "right" }}
-                  open={Boolean(anchorElUser)} onClose={handleCloseUserMenu}
-                >
-                  <MenuItem key={"userProfile"} onClick={showUserProfile}>
-                    <Typography sx={{ textAlign: "center" }}>Ver Perfil</Typography>
-                  </MenuItem>
-                  <MenuItem key={"logout"} onClick={logout}>
-                    <Typography sx={{ textAlign: "center" }}>Cerrar Sesión</Typography>
-                  </MenuItem>
-                </Menu>
-
-                <IconButton aria-label="notificaciones" size="large" onClick={() => navigate("/app/requests")}>
-                  <Badge color="error" badgeContent={unreadCount}>
-                    <NotificationsIcon fontSize="inherit" sx={{ color: theme.navBar.textColor }} />
-                  </Badge>
-                </IconButton>
-
-                <ThemeToggler block={true} />
-              </Box>
-            </Toolbar>
-          </Container>
-        </AppBar>
+        <ThemeToggler block={true} />
       </Box>
 
-      <Box component="main" sx={{ flexGrow: 1, pt: "160px", minHeight: "100vh", display: "flex", flexDirection: "column", boxSizing: "border-box" }}>
+      <Box
+        sx={{
+          position: "fixed",
+          top: 0, left: 0,
+          width: SIDEBAR_W,
+          height: "100vh",
+          zIndex: 1100,
+          background: bg,
+          borderRight: `1px solid ${border}`,
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          pt: `${TOPBAR_H}px`,
+          pb: 2,
+          boxSizing: "border-box",
+        }}
+      >
+        <Box
+          sx={{
+            flex: 1,
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: 0.5,
+            pt: 2,
+            width: "100%",
+            px: "10px",
+          }}
+        >
+          {navItems.map((item) => (
+            <NavBtn key={item.path} {...item} />
+          ))}
+        </Box>
+
+        <Box sx={{ width: "100%", px: "10px" }}>
+          <Divider sx={{ mb: 1.5, borderColor: border }} />
+          <Box sx={{ display: "flex", justifyContent: "center" }}>
+            <Tooltip title={loggedUser?.name || "Mi perfil"} placement="right">
+              <IconButton
+                onClick={(e) => setAnchorElUser(e.currentTarget)}
+                sx={{
+                  width: 44, height: 44,
+                  borderRadius: "12px",
+                  p: "4px",
+                  border: anchorElUser
+                    ? `2px solid ${accent}`
+                    : `2px solid transparent`,
+                  transition: "border 0.15s",
+                  "&:hover": { border: `2px solid ${accent}70` },
+                }}
+              >
+                <Avatar
+                  src={loggedUser?.url_image || "/no_user_avatar_image.png"}
+                  sx={{ width: 32, height: 32, borderRadius: "1000" }}
+                />
+              </IconButton>
+            </Tooltip>
+          </Box>
+        </Box>
+      </Box>
+
+      {/* Menú desplegable del usuario */}
+      <Menu
+        anchorEl={anchorElUser}
+        open={Boolean(anchorElUser)}
+        onClose={() => setAnchorElUser(null)}
+        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+        transformOrigin={{ vertical: "bottom", horizontal: "left" }}
+        PaperProps={{
+          sx: {
+            ml: "8px",
+            borderRadius: "14px",
+            background: bg,
+            border: `1px solid ${border}`,
+            boxShadow: theme.name === "dark"
+              ? "0 8px 32px rgba(0,0,0,0.6)"
+              : "0 8px 32px rgba(0,0,0,0.14)",
+            minWidth: 190,
+            overflow: "hidden",
+          },
+        }}
+      >
+        {/* Info usuario */}
+        <Box sx={{ px: 2, py: 1.5, borderBottom: `1px solid ${border}` }}>
+          <Typography sx={{ fontWeight: 700, color: fg, fontSize: "0.875rem", lineHeight: 1.3 }}>
+            {loggedUser?.name}
+          </Typography>
+          <Typography sx={{ color: theme.secondaryText, fontSize: "0.72rem", mt: 0.25 }}>
+            {loggedUser?.email || ""}
+          </Typography>
+        </Box>
+
+        <MenuItem
+          onClick={() => { setAnchorElUser(null); navigate("/app/" + loggedUser?.id); }}
+          sx={{
+            gap: 1.5, py: 1.2,
+            color: fg, fontSize: "0.85rem",
+            "&:hover": { background: hoverBg, color: accent },
+          }}
+        >
+          <AccountCircleIcon fontSize="small" sx={{ opacity: 0.65 }} />
+          Ver perfil
+        </MenuItem>
+
+        <Divider sx={{ borderColor: border }} />
+
+        <MenuItem
+          onClick={logout}
+          sx={{
+            gap: 1.5, py: 1.2,
+            color: "#f44336", fontSize: "0.85rem",
+            "&:hover": { background: "rgba(244,67,54,0.08)" },
+          }}
+        >
+          <LogoutIcon fontSize="small" sx={{ opacity: 0.75 }} />
+          Cerrar sesión
+        </MenuItem>
+      </Menu>
+
+      <Box
+        component="main"
+        sx={{
+          flex: 1,
+          ml: `${SIDEBAR_W}px`,
+          mt: `${TOPBAR_H}px`,
+          minHeight: `calc(100vh - ${TOPBAR_H}px)`,
+          display: "flex",
+          flexDirection: "column",
+          boxSizing: "border-box",
+        }}
+      >
         <Outlet />
       </Box>
     </Box>

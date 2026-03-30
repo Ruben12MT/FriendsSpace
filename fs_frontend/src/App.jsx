@@ -15,8 +15,9 @@ import AdsPage from "./pages/AdsPage";
 import SearchNewFriendsPage from "./pages/SearchNewFriendsPage";
 import RequestsPages from "./pages/RequestsPage";
 import { SocketProvider } from "./context/SocketProvider";
-import { AuthProvider } from "./components/AuthProvider"; // ← NUEVO
+import { AuthProvider } from "./components/AuthProvider";
 import ChatsPage from "./pages/ChatsPage";
+import BannedPage from "./pages/BannedPage";
 
 const router = createBrowserRouter([
   {
@@ -25,17 +26,18 @@ const router = createBrowserRouter([
     errorElement: <ErrorPage />,
     children: [{ index: true, element: <h3>HOME</h3> }],
   },
-
   {
     path: "/login",
     element: <LoginPage />,
   },
-
   {
     path: "/register",
     Component: RegisterPage,
   },
-
+  {
+    path: "/banned",
+    element: <BannedPage />,
+  },
   {
     path: "/app",
     element: (
@@ -46,7 +48,7 @@ const router = createBrowserRouter([
     children: [
       { path: "searchnewfriends", element: <SearchNewFriendsPage /> },
       { path: "ads", element: <AdsPage /> },
-      { path: "chats", element: <ChatsPage /> },      
+      { path: "chats", element: <ChatsPage /> },
       { path: "requests", element: <RequestsPages /> },
       { path: ":id", element: <UserPage /> },
       { path: "user/edit", element: <EditUserPage /> },
@@ -78,8 +80,7 @@ function App() {
               width: "100%",
               height: "100%",
               zIndex: -2,
-              background: theme.primaryBack ,
-              // backgroundImage: `url(${theme.backgroundImage})`,
+              background: theme.primaryBack,
               backgroundSize: "cover",
               backgroundPosition: "center",
               pointerEvents: "none",

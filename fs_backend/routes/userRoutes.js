@@ -31,5 +31,6 @@ router.post("/:id/interests", validarToken, userController.addInterests);
 router.delete("/:id/interests", validarToken, userController.removeInterests);
 
 router.put("/:id/ban", validarToken, userController.banUser);
+router.put("/:id/unban", validarToken, userController.unbanUser);
 
 module.exports = router;

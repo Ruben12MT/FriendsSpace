@@ -46,7 +46,7 @@ export default function AdsPage() {
   const theme = useAppTheme();
 
   // Variable para ajustar el formulario en relacion a la altura del navBar
-  const navbarHeight = "160px";
+  const navbarHeight = "52px";
 
   // Este estado es para guardar un array de intereses con los intereses del usuario loggeado
   const [userInterests, setUserInterests] = useState([]);
@@ -196,7 +196,7 @@ export default function AdsPage() {
       sx={{
         position: "fixed",
         top: navbarHeight,
-        left: 0,
+        left: "68px",
         right: 0,
         bottom: 0,
         display: "flex",
