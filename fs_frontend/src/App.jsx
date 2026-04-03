@@ -61,7 +61,6 @@ function App() {
   return (
     <Box
       sx={{
-        px: 2,
         minHeight: "100vh",
         width: "100%",
         overflowX: "hidden",

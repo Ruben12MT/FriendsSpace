@@ -399,7 +399,7 @@ export default function UserPage() {
         direction="column"
         spacing={2}
         size={{ xs: 12, md: 9 }}
-        sx={{ background: theme.secondaryBack, borderRadius: 3, p: 3 }}
+        sx={{ background: theme.secondaryBack, p: 3 }}
       >
         <Grid size={{ xs: 12 }}>
           <Grid

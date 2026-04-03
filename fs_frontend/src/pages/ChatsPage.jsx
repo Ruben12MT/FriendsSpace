@@ -19,6 +19,8 @@ import {
   DialogContentText,
   DialogActions,
   Button,
+  Menu,
+  MenuItem,
 } from "@mui/material";
 import SendIcon from "@mui/icons-material/Send";
 import AttachFileIcon from "@mui/icons-material/AttachFile";
@@ -28,140 +30,165 @@ import ForumIcon from "@mui/icons-material/Forum";
 import BlockIcon from "@mui/icons-material/Block";
 import ReportIcon from "@mui/icons-material/Report";
 import ChatIcon from "@mui/icons-material/Chat";
+import MoreVertIcon from "@mui/icons-material/MoreVert";
+import GavelIcon from "@mui/icons-material/Gavel";
 import { useAppTheme } from "../hooks/useAppTheme";
 import { useUser } from "../hooks/useUser";
 import { SocketContext } from "../context/SocketContext";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import api from "../utils/api";
 import ConversationListItem from "../components/ConversationListItem";
 import ChatMessage from "../components/ChatMessage";
 import ChatContextMenu from "../components/ChatContextMenu";
 
-const CONVERSATION_PANEL_WIDTH = 300;
-const NAVBAR_HEIGHT = "52px";
+const SIDEBAR_PANEL_WIDTH = 300;
+const TOPBAR_HEIGHT = "52px";
 
 export default function ChatsPage() {
   const theme = useAppTheme();
   const { loggedUser } = useUser();
   const { socket } = useContext(SocketContext);
   const { state: navigationState } = useLocation();
+  const navigate = useNavigate();
 
-  const isAdmin =
+  const currentUserIsAdmin =
     loggedUser?.role === "ADMIN" || loggedUser?.role === "DEVELOPER";
 
-  const [activeView, setActiveView] = useState("chats");
-  const [allConversations, setAllConversations] = useState([]);
-  const [activeConversation, setActiveConversation] = useState(null);
+  // Vista activa en el panel lateral (Solo admins ven "reportes")
+  const [selectedTab, setSelectedTab] = useState("chats");
+
+  // Lista completa de conversaciones del usuario
+  const [conversationList, setConversationList] = useState([]);
+
+  // Conversación que está abierta actualmente en el área de chat
+  const [openedConversation, setOpenedConversation] = useState(null);
+
+  // Mensajes de la conversación abierta
   const [messageList, setMessageList] = useState([]);
+
+  const [reportClosedDialog, setReportClosedDialog] = useState(false);
+
   const [isLoadingMessages, setIsLoadingMessages] = useState(false);
-  const [hasMoreMessages, setHasMoreMessages] = useState(true);
-  const [messageText, setMessageText] = useState("");
-  const [isSending, setIsSending] = useState(false);
-  const [replyToMessage, setReplyToMessage] = useState(null);
-  const [editingMessage, setEditingMessage] = useState(null);
-  const [contextMenu, setContextMenu] = useState({
+  const [hasMoreMessagesToLoad, setHasMoreMessagesToLoad] = useState(true);
+  const [messageInputText, setMessageInputText] = useState("");
+  const [isSendingMessage, setIsSendingMessage] = useState(false);
+
+  // Mensaje al que se está respondiendo
+  const [replyTargetMessage, setReplyTargetMessage] = useState(null);
+
+  // Mensaje que se está editando
+  const [messageBeingEdited, setMessageBeingEdited] = useState(null);
+
+  const [rightClickMenu, setRightClickMenu] = useState({
     visible: false,
     x: 0,
     y: 0,
     message: null,
   });
-  const [blockDialog, setBlockDialog] = useState({ open: false, type: null });
+  const [blockWarningDialog, setBlockWarningDialog] = useState({
+    open: false,
+    type: null,
+  });
+  const [finishInvestigationDialog, setFinishInvestigationDialog] =
+    useState(false);
+  const [chatOptionsMenuAnchor, setChatOptionsMenuAnchor] = useState(null);
 
-  const messagesBottomRef = useRef(null);
-  const messagesTopSentinelRef = useRef(null);
-  const textInputRef = useRef(null);
-  const fileInputRef = useRef(null);
+  const bottomOfMessagesRef = useRef(null);
+  const topSentinelRef = useRef(null);
+  const messageInputRef = useRef(null);
+  const filePickerRef = useRef(null);
 
-  const sidebarBackground = theme.secondaryBack;
-  const chatAreaBackground = theme.tertiaryBack;
-  const borderColor =
+  const sidebarBg = theme.secondaryBack;
+  const chatAreaBg = theme.tertiaryBack;
+  const dividerColor =
     theme.name === "dark" ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.08)";
   const accentColor = theme.primaryBack;
-  const primaryTextColor = theme.primaryText;
-  const subtleTextColor = theme.secondaryText;
+  const mainTextColor = theme.primaryText;
+  const mutedTextColor = theme.secondaryText;
 
-  const mapConversations = (datos, currentUserId) => {
-    return datos
+  // Transforma el array de conexiones del backend al formato que usa el componente
+  const buildConversationList = (rawConnections, currentUserId) => {
+    return rawConnections
       .map((connection) => {
-        const myUserConnection = connection.user_connections?.find(
+        const myHalf = connection.user_connections?.find(
           (uc) => uc.user?.id === currentUserId,
         );
-        const friendUserConnection = connection.user_connections?.find(
+        const friendHalf = connection.user_connections?.find(
           (uc) => uc.user?.id !== currentUserId,
         );
         const isBlocked = connection.status === "BLOCKED";
-        const blockedByMe =
-          isBlocked && myUserConnection?.blocked_by === currentUserId;
-        const friendRole = friendUserConnection?.user?.role;
-        const isReport = isAdmin && friendRole === "USER";
+        const iBlockedThem = isBlocked && myHalf?.blocked_by === currentUserId;
+        const friendRole = friendHalf?.user?.role;
+        const isReportChat = currentUserIsAdmin && friendRole === "USER";
 
         return {
           connectionId: connection.id,
-          friend: friendUserConnection?.user,
-          status: connection.status,
+          friendUser: friendHalf?.user,
+          connectionStatus: connection.status,
           isBlocked,
-          blockedByMe,
-          isReport,
-          last_message: null,
+          iBlockedThem,
+          isReportChat,
+          lastMessage: null,
         };
       })
-      .filter((conv) => conv.friend);
+      .filter((conv) => conv.friendUser);
   };
 
-  const conversationList = isAdmin
-    ? allConversations.filter((c) =>
-        activeView === "reportes" ? c.isReport : !c.isReport,
+  // Conversaciones filtradas según la pestaña activa
+  const visibleConversations = currentUserIsAdmin
+    ? conversationList.filter((c) =>
+        selectedTab === "reportes" ? c.isReportChat : !c.isReportChat,
       )
-    : allConversations;
+    : conversationList;
 
-  // Carga el último mensaje de una conversación y actualiza la lista
-  const loadLastMessage = useCallback(async (connectionId) => {
-    try {
-      const res = await api.get(`/messages/${connectionId}`, {
-        params: { limit: 1 },
-      });
-      if (res.data.ok && res.data.datos.length > 0) {
-        const lastMsg = res.data.datos[0];
-        setAllConversations((prev) =>
-          prev.map((c) =>
-            c.connectionId === connectionId
-              ? { ...c, last_message: lastMsg }
-              : c,
-          ),
-        );
-      }
-    } catch {}
-  }, []);
+  const reportChatsCount = conversationList.filter(
+    (c) => c.isReportChat,
+  ).length;
+  const normalChatsCount = conversationList.filter(
+    (c) => !c.isReportChat,
+  ).length;
 
+  const isCurrentChatBlocked = openedConversation?.isBlocked;
+
+  // Carga la lista de conversaciones al montar
   useEffect(() => {
-    async function fetchConversationList() {
+    async function loadConversationList() {
       if (!loggedUser) return;
       try {
-        const res = await api.get("/connections");
-        if (res.data.ok) {
-          const mapped = mapConversations(res.data.datos, loggedUser.id);
-          setAllConversations(mapped);
+        const response = await api.get("/connections");
+        if (response.data.ok) {
+          const builtList = buildConversationList(
+            response.data.datos,
+            loggedUser.id,
+          );
+          setConversationList(builtList);
 
-          // Cargamos el último mensaje de cada conversación de forma independiente
-          mapped.forEach((conv) => loadLastMessage(conv.connectionId));
-
-          const pendingId = sessionStorage.getItem("openConnectionId");
-          if (pendingId) {
+          const pendingConnectionId =
+            sessionStorage.getItem("openConnectionId");
+          if (pendingConnectionId) {
             sessionStorage.removeItem("openConnectionId");
-            const target = mapped.find(
-              (c) => c.connectionId === Number(pendingId),
+            const targetConversation = builtList.find(
+              (c) => c.connectionId === Number(pendingConnectionId),
             );
-            if (target) {
-              if (isAdmin && target.isReport) setActiveView("reportes");
-              openConversation(target);
+            if (targetConversation) {
+              if (currentUserIsAdmin && targetConversation.isReportChat) {
+                setSelectedTab("reportes");
+                setTimeout(() => selectConversation(targetConversation), 0);
+              } else {
+                selectConversation(targetConversation);
+              }
             }
           } else if (navigationState?.openConnectionId) {
-            const target = mapped.find(
+            const targetConversation = builtList.find(
               (c) => c.connectionId === navigationState.openConnectionId,
             );
-            if (target) {
-              if (isAdmin && target.isReport) setActiveView("reportes");
-              openConversation(target);
+            if (targetConversation) {
+              if (currentUserIsAdmin && targetConversation.isReportChat) {
+                setSelectedTab("reportes");
+                setTimeout(() => selectConversation(targetConversation), 0);
+              } else {
+                selectConversation(targetConversation);
+              }
             }
           }
         }
@@ -169,114 +196,168 @@ export default function ChatsPage() {
         console.error(error);
       }
     }
-    if (loggedUser) fetchConversationList();
+    if (loggedUser) loadConversationList();
   }, [loggedUser]);
 
-  const fetchMessages = useCallback(async (connectionId, beforeId = null) => {
-    setIsLoadingMessages(true);
-    try {
-      const queryParams = { limit: 30 };
-      if (beforeId) queryParams.beforeId = beforeId;
-      const res = await api.get(`/messages/${connectionId}`, {
-        params: queryParams,
-      });
-      if (res.data.ok) {
-        const fetchedMessages = res.data.datos;
-        if (beforeId) {
-          setMessageList((prev) => [...fetchedMessages, ...prev]);
-        } else {
-          setMessageList(fetchedMessages);
-          setTimeout(() => messagesBottomRef.current?.scrollIntoView(), 50);
+  // Carga los mensajes de una conversación (con paginación hacia arriba)
+  const loadMessages = useCallback(
+    async (connectionId, beforeMessageId = null) => {
+      setIsLoadingMessages(true);
+      try {
+        const params = { limit: 30 };
+        if (beforeMessageId) params.beforeId = beforeMessageId;
+        const response = await api.get(`/messages/${connectionId}`, { params });
+        if (response.data.ok) {
+          const fetchedMessages = response.data.datos;
+          if (beforeMessageId) {
+            setMessageList((prev) => [...fetchedMessages, ...prev]);
+          } else {
+            setMessageList(fetchedMessages);
+            setTimeout(() => bottomOfMessagesRef.current?.scrollIntoView(), 50);
+          }
+          setHasMoreMessagesToLoad(fetchedMessages.length === 30);
         }
-        setHasMoreMessages(fetchedMessages.length === 30);
+      } catch (error) {
+        console.error(error);
+      } finally {
+        setIsLoadingMessages(false);
+      }
+    },
+    [],
+  );
+
+  // Carga el último mensaje de una conversación y lo actualiza en la lista lateral
+  const updateLastMessage = useCallback(async (connectionId) => {
+    try {
+      const response = await api.get(`/messages/${connectionId}`, {
+        params: { limit: 1 },
+      });
+      if (response.data.ok && response.data.datos.length > 0) {
+        const lastMsg = response.data.datos[0];
+        setConversationList((prev) =>
+          prev.map((c) =>
+            c.connectionId === connectionId
+              ? { ...c, lastMessage: lastMsg }
+              : c,
+          ),
+        );
       }
     } catch (error) {
-      console.error(error);
-    } finally {
-      setIsLoadingMessages(false);
+      console.error("Error cargando último mensaje:", error);
     }
   }, []);
 
-  const openConversation = (conversation) => {
-    if (activeConversation?.connectionId === conversation.connectionId) return;
-    if (activeConversation && socket)
-      socket.emit("leave_chat", activeConversation.connectionId);
-    setActiveConversation(conversation);
+  // Abre una conversación en el área de chat
+  const selectConversation = (conversation) => {
+    if (openedConversation?.connectionId === conversation.connectionId) return;
+    if (openedConversation && socket)
+      socket.emit("leave_chat", openedConversation.connectionId);
+    setOpenedConversation(conversation);
     setMessageList([]);
-    setHasMoreMessages(true);
-    setReplyToMessage(null);
-    setEditingMessage(null);
-    setMessageText("");
-    fetchMessages(conversation.connectionId);
+    setHasMoreMessagesToLoad(true);
+    setReplyTargetMessage(null);
+    setMessageBeingEdited(null);
+    setMessageInputText("");
+    loadMessages(conversation.connectionId);
+    updateLastMessage(conversation.connectionId);
     if (socket) socket.emit("join_chat", conversation.connectionId);
   };
 
-  const handleViewChange = (view) => {
-    setActiveView(view);
-    if (activeConversation) {
-      const pertenece =
-        view === "reportes"
-          ? activeConversation.isReport
-          : !activeConversation.isReport;
-      if (!pertenece) {
-        if (socket) socket.emit("leave_chat", activeConversation.connectionId);
-        setActiveConversation(null);
+  // Cambia entre pestaña Chats y Reportes (solo admins)
+  const handleTabChange = (newTab) => {
+    setSelectedTab(newTab);
+    if (openedConversation) {
+      const belongsToNewTab =
+        newTab === "reportes"
+          ? openedConversation.isReportChat
+          : !openedConversation.isReportChat;
+      if (!belongsToNewTab) {
+        if (socket) socket.emit("leave_chat", openedConversation.connectionId);
+        setOpenedConversation(null);
         setMessageList([]);
       }
     }
   };
 
-  const checkBlockedAction = () => {
-    if (!activeConversation?.isBlocked) return false;
-    if (activeConversation.blockedByMe) {
-      setBlockDialog({ open: true, type: "BLOCKED_BY_ME" });
+  // Finaliza la investigación — cierra la conexión de reporte
+  const handleFinishInvestigation = async () => {
+    try {
+      await api.put(`/connections/${openedConversation.connectionId}/finish`);
+      setConversationList((prev) =>
+        prev.filter((c) => c.connectionId !== openedConversation.connectionId),
+      );
+      setOpenedConversation(null);
+      setMessageList([]);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setFinishInvestigationDialog(false);
+    }
+  };
+
+  // Muestra el dialog de aviso si la conversación está bloqueada
+  const checkIfBlockedBeforeAction = () => {
+    if (!openedConversation?.isBlocked) return false;
+    if (openedConversation.iBlockedThem) {
+      setBlockWarningDialog({ open: true, type: "I_BLOCKED_THEM" });
     } else {
-      setBlockDialog({ open: true, type: "BLOCKED_BY_THEM" });
+      setBlockWarningDialog({ open: true, type: "THEY_BLOCKED_ME" });
     }
     return true;
   };
 
   const handleUnblockAndContinue = async () => {
     try {
-      await api.put(`/connections/${activeConversation.connectionId}/activate`);
-      const res = await api.get("/connections");
-      if (res.data.ok) {
-        const mapped = mapConversations(res.data.datos, loggedUser.id);
-        setAllConversations(mapped);
-        mapped.forEach((conv) => loadLastMessage(conv.connectionId));
-        const updated = mapped.find(
-          (c) => c.connectionId === activeConversation.connectionId,
+      await api.put(`/connections/${openedConversation.connectionId}/activate`);
+      const response = await api.get("/connections");
+      if (response.data.ok) {
+        const builtList = buildConversationList(
+          response.data.datos,
+          loggedUser.id,
         );
-        if (updated) setActiveConversation(updated);
+        setConversationList(builtList);
+        const updatedConversation = builtList.find(
+          (c) => c.connectionId === openedConversation.connectionId,
+        );
+        if (updatedConversation) setOpenedConversation(updatedConversation);
       }
     } catch (error) {
       console.error(error);
     } finally {
-      setBlockDialog({ open: false, type: null });
+      setBlockWarningDialog({ open: false, type: null });
     }
   };
 
+  // Escucha eventos de socket para mensajes en tiempo real
   useEffect(() => {
     if (!socket) return;
 
-    const onNewMessage = (payload) => {
-      const incomingMessage = payload.data || payload;
+    const onInvestigacionFinalizada = ({ connectionId, adminId }) => {
+      setConversationList((prev) =>
+        prev.filter((c) => c.connectionId !== connectionId),
+      );
+      setOpenedConversation(null);
+      setMessageList([]);
+      setReportClosedDialog(true);
+    };
+
+    const onIncomingMessage = (payload) => {
+      const newMessage = payload.data || payload;
       setMessageList((prev) => {
-        if (prev.find((m) => m.id === incomingMessage.id)) return prev;
-        return [...prev, incomingMessage];
+        if (prev.find((m) => m.id === newMessage.id)) return prev;
+        return [...prev, newMessage];
       });
       setTimeout(
-        () => messagesBottomRef.current?.scrollIntoView({ behavior: "smooth" }),
+        () =>
+          bottomOfMessagesRef.current?.scrollIntoView({ behavior: "smooth" }),
         50,
       );
-
-      // Actualizar el último mensaje en la lista lateral
-      const connId = incomingMessage.connection_id;
-      if (connId) {
-        setAllConversations((prev) =>
+      const connectionId = newMessage.connection_id;
+      if (connectionId) {
+        setConversationList((prev) =>
           prev.map((c) =>
-            c.connectionId === connId
-              ? { ...c, last_message: incomingMessage }
+            c.connectionId === connectionId
+              ? { ...c, lastMessage: newMessage }
               : c,
           ),
         );
@@ -284,10 +365,10 @@ export default function ChatsPage() {
     };
 
     const onEditedMessage = (payload) => {
-      const updatedMessage = payload.data || payload;
+      const editedMessage = payload.data || payload;
       setMessageList((prev) =>
         prev.map((m) =>
-          m.id === updatedMessage.id ? { ...m, ...updatedMessage } : m,
+          m.id === editedMessage.id ? { ...m, ...editedMessage } : m,
         ),
       );
     };
@@ -302,99 +383,103 @@ export default function ChatsPage() {
       );
     };
 
-    socket.on("nuevo_mensaje", onNewMessage);
+    socket.on("nuevo_mensaje", onIncomingMessage);
     socket.on("mensaje_editado", onEditedMessage);
     socket.on("mensaje_borrado", onDeletedMessage);
+    socket.on("investigacion_finalizada", onInvestigacionFinalizada);
 
     return () => {
-      socket.off("nuevo_mensaje", onNewMessage);
+      socket.off("nuevo_mensaje", onIncomingMessage);
       socket.off("mensaje_editado", onEditedMessage);
       socket.off("mensaje_borrado", onDeletedMessage);
+      socket.off("investigacion_finalizada", onInvestigacionFinalizada);
     };
   }, [socket]);
 
+  // Observador para cargar más mensajes al llegar al tope
   useEffect(() => {
-    const sentinelElement = messagesTopSentinelRef.current;
-    if (!sentinelElement) return;
+    const topElement = topSentinelRef.current;
+    if (!topElement) return;
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (
           entry.isIntersecting &&
-          hasMoreMessages &&
+          hasMoreMessagesToLoad &&
           !isLoadingMessages &&
           messageList.length > 0
         ) {
-          fetchMessages(activeConversation.connectionId, messageList[0].id);
+          loadMessages(openedConversation.connectionId, messageList[0].id);
         }
       },
       { threshold: 0.1 },
     );
-    observer.observe(sentinelElement);
+    observer.observe(topElement);
     return () => observer.disconnect();
   }, [
-    hasMoreMessages,
+    hasMoreMessagesToLoad,
     isLoadingMessages,
     messageList,
-    activeConversation,
-    fetchMessages,
+    openedConversation,
+    loadMessages,
   ]);
 
   const sendTextMessage = async () => {
-    if (!messageText.trim() || !activeConversation || isSending) return;
-    if (checkBlockedAction()) return;
-    if (editingMessage) {
+    if (!messageInputText.trim() || !openedConversation || isSendingMessage)
+      return;
+    if (checkIfBlockedBeforeAction()) return;
+    if (messageBeingEdited) {
       try {
-        setIsSending(true);
-        await api.put(`/messages/${editingMessage.id}`, {
-          body: messageText.trim(),
+        setIsSendingMessage(true);
+        await api.put(`/messages/${messageBeingEdited.id}`, {
+          body: messageInputText.trim(),
         });
-        setEditingMessage(null);
-        setMessageText("");
+        setMessageBeingEdited(null);
+        setMessageInputText("");
       } catch (error) {
         console.error(error);
       } finally {
-        setIsSending(false);
+        setIsSendingMessage(false);
       }
       return;
     }
     try {
-      setIsSending(true);
-      await api.post(`/messages/${activeConversation.connectionId}/text`, {
-        body: messageText.trim(),
-        reply_id: replyToMessage?.id || null,
+      setIsSendingMessage(true);
+      await api.post(`/messages/${openedConversation.connectionId}/text`, {
+        body: messageInputText.trim(),
+        reply_id: replyTargetMessage?.id || null,
       });
-      setMessageText("");
-      setReplyToMessage(null);
+      setMessageInputText("");
+      setReplyTargetMessage(null);
     } catch (error) {
       console.error(error);
     } finally {
-      setIsSending(false);
+      setIsSendingMessage(false);
     }
   };
 
   const sendMediaMessage = async (file) => {
-    if (!file || !activeConversation) return;
-    if (checkBlockedAction()) return;
+    if (!file || !openedConversation) return;
+    if (checkIfBlockedBeforeAction()) return;
     const formData = new FormData();
     formData.append("file", file);
     formData.append("body", file.name);
-    if (replyToMessage) formData.append("reply_id", replyToMessage.id);
+    if (replyTargetMessage) formData.append("reply_id", replyTargetMessage.id);
     try {
       await api.post(
-        `/messages/${activeConversation.connectionId}/media`,
+        `/messages/${openedConversation.connectionId}/media`,
         formData,
         {
           headers: { "Content-Type": "multipart/form-data" },
         },
       );
-      setReplyToMessage(null);
+      setReplyTargetMessage(null);
     } catch (error) {
       console.error(error);
     }
   };
 
   const deleteMessage = async (message) => {
-    if (checkBlockedAction()) return;
+    if (checkIfBlockedBeforeAction()) return;
     try {
       await api.delete(`/messages/${message.id}`);
     } catch (error) {
@@ -402,72 +487,70 @@ export default function ChatsPage() {
     }
   };
 
-  const openContextMenu = (e, message) => {
+  const openRightClickMenu = (e, message) => {
     e.preventDefault();
     if (message.deleted) return;
-    setContextMenu({ visible: true, x: e.clientX, y: e.clientY, message });
+    setRightClickMenu({ visible: true, x: e.clientX, y: e.clientY, message });
   };
 
-  const closeContextMenu = () =>
-    setContextMenu({ visible: false, x: 0, y: 0, message: null });
+  const closeRightClickMenu = () =>
+    setRightClickMenu({ visible: false, x: 0, y: 0, message: null });
 
   const startEditingMessage = (message) => {
-    if (checkBlockedAction()) return;
+    if (checkIfBlockedBeforeAction()) return;
     if (message.type !== "TEXT" || message.user_id !== loggedUser?.id) return;
-    setEditingMessage(message);
-    setMessageText(message.body);
-    setReplyToMessage(null);
-    textInputRef.current?.focus();
+    setMessageBeingEdited(message);
+    setMessageInputText(message.body);
+    setReplyTargetMessage(null);
+    messageInputRef.current?.focus();
   };
 
   const startReplyingToMessage = (message) => {
-    if (checkBlockedAction()) return;
-    setReplyToMessage(message);
-    setEditingMessage(null);
-    textInputRef.current?.focus();
+    if (checkIfBlockedBeforeAction()) return;
+    setReplyTargetMessage(message);
+    setMessageBeingEdited(null);
+    messageInputRef.current?.focus();
   };
 
-  const isMyMessage = (message) =>
+  const messageIsFromMe = (message) =>
     message.user_id === loggedUser?.id || message.author?.id === loggedUser?.id;
-
-  const isActiveConversationBlocked = activeConversation?.isBlocked;
-  const reportesCount = allConversations.filter((c) => c.isReport).length;
-  const chatsCount = allConversations.filter((c) => !c.isReport).length;
 
   return (
     <Box
       sx={{
         position: "fixed",
-        top: NAVBAR_HEIGHT,
+        top: TOPBAR_HEIGHT,
         left: "68px",
         right: 0,
         bottom: 0,
         display: "flex",
         overflow: "hidden",
       }}
-      onClick={closeContextMenu}
+      onClick={closeRightClickMenu}
     >
+      {/* Panel lateral con lista de conversaciones */}
       <Box
         sx={{
-          width: CONVERSATION_PANEL_WIDTH,
+          width: SIDEBAR_PANEL_WIDTH,
           flexShrink: 0,
-          borderRight: `1px solid ${borderColor}`,
-          background: sidebarBackground,
+          borderRight: `1px solid ${dividerColor}`,
+          background: sidebarBg,
           display: "flex",
           flexDirection: "column",
           overflow: "hidden",
         }}
       >
-        {isAdmin ? (
+        {/* Pestañas Chats / Reportes para admins */}
+        {currentUserIsAdmin ? (
           <Box
             sx={{
               display: "flex",
-              borderBottom: `1px solid ${borderColor}`,
+              borderBottom: `1px solid ${dividerColor}`,
               flexShrink: 0,
             }}
           >
             <Box
-              onClick={() => handleViewChange("chats")}
+              onClick={() => handleTabChange("chats")}
               sx={{
                 flex: 1,
                 py: 1.25,
@@ -477,27 +560,27 @@ export default function ChatsPage() {
                 gap: 0.25,
                 cursor: "pointer",
                 borderBottom:
-                  activeView === "chats"
+                  selectedTab === "chats"
                     ? `2px solid ${accentColor}`
                     : "2px solid transparent",
-                opacity: activeView === "chats" ? 1 : 0.5,
+                opacity: selectedTab === "chats" ? 1 : 0.5,
                 transition: "all 0.15s",
                 "&:hover": { opacity: 1 },
               }}
             >
-              <ChatIcon sx={{ fontSize: 18, color: primaryTextColor }} />
+              <ChatIcon sx={{ fontSize: 18, color: mainTextColor }} />
               <Typography
                 sx={{
                   fontSize: "0.7rem",
                   fontWeight: 600,
-                  color: primaryTextColor,
+                  color: mainTextColor,
                 }}
               >
-                Chats {chatsCount > 0 && `(${chatsCount})`}
+                Chats {normalChatsCount > 0 && `(${normalChatsCount})`}
               </Typography>
             </Box>
             <Box
-              onClick={() => handleViewChange("reportes")}
+              onClick={() => handleTabChange("reportes")}
               sx={{
                 flex: 1,
                 py: 1.25,
@@ -507,10 +590,10 @@ export default function ChatsPage() {
                 gap: 0.25,
                 cursor: "pointer",
                 borderBottom:
-                  activeView === "reportes"
+                  selectedTab === "reportes"
                     ? "2px solid #f44336"
                     : "2px solid transparent",
-                opacity: activeView === "reportes" ? 1 : 0.5,
+                opacity: selectedTab === "reportes" ? 1 : 0.5,
                 transition: "all 0.15s",
                 "&:hover": { opacity: 1 },
               }}
@@ -518,19 +601,17 @@ export default function ChatsPage() {
               <ReportIcon
                 sx={{
                   fontSize: 18,
-                  color:
-                    activeView === "reportes" ? "#f44336" : primaryTextColor,
+                  color: selectedTab === "reportes" ? "#f44336" : mainTextColor,
                 }}
               />
               <Typography
                 sx={{
                   fontSize: "0.7rem",
                   fontWeight: 600,
-                  color:
-                    activeView === "reportes" ? "#f44336" : primaryTextColor,
+                  color: selectedTab === "reportes" ? "#f44336" : mainTextColor,
                 }}
               >
-                Reportes {reportesCount > 0 && `(${reportesCount})`}
+                Reportes {reportChatsCount > 0 && `(${reportChatsCount})`}
               </Typography>
             </Box>
           </Box>
@@ -539,22 +620,19 @@ export default function ChatsPage() {
             sx={{
               px: 2,
               py: 1.5,
-              borderBottom: `1px solid ${borderColor}`,
+              borderBottom: `1px solid ${dividerColor}`,
               flexShrink: 0,
             }}
           >
             <Typography
-              sx={{
-                fontWeight: 700,
-                color: primaryTextColor,
-                fontSize: "1rem",
-              }}
+              sx={{ fontWeight: 700, color: mainTextColor, fontSize: "1rem" }}
             >
               Chats
             </Typography>
           </Box>
         )}
 
+        {/* Lista de conversaciones */}
         <Box
           sx={{
             flex: 1,
@@ -566,53 +644,55 @@ export default function ChatsPage() {
             },
           }}
         >
-          {conversationList.length === 0 ? (
+          {visibleConversations.length === 0 ? (
             <Box sx={{ p: 3, textAlign: "center" }}>
-              <Typography sx={{ color: subtleTextColor, fontSize: "0.85rem" }}>
-                {activeView === "reportes"
+              <Typography sx={{ color: mutedTextColor, fontSize: "0.85rem" }}>
+                {selectedTab === "reportes"
                   ? "No tienes chats de reporte"
                   : "Aún no tienes chats"}
               </Typography>
             </Box>
           ) : (
-            conversationList.map((conversation) => (
+            visibleConversations.map((conversation) => (
               <ConversationListItem
                 key={conversation.connectionId}
-                conversation={conversation}
+                conversation={{
+                  ...conversation,
+                  friend: conversation.friendUser,
+                  last_message: conversation.lastMessage,
+                  blockedByMe: conversation.iBlockedThem,
+                }}
                 isActive={
-                  activeConversation?.connectionId === conversation.connectionId
+                  openedConversation?.connectionId === conversation.connectionId
                 }
-                onSelect={openConversation}
+                onSelect={selectConversation}
               />
             ))
           )}
         </Box>
       </Box>
 
-      {!activeConversation ? (
+      {/* Área principal de chat */}
+      {!openedConversation ? (
         <Box
           sx={{
             flex: 1,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            background: chatAreaBackground,
+            background: chatAreaBg,
           }}
         >
           <Box sx={{ textAlign: "center", opacity: 0.35 }}>
-            {activeView === "reportes" ? (
+            {selectedTab === "reportes" ? (
               <ReportIcon sx={{ fontSize: 52, color: "#f44336", mb: 1.5 }} />
             ) : (
-              <ForumIcon
-                sx={{ fontSize: 52, color: primaryTextColor, mb: 1.5 }}
-              />
+              <ForumIcon sx={{ fontSize: 52, color: mainTextColor, mb: 1.5 }} />
             )}
-            <Typography
-              sx={{ color: primaryTextColor, fontWeight: 600, mb: 0.5 }}
-            >
+            <Typography sx={{ color: mainTextColor, fontWeight: 600, mb: 0.5 }}>
               Selecciona un chat
             </Typography>
-            <Typography sx={{ color: subtleTextColor, fontSize: "0.85rem" }}>
+            <Typography sx={{ color: mutedTextColor, fontSize: "0.85rem" }}>
               Elige una conversación de la lista
             </Typography>
           </Box>
@@ -623,7 +703,7 @@ export default function ChatsPage() {
             flex: 1,
             display: "flex",
             flexDirection: "column",
-            background: chatAreaBackground,
+            background: chatAreaBg,
             overflow: "hidden",
           }}
         >
@@ -631,58 +711,141 @@ export default function ChatsPage() {
             sx={{
               px: 2,
               py: 1.25,
-              borderBottom: `1px solid ${borderColor}`,
+              borderBottom: `1px solid ${dividerColor}`,
               display: "flex",
               alignItems: "center",
               gap: 1.5,
-              background: sidebarBackground,
+              background: sidebarBg,
               flexShrink: 0,
             }}
           >
             <Avatar
               src={
-                activeConversation.friend?.url_image ||
+                openedConversation.friendUser?.url_image ||
                 "/no_user_avatar_image.png"
               }
               sx={{
                 width: 34,
                 height: 34,
-                filter: isActiveConversationBlocked
-                  ? "grayscale(100%)"
-                  : "none",
-                opacity: isActiveConversationBlocked ? 0.6 : 1,
+                filter: isCurrentChatBlocked ? "grayscale(100%)" : "none",
+                opacity: isCurrentChatBlocked ? 0.6 : 1,
               }}
             />
-            <Box>
+            <Box sx={{ flex: 1 }}>
               <Box display="flex" alignItems="center" gap={0.75}>
                 <Typography
                   sx={{
                     fontWeight: 700,
-                    color: primaryTextColor,
+                    color: mainTextColor,
                     lineHeight: 1.2,
                   }}
                 >
-                  {activeConversation.friend?.name}
+                  {openedConversation.friendUser?.name}
                 </Typography>
-                {activeConversation.isReport && (
+                {openedConversation.isReportChat && (
                   <ReportIcon sx={{ fontSize: 14, color: "#f44336" }} />
                 )}
               </Box>
-              {isActiveConversationBlocked && (
+              {isCurrentChatBlocked && (
                 <Typography sx={{ fontSize: "0.7rem", color: "#f44336" }}>
-                  {activeConversation.blockedByMe
+                  {openedConversation.iBlockedThem
                     ? "Usuario bloqueado"
                     : "No disponible"}
                 </Typography>
               )}
-              {activeConversation.isReport && !isActiveConversationBlocked && (
+              {openedConversation.isReportChat && !isCurrentChatBlocked && (
                 <Typography sx={{ fontSize: "0.7rem", color: "#f44336" }}>
                   Chat de investigación
                 </Typography>
               )}
             </Box>
+
+            {currentUserIsAdmin && openedConversation.isReportChat && (
+              <Tooltip title="Cerrar este caso de investigación">
+                <Button
+                  onClick={() => setFinishInvestigationDialog(true)}
+                  size="small"
+                  startIcon={<GavelIcon fontSize="small" />}
+                  sx={{
+                    background: "rgba(244,67,54,0.1)",
+                    color: "#f44336",
+                    border: "1px solid rgba(244,67,54,0.3)",
+                    borderRadius: "8px",
+                    textTransform: "none",
+                    fontWeight: 600,
+                    fontSize: "0.75rem",
+                    px: 1.5,
+                    flexShrink: 0,
+                    "&:hover": { background: "rgba(244,67,54,0.2)" },
+                  }}
+                >
+                  Finalizar
+                </Button>
+              </Tooltip>
+            )}
+            <Tooltip title="Opciones">
+              <IconButton
+                size="small"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setChatOptionsMenuAnchor(e.currentTarget);
+                }}
+                sx={{
+                  color: mutedTextColor,
+                  "&:hover": { color: mainTextColor },
+                }}
+              >
+                <MoreVertIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+
+            <Menu
+              anchorEl={chatOptionsMenuAnchor}
+              open={Boolean(chatOptionsMenuAnchor)}
+              onClose={() => setChatOptionsMenuAnchor(null)}
+              anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+              transformOrigin={{ vertical: "top", horizontal: "right" }}
+              PaperProps={{
+                sx: {
+                  borderRadius: "12px",
+                  background: sidebarBg,
+                  border: `1px solid ${dividerColor}`,
+                  boxShadow: "0 8px 24px rgba(0,0,0,0.12)",
+                  minWidth: 180,
+                },
+              }}
+            >
+              <MenuItem
+                onClick={() => {
+                  setChatOptionsMenuAnchor(null);
+                  navigate("/app/" + openedConversation.friendUser?.id);
+                }}
+                sx={{ color: mainTextColor, fontSize: "0.875rem", py: 1.25 }}
+              >
+                Ver perfil
+              </MenuItem>
+              <MenuItem
+                onClick={() => {
+                  setChatOptionsMenuAnchor(null);
+                  navigate("/app/" + openedConversation.friendUser?.id);
+                }}
+                sx={{ color: mainTextColor, fontSize: "0.875rem", py: 1.25 }}
+              >
+                Bloquear
+              </MenuItem>
+              <MenuItem
+                onClick={() => {
+                  setChatOptionsMenuAnchor(null);
+                  navigate("/app/" + openedConversation.friendUser?.id);
+                }}
+                sx={{ color: "#f44336", fontSize: "0.875rem", py: 1.25 }}
+              >
+                Bloquear y reportar
+              </MenuItem>
+            </Menu>
           </Box>
 
+          {/* Lista de mensajes */}
           <Box
             sx={{
               flex: 1,
@@ -692,7 +855,7 @@ export default function ChatsPage() {
               display: "flex",
               flexDirection: "column",
               gap: 0.5,
-              opacity: isActiveConversationBlocked ? 0.5 : 1,
+              opacity: isCurrentChatBlocked ? 0.5 : 1,
               "&::-webkit-scrollbar": { width: 3 },
               "&::-webkit-scrollbar-thumb": {
                 background: accentColor,
@@ -700,7 +863,7 @@ export default function ChatsPage() {
               },
             }}
           >
-            <Box ref={messagesTopSentinelRef} sx={{ height: 1 }} />
+            <Box ref={topSentinelRef} sx={{ height: 1 }} />
             {isLoadingMessages && messageList.length === 0 && (
               <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
                 <CircularProgress size={24} sx={{ color: accentColor }} />
@@ -715,21 +878,22 @@ export default function ChatsPage() {
               <ChatMessage
                 key={message.id}
                 message={message}
-                isMine={isMyMessage(message)}
-                friendAvatarUrl={activeConversation.friend?.url_image}
-                onContextMenu={openContextMenu}
+                isMine={messageIsFromMe(message)}
+                friendAvatarUrl={openedConversation.friendUser?.url_image}
+                onContextMenu={openRightClickMenu}
               />
             ))}
-            <Box ref={messagesBottomRef} />
+            <Box ref={bottomOfMessagesRef} />
           </Box>
 
-          {(replyToMessage || editingMessage) && (
+          {/* Preview de respuesta o edición activa */}
+          {(replyTargetMessage || messageBeingEdited) && (
             <Box
               sx={{
                 px: 2,
                 py: 0.75,
-                background: sidebarBackground,
-                borderTop: `1px solid ${borderColor}`,
+                background: sidebarBg,
+                borderTop: `1px solid ${dividerColor}`,
                 display: "flex",
                 alignItems: "center",
                 gap: 1,
@@ -754,53 +918,54 @@ export default function ChatsPage() {
                     mb: 0.25,
                   }}
                 >
-                  {editingMessage
+                  {messageBeingEdited
                     ? "Editando mensaje"
-                    : `Respondiendo a ${replyToMessage?.author?.name}`}
+                    : `Respondiendo a ${replyTargetMessage?.author?.name}`}
                 </Typography>
                 <Typography
                   sx={{
                     fontSize: "0.78rem",
-                    color: primaryTextColor,
+                    color: mainTextColor,
                     opacity: 0.8,
                   }}
                   noWrap
                 >
-                  {editingMessage
-                    ? editingMessage.body
-                    : replyToMessage?.body || "Archivo multimedia"}
+                  {messageBeingEdited
+                    ? messageBeingEdited.body
+                    : replyTargetMessage?.body || "Archivo multimedia"}
                 </Typography>
               </Box>
               <IconButton
                 size="small"
                 onClick={() => {
-                  setReplyToMessage(null);
-                  setEditingMessage(null);
-                  setMessageText("");
+                  setReplyTargetMessage(null);
+                  setMessageBeingEdited(null);
+                  setMessageInputText("");
                 }}
-                sx={{ color: subtleTextColor }}
+                sx={{ color: mutedTextColor }}
               >
                 <CloseIcon fontSize="small" />
               </IconButton>
             </Box>
           )}
 
+          {/* Barra de escritura */}
           <Box
             sx={{
               px: 2,
               py: 1.25,
-              borderTop: `1px solid ${borderColor}`,
-              background: sidebarBackground,
+              borderTop: `1px solid ${dividerColor}`,
+              background: sidebarBg,
               display: "flex",
               alignItems: "flex-end",
               gap: 1,
               flexShrink: 0,
             }}
           >
-            {!editingMessage && (
+            {!messageBeingEdited && (
               <>
                 <input
-                  ref={fileInputRef}
+                  ref={filePickerRef}
                   type="file"
                   accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.zip"
                   style={{ display: "none" }}
@@ -811,9 +976,9 @@ export default function ChatsPage() {
                 <Tooltip title="Adjuntar archivo">
                   <IconButton
                     size="small"
-                    onClick={() => fileInputRef.current?.click()}
+                    onClick={() => filePickerRef.current?.click()}
                     sx={{
-                      color: subtleTextColor,
+                      color: mutedTextColor,
                       "&:hover": { color: accentColor },
                     }}
                   >
@@ -823,17 +988,17 @@ export default function ChatsPage() {
               </>
             )}
             <TextField
-              inputRef={textInputRef}
+              inputRef={messageInputRef}
               fullWidth
               multiline
               maxRows={4}
               placeholder={
-                isActiveConversationBlocked
+                isCurrentChatBlocked
                   ? "Conversación no disponible"
                   : "Escribe un mensaje..."
               }
-              value={messageText}
-              onChange={(e) => setMessageText(e.target.value)}
+              value={messageInputText}
+              onChange={(e) => setMessageInputText(e.target.value)}
               onKeyDown={(e) => {
                 if (e.key === "Enter" && !e.shiftKey) {
                   e.preventDefault();
@@ -841,47 +1006,41 @@ export default function ChatsPage() {
                 }
               }}
               onClick={() => {
-                if (isActiveConversationBlocked) checkBlockedAction();
+                if (isCurrentChatBlocked) checkIfBlockedBeforeAction();
               }}
               sx={{
                 "& .MuiOutlinedInput-root": {
                   borderRadius: "12px",
-                  background: chatAreaBackground,
+                  background: chatAreaBg,
                   "& fieldset": {
-                    borderColor: isActiveConversationBlocked
+                    borderColor: isCurrentChatBlocked
                       ? "#f4433640"
                       : `${accentColor}40`,
                   },
                   "&:hover fieldset": {
-                    borderColor: isActiveConversationBlocked
-                      ? "#f44336"
-                      : accentColor,
+                    borderColor: isCurrentChatBlocked ? "#f44336" : accentColor,
                   },
                   "&.Mui-focused fieldset": {
-                    borderColor: isActiveConversationBlocked
-                      ? "#f44336"
-                      : accentColor,
+                    borderColor: isCurrentChatBlocked ? "#f44336" : accentColor,
                   },
                 },
                 "& .MuiInputBase-input": {
-                  color: isActiveConversationBlocked
-                    ? subtleTextColor
-                    : primaryTextColor,
+                  color: isCurrentChatBlocked ? mutedTextColor : mainTextColor,
                   fontSize: "0.875rem",
-                  cursor: isActiveConversationBlocked ? "not-allowed" : "text",
+                  cursor: isCurrentChatBlocked ? "not-allowed" : "text",
                 },
               }}
             />
-            <Tooltip title={editingMessage ? "Guardar cambios" : "Enviar"}>
+            <Tooltip title={messageBeingEdited ? "Guardar cambios" : "Enviar"}>
               <span>
                 <IconButton
                   onClick={sendTextMessage}
-                  disabled={!messageText.trim() || isSending}
+                  disabled={!messageInputText.trim() || isSendingMessage}
                   sx={{
-                    background: messageText.trim()
+                    background: messageInputText.trim()
                       ? `linear-gradient(135deg, ${accentColor}, ${theme.variantBack})`
                       : "transparent",
-                    color: messageText.trim() ? "#fff" : subtleTextColor,
+                    color: messageInputText.trim() ? "#fff" : mutedTextColor,
                     borderRadius: "12px",
                     width: 40,
                     height: 40,
@@ -889,7 +1048,7 @@ export default function ChatsPage() {
                     "&.Mui-disabled": { background: "transparent" },
                   }}
                 >
-                  {editingMessage ? (
+                  {messageBeingEdited ? (
                     <DoneIcon fontSize="small" />
                   ) : (
                     <SendIcon fontSize="small" />
@@ -901,60 +1060,117 @@ export default function ChatsPage() {
         </Box>
       )}
 
-      {contextMenu.visible && contextMenu.message && (
+      {rightClickMenu.visible && rightClickMenu.message && (
         <ChatContextMenu
-          x={contextMenu.x}
-          y={contextMenu.y}
-          message={contextMenu.message}
-          isMine={isMyMessage(contextMenu.message)}
+          x={rightClickMenu.x}
+          y={rightClickMenu.y}
+          message={rightClickMenu.message}
+          isMine={messageIsFromMe(rightClickMenu.message)}
           onReply={startReplyingToMessage}
           onEdit={startEditingMessage}
           onDelete={deleteMessage}
-          onClose={closeContextMenu}
+          onClose={closeRightClickMenu}
         />
       )}
 
+      {/* Dialog: Confirmar finalizar investigación */}
       <Dialog
-        open={blockDialog.open}
-        onClose={() => setBlockDialog({ open: false, type: null })}
+        open={finishInvestigationDialog}
+        onClose={() => setFinishInvestigationDialog(false)}
         PaperProps={{
           sx: {
             borderRadius: "16px",
-            background: sidebarBackground,
-            border: `1px solid ${borderColor}`,
+            background: sidebarBg,
+            border: `1px solid ${dividerColor}`,
             minWidth: 320,
           },
         }}
       >
-        <DialogTitle sx={{ color: primaryTextColor, fontWeight: 700, pb: 1 }}>
+        <DialogTitle sx={{ color: mainTextColor, fontWeight: 700, pb: 1 }}>
           <Box display="flex" alignItems="center" gap={1}>
-            <BlockIcon sx={{ color: "#f44336", fontSize: 20 }} />
-            {blockDialog.type === "BLOCKED_BY_ME"
-              ? "Usuario bloqueado"
-              : "Acción no disponible"}
+            <GavelIcon sx={{ color: "#f44336", fontSize: 20 }} />
+            Finalizar investigación
           </Box>
         </DialogTitle>
         <DialogContent>
           <DialogContentText
-            sx={{ color: subtleTextColor, fontSize: "0.875rem" }}
+            sx={{ color: mutedTextColor, fontSize: "0.875rem" }}
           >
-            {blockDialog.type === "BLOCKED_BY_ME"
-              ? `Para realizar esta acción necesitas desbloquear a ${activeConversation?.friend?.name} primero. ¿Quieres desbloquearlo ahora?`
-              : "No ha sido posible completar tu acción en esta conversación."}
+            ¿Estás seguro de que quieres cerrar este caso? El chat quedará
+            deshabilitado y el usuario no podrá enviar más mensajes en esta
+            conversación.
           </DialogContentText>
         </DialogContent>
         <DialogActions sx={{ px: 2, pb: 2, gap: 1 }}>
           <Button
-            onClick={() => setBlockDialog({ open: false, type: null })}
+            onClick={() => setFinishInvestigationDialog(false)}
             sx={{
-              color: subtleTextColor,
+              color: mutedTextColor,
               textTransform: "none",
               borderRadius: "8px",
             }}
           >
             Cancelar
           </Button>
-          {blockDialog.type === "BLOCKED_BY_ME" && (
+          <Button
+            onClick={handleFinishInvestigation}
+            variant="contained"
+            sx={{
+              background: "#f44336",
+              color: "#fff",
+              textTransform: "none",
+              borderRadius: "8px",
+              fontWeight: 600,
+              "&:hover": { background: "#c62828" },
+            }}
+          >
+            Finalizar
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Dialog: Aviso de conversación bloqueada */}
+      <Dialog
+        open={blockWarningDialog.open}
+        onClose={() => setBlockWarningDialog({ open: false, type: null })}
+        PaperProps={{
+          sx: {
+            borderRadius: "16px",
+            background: sidebarBg,
+            border: `1px solid ${dividerColor}`,
+            minWidth: 320,
+          },
+        }}
+      >
+        <DialogTitle sx={{ color: mainTextColor, fontWeight: 700, pb: 1 }}>
+          <Box display="flex" alignItems="center" gap={1}>
+            <BlockIcon sx={{ color: "#f44336", fontSize: 20 }} />
+            {blockWarningDialog.type === "I_BLOCKED_THEM"
+              ? "Usuario bloqueado"
+              : "Acción no disponible"}
+          </Box>
+        </DialogTitle>
+        <DialogContent>
+          <DialogContentText
+            sx={{ color: mutedTextColor, fontSize: "0.875rem" }}
+          >
+            {blockWarningDialog.type === "I_BLOCKED_THEM"
+              ? `Para realizar esta acción necesitas desbloquear a ${openedConversation?.friendUser?.name} primero. ¿Quieres desbloquearlo ahora?`
+              : "No ha sido posible completar tu acción en esta conversación."}
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions sx={{ px: 2, pb: 2, gap: 1 }}>
+          <Button
+            onClick={() => setBlockWarningDialog({ open: false, type: null })}
+            sx={{
+              color: mutedTextColor,
+              textTransform: "none",
+              borderRadius: "8px",
+            }}
+          >
+            Cancelar
+          </Button>
+          {blockWarningDialog.type === "I_BLOCKED_THEM" && (
             <Button
               onClick={handleUnblockAndContinue}
               variant="contained"
@@ -969,9 +1185,9 @@ export default function ChatsPage() {
               Desbloquear
             </Button>
           )}
-          {blockDialog.type === "BLOCKED_BY_THEM" && (
+          {blockWarningDialog.type === "THEY_BLOCKED_ME" && (
             <Button
-              onClick={() => setBlockDialog({ open: false, type: null })}
+              onClick={() => setBlockWarningDialog({ open: false, type: null })}
               variant="contained"
               sx={{
                 background: `linear-gradient(135deg, ${accentColor}, ${theme.variantBack})`,
@@ -984,6 +1200,51 @@ export default function ChatsPage() {
               Entendido
             </Button>
           )}
+        </DialogActions>
+      </Dialog>
+      <Dialog
+        open={reportClosedDialog}
+        PaperProps={{
+          sx: {
+            borderRadius: "16px",
+            background: sidebarBg,
+            border: `1px solid ${dividerColor}`,
+            minWidth: 340,
+            textAlign: "center",
+          },
+        }}
+      >
+        <DialogTitle sx={{ color: mainTextColor, fontWeight: 700, pt: 3 }}>
+          Investigación finalizada
+        </DialogTitle>
+        <DialogContent>
+          <DialogContentText
+            sx={{
+              color: mutedTextColor,
+              fontSize: "0.875rem",
+              lineHeight: 1.7,
+            }}
+          >
+            Se ha finalizado tu reporte. No olvides volver a acudir a nuestra
+            administración ante un mal comportamiento que incumpla nuestras
+            normas. ¡Gracias!
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions sx={{ justifyContent: "center", pb: 2.5 }}>
+          <Button
+            onClick={() => setReportClosedDialog(false)}
+            variant="contained"
+            sx={{
+              background: `linear-gradient(135deg, ${accentColor}, ${theme.variantBack})`,
+              color: "#fff",
+              textTransform: "none",
+              borderRadius: "8px",
+              fontWeight: 600,
+              px: 3,
+            }}
+          >
+            Entendido
+          </Button>
         </DialogActions>
       </Dialog>
     </Box>

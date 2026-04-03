@@ -64,7 +64,10 @@ class ConnectionService {
       );
       await models.user_connection.update(
         { blocked_by: userId },
-        { where: { connection_id: connectionId, user_id: userId }, transaction },
+        {
+          where: { connection_id: connectionId, user_id: userId },
+          transaction,
+        },
       );
       await transaction.commit();
       return true;
@@ -130,6 +133,17 @@ class ConnectionService {
       where: { user_id: userId, connection_id: connectionId },
     });
     return !!uc;
+  }
+
+  async getOtherUserInConnection(connectionId, myUserId) {
+    const uc = await models.user_connection.findOne({
+      where: {
+        connection_id: connectionId,
+        user_id: { [Op.ne]: myUserId },
+      },
+      attributes: ["user_id"],
+    });
+    return uc?.user_id || null;
   }
 }
 
