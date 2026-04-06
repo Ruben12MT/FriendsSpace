@@ -1,12 +1,7 @@
 import React, { useEffect, useState } from "react";
 import {
-  Grid,
-  TextField,
-  MenuItem,
-  Box,
-  Typography,
-  IconButton,
-  CircularProgress,
+  TextField, MenuItem, Box, Typography,
+  IconButton, CircularProgress, Container,
 } from "@mui/material";
 import { useAppTheme } from "../hooks/useAppTheme";
 import AdCard from "../components/AdCard";
@@ -19,47 +14,25 @@ import FormAdCard from "../components/FormAdCard";
 import ConfirmModal from "../components/ConfirmModal";
 
 export default function AdsPage() {
-  // Sacamos el usuario loggeado
   const { loggedUser } = useUser();
-
-  const [selectedAdId, setSelectedAdId] = useState(null);
-
-  // Estado para guardar todos los intereses para mostrarlos en el select
-  const [allInterests, setAllInterests] = useState([]);
-
-  // Estado para guardar los intereses seleccionados en el select
-  const [selectedInterests, setSelectedInterests] = useState([0]);
-
-  // Estado para guardar todos los anuncios de la app
-  const [allAds, setAllAds] = useState([]);
-
-  // Estado para guardar los anuncios que se van a mostrar
-  const [adsToShow, setAdsToShow] = useState([]);
-
-  // Esto es para mostrar que está cargando el listado
-  const [isLoading, setIsLoading] = useState(true);
-
-  // Este estado guarda la palabra que se va a buscar, esta puede ser un nombre de usuario, palabra dentro dle titulo del anuncio o del cuerpo
-  const [wordToSearch, setWordToSearch] = useState("");
-
-  // Sacamos el theme actual
   const theme = useAppTheme();
 
-  // Variable para ajustar el formulario en relacion a la altura del navBar
-  const navbarHeight = "52px";
+  const accent = theme.accent || theme.primaryBack;
+  const isDark = theme.name === "dark";
 
-  // Este estado es para guardar un array de intereses con los intereses del usuario loggeado
+  const [selectedAdId, setSelectedAdId] = useState(null);
+  const [allInterests, setAllInterests] = useState([]);
+  const [selectedInterests, setSelectedInterests] = useState([0]);
+  const [allAds, setAllAds] = useState([]);
+  const [adsToShow, setAdsToShow] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [wordToSearch, setWordToSearch] = useState("");
   const [userInterests, setUserInterests] = useState([]);
-
-  // Estado para controlar el modal de creación del anuncio
   const [openFormAd, setOpenFormAd] = useState(false);
-
   const [toast, setToast] = useState({ open: false, message: "" });
   const [confirmDelete, setConfirmDelete] = useState({ open: false, adId: null });
 
-  const openDeleteModal = (id) => {
-    setConfirmDelete({ open: true, adId: id });
-  };
+  const openDeleteModal = (id) => setConfirmDelete({ open: true, adId: id });
 
   const handleDeleteAd = async () => {
     try {
@@ -73,38 +46,19 @@ export default function AdsPage() {
     }
   };
 
-  // UseEffect para cargar los intereses del usuario loggeado
   useEffect(() => {
-    async function fetchUser() {
-      try {
-        if (!loggedUser) return;
-
-        // Hacemos una  peticion para sacar los intereses del usuario si es que en este punto existe
-        const res2 = await api.get(`/users/${loggedUser.id}/interests`);
-
-        // Si devuelve algo se muestra ese o si no será un array vacio.
-        setUserInterests(res2.data.datos || []);
-      } catch (error) {
-        console.log(error.message);
-      }
-    }
-    fetchUser();
+    if (!loggedUser) return;
+    api.get(`/users/${loggedUser.id}/interests`)
+      .then((res) => setUserInterests(res.data.datos || []))
+      .catch(console.error);
   }, [loggedUser]);
 
-  // UseEffect para sacar todos los intereses para el select
   useEffect(() => {
-    const fetchAllInterest = async () => {
-      try {
-        const response = await api.get("/interests");
-        if (response.data?.datos) setAllInterests(response.data.datos);
-      } catch (error) {
-        console.error(error);
-      }
-    };
-    fetchAllInterest();
+    api.get("/interests")
+      .then((res) => { if (res.data?.datos) setAllInterests(res.data.datos); })
+      .catch(console.error);
   }, []);
 
-  // Función que será reutilizable para sacar todos los anuncios actuales
   const fetchAllAds = async () => {
     setIsLoading(true);
     try {
@@ -117,37 +71,22 @@ export default function AdsPage() {
     }
   };
 
-  // Cargamos todos los anuncios en el primer renderizado
-  useEffect(() => {
-    fetchAllAds();
-  }, []);
+  useEffect(() => { fetchAllAds(); }, []);
 
-  // Cada vez que buscamos traemos una lista de anuncios estos pasaran un filtrado cada vez que se cambien los parametros de búsquedas
   useEffect(() => {
-    // Sacamos la palabra a buscar y la limpiamos para asegurarnos
     const busqueda = wordToSearch.toLowerCase().trim();
-
-    // Filtramos los anuncios por los parámetros de filtrado
     const filtrados = allAds.filter((ad) => {
-      // Boleano para saber si el texto coincide
       const coincideTexto =
         busqueda === "" ||
         ad.title?.toLowerCase().includes(busqueda) ||
         ad.user?.name?.toLowerCase().includes(busqueda) ||
         ad.body?.toLowerCase().includes(busqueda);
-
-      // Boleano para saber si los intereses seleccionados coinciden
       const coincideInteres =
         selectedInterests.includes(-1) ||
         ad.interests?.some((interesDelAnuncio) => {
-          const idAnuncio =
-            interesDelAnuncio.id || interesDelAnuncio.interest_id;
+          const idAnuncio = interesDelAnuncio.id || interesDelAnuncio.interest_id;
           if (selectedInterests.includes(0)) {
-            const misIntereses = userInterests || [];
-            return misIntereses.some((uInt) => {
-              const idUsuarioInt = uInt.id || uInt.interest_id;
-              return Number(idUsuarioInt) === Number(idAnuncio);
-            });
+            return userInterests.some((uInt) => Number(uInt.id || uInt.interest_id) === Number(idAnuncio));
           }
           return selectedInterests.includes(Number(idAnuncio));
         });
@@ -156,7 +95,6 @@ export default function AdsPage() {
     setAdsToShow(filtrados);
   }, [allAds, selectedInterests, wordToSearch, loggedUser, userInterests]);
 
-  // Funcion para controlar seleccion de intereses
   const handleSelectInterest = (e) => {
     const nuevosValores = e.target.value;
     const ultimaSeleccion = nuevosValores[nuevosValores.length - 1];
@@ -171,7 +109,6 @@ export default function AdsPage() {
     }
   };
 
-  // Funcion para conseguir el texto segun los intereses selecionados
   const getInterestText = () => {
     if (selectedInterests.includes(0)) return "Mis intereses";
     if (selectedInterests.includes(-1)) return "Todos";
@@ -179,75 +116,45 @@ export default function AdsPage() {
       const interest = allInterests.find((o) => o.id === id);
       return interest ? interest.name || interest.nombre : id;
     });
-    return nombres.length > 3
-      ? `${nombres.slice(0, 3).join(", ")}...`
-      : nombres.join(", ");
+    return nombres.length > 3 ? `${nombres.slice(0, 3).join(", ")}...` : nombres.join(", ");
   };
 
   const noBorderInput = {
     background: theme.tertiaryBack,
-    borderRadius: 4,
+    borderRadius: 2,
     "& .MuiOutlinedInput-notchedOutline": { border: "none" },
     "& .MuiInputBase-input": { color: theme.fieldsText, px: 2 },
+    "& .MuiSelect-icon": { color: theme.fieldsText },
   };
 
   return (
-    <Box
-      sx={{
-        position: "fixed",
-        top: navbarHeight,
-        left: "68px",
-        right: 0,
-        bottom: 0,
-        display: "flex",
-        justifyContent: "center",
-        width: "100%",
-      }}
-    >
-      <Grid
-        container
+    <Box sx={{
+      position: "fixed", top: "52px", left: "68px",
+      right: 0, bottom: 0, overflow: "hidden",
+    }}>
+      <Container
+        maxWidth="lg"
         sx={{
-          pb: 2,
-          width: "75%",
-          display: "grid",
-          gridTemplateColumns: "1fr",
-          gridTemplateRows: "auto 80px 30px 1fr",
-          gap: 2,
-          boxSizing: "border-box",
+          height: "100%",
+          display: "flex",
+          flexDirection: "column",
+          py: 3,
           overflow: "hidden",
         }}
       >
-        <Box
-          sx={{
-            gridRow: "1",
-            display: "flex",
-            alignItems: "center",
-            ml: 1,
-            mt: 1,
-          }}
-        >
-          <Typography
-            variant="h6"
-            sx={{ color: theme.primaryText, fontWeight: "bold" }}
-          >
-            ¿Tienes algo que decir? ¡Anúnciate!
-          </Typography>
-        </Box>
+        <Typography sx={{ fontWeight: 700, fontSize: "1.4rem", color: theme.primaryText, mb: 2 }}>
+          ¿Tienes algo que decir? ¡Anúnciate!
+        </Typography>
 
-        <Box
-          sx={{
-            gridRow: "2",
-            display: "flex",
-            width: "100%",
-            overflow: "hidden",
-            px: 3,
-            alignItems: "center",
-            gap: 2,
-            background: theme.secondaryBack,
-            border: `1px solid ${theme.primaryBack}44`,
-            borderRadius: 4,
-          }}
-        >
+        <Box sx={{
+          display: "flex", width: "100%",
+          px: 1.5, py: 0.5, alignItems: "center", gap: 1.5,
+          background: theme.secondaryBack,
+          border: `1px solid ${accent}25`,
+          borderRadius: "14px",
+          flexShrink: 0,
+          mb: 1,
+        }}>
           <TextField
             fullWidth
             placeholder="Buscar por palabra clave o usuario"
@@ -257,8 +164,7 @@ export default function AdsPage() {
             sx={{ ...noBorderInput, flex: 7 }}
           />
           <TextField
-            select
-            fullWidth
+            select fullWidth
             value={selectedInterests}
             onChange={handleSelectInterest}
             slotProps={{
@@ -270,83 +176,30 @@ export default function AdsPage() {
             }}
             sx={{ ...noBorderInput, flex: 2 }}
           >
-            <MenuItem value={0} sx={{ color: theme.secondaryText }}>
-              Mis intereses
-            </MenuItem>
-            <MenuItem value={-1} sx={{ color: theme.secondaryText }}>
-              Todos los Intereses
-            </MenuItem>
+            <MenuItem value={0} sx={{ color: theme.secondaryText }}>Mis intereses</MenuItem>
+            <MenuItem value={-1} sx={{ color: theme.secondaryText }}>Todos los Intereses</MenuItem>
             {allInterests.map((interest) => (
-              <MenuItem
-                key={interest.id}
-                value={interest.id}
-                sx={{ color: "black" }}
-              >
+              <MenuItem key={interest.id} value={interest.id} sx={{ color: isDark ? theme.primaryText : "#1a1200" }}>
                 {interest.name}
               </MenuItem>
             ))}
           </TextField>
-          <IconButton
-            onClick={fetchAllAds}
-            sx={{
-              backgroundColor: theme.primaryBack,
-              color: "white",
-              width: 45,
-              height: 45,
-              flexShrink: 0,
-              "&:hover": { backgroundColor: theme.secondaryText },
-            }}
-          >
-            <RotateCcw />
+
+          <IconButton onClick={fetchAllAds} sx={{ background: accent, color: isDark ? "#1a1200" : "#ffffff", width: 42, height: 42, flexShrink: 0, borderRadius: "10px", "&:hover": { opacity: 0.9 } }}>
+            <RotateCcw size={18} />
           </IconButton>
-          <IconButton
-            onClick={() => {
-              setSelectedAdId(null);
-              setOpenFormAd(true);
-            }}
-            sx={{
-              backgroundColor: theme.primaryText,
-              width: 45,
-              height: 45,
-              flexShrink: 0,
-              ":hover": {
-                background: theme.secondaryText,
-              },
-            }}
-          >
-            <AddIcon sx={{ color: theme.secondaryBack }} />
+
+          <IconButton onClick={() => { setSelectedAdId(null); setOpenFormAd(true); }} sx={{ background: theme.primaryText, color: theme.secondaryBack, width: 42, height: 42, flexShrink: 0, borderRadius: "10px", "&:hover": { opacity: 0.85 } }}>
+            <AddIcon fontSize="small" />
           </IconButton>
         </Box>
 
-        <Box
-          sx={{
-            gridRow: "3",
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            px: 2,
-          }}
-        >
-          <Typography
-            sx={{
-              color: theme.primaryText,
-              fontWeight: 500,
-              fontSize: "0.85rem",
-            }}
-          >
-            {isLoading
-              ? "Buscando..."
-              : `Mostrando ${adsToShow.length} anuncios`}
+        <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", px: 1, mb: 1, flexShrink: 0 }}>
+          <Typography sx={{ color: theme.mutedText, fontSize: "0.82rem" }}>
+            {isLoading ? "Buscando..." : `${adsToShow.length} anuncio${adsToShow.length !== 1 ? "s" : ""}`}
           </Typography>
-          <Typography
-            sx={{
-              color: theme.primaryText,
-              fontWeight: 500,
-              fontSize: "0.85rem",
-            }}
-          >
-            Intereses:{" "}
-            <span style={{ fontWeight: "bold" }}>{getInterestText()}</span>
+          <Typography sx={{ color: theme.mutedText, fontSize: "0.82rem" }}>
+            Intereses: <span style={{ fontWeight: 700, color: theme.primaryText }}>{getInterestText()}</span>
           </Typography>
         </Box>
 
@@ -354,39 +207,26 @@ export default function AdsPage() {
           component={motion.div}
           layout
           sx={{
-            gridRow: "4",
-            p: 2,
-            mb: 2,
-            width: "100%",
-            display: "flex",
-            flexWrap: "wrap",
-            gap: 3,
+            flex: 1,
             overflowY: "auto",
-            borderRadius: 4,
+            borderRadius: "12px",
             background: theme.tertiaryBack,
-            borderTop: `${theme.primaryText} solid 3px`,
-            alignContent:
-              isLoading || adsToShow.length < 1 ? "center" : "flex-start",
-            justifyContent:
-              isLoading || adsToShow.length < 1 ? "center" : "flex-start",
+            borderTop: `3px solid ${accent}`,
+            p: 2,
+            display: "flex",
+            flexDirection: "column",
+            gap: 2,
+            alignItems: isLoading || adsToShow.length < 1 ? "center" : "stretch",
+            justifyContent: isLoading || adsToShow.length < 1 ? "center" : "flex-start",
             "&::-webkit-scrollbar": { width: "4px" },
-            "&::-webkit-scrollbar-thumb": {
-              backgroundColor: theme.primaryText,
-              borderRadius: "10px",
-            },
-
-            "&::-webkit-scrollbar-track": {
-              backgroundColor: "transparent",
-              margin: "10px 0",
-            },
+            "&::-webkit-scrollbar-thumb": { backgroundColor: accent, borderRadius: "10px" },
+            "&::-webkit-scrollbar-track": { backgroundColor: "transparent" },
           }}
         >
           {isLoading ? (
-            <Box sx={{ textAlign: "center", width: "100%" }}>
-              <CircularProgress sx={{ color: theme.primaryText, mb: 2 }} />
-              <Typography variant="h5" sx={{ color: theme.primaryText }}>
-                Cargando anuncios...
-              </Typography>
+            <Box sx={{ textAlign: "center" }}>
+              <CircularProgress sx={{ color: accent, mb: 2 }} />
+              <Typography sx={{ color: theme.primaryText }}>Cargando anuncios...</Typography>
             </Box>
           ) : adsToShow.length > 0 ? (
             <AnimatePresence mode="popLayout">
@@ -394,10 +234,9 @@ export default function AdsPage() {
                 <motion.div
                   key={ad.id}
                   initial={{ opacity: 0, y: 7 }}
-                  animate={{ opacity: 1, y: 9 }}
-                  exit={{ opacity: 0, scale: 0.0 }}
-                  transition={{ duration: 0.5 }}
-                  style={{ width: "100%" }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  transition={{ duration: 0.3 }}
                 >
                   <AdCard
                     ad={ad}
@@ -410,56 +249,21 @@ export default function AdsPage() {
               ))}
             </AnimatePresence>
           ) : (
-            <Typography
-              variant="h5"
-              sx={{
-                color: theme.primaryText,
-                textAlign: "center",
-                width: "100%",
-              }}
-            >
+            <Typography sx={{ color: theme.mutedText, textAlign: "center" }}>
               No se ha encontrado ningún anuncio
             </Typography>
           )}
         </Box>
-      </Grid>
+      </Container>
 
-      <FormAdCard
-        key={selectedAdId || "nuevo"}
-        adId={selectedAdId}
-        handleFinish={fetchAllAds}
-        open={openFormAd}
-        handleOpen={setOpenFormAd}
-      />
+      <FormAdCard key={selectedAdId || "nuevo"} adId={selectedAdId} handleFinish={fetchAllAds} open={openFormAd} handleOpen={setOpenFormAd} />
 
-      <ConfirmModal
-        open={confirmDelete.open}
-        handleClose={() => setConfirmDelete({ open: false, adId: null })}
-        onConfirm={handleDeleteAd}
-        title="¿Eliminar anuncio?"
-        message="Esta acción no se puede deshacer. ¿Estás seguro de que quieres borrar este anuncio?"
-      />
+      <ConfirmModal open={confirmDelete.open} handleClose={() => setConfirmDelete({ open: false, adId: null })} onConfirm={handleDeleteAd} title="¿Eliminar anuncio?" message="Esta acción no se puede deshacer. ¿Estás seguro de que quieres borrar este anuncio?" />
 
       <AnimatePresence>
         {toast.open && (
-          <Box
-            component={motion.div}
-            initial={{ opacity: 0, x: 100 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: 100 }}
-            transition={{ duration: 0.5 }}
-            sx={{
-              position: "fixed",
-              bottom: 40,
-              right: 40,
-              backgroundColor: "#d32f2f",
-              color: "white",
-              p: 2,
-              borderRadius: 2,
-              boxShadow: 3,
-              zIndex: 9999,
-            }}
-          >
+          <Box component={motion.div} initial={{ opacity: 0, x: 100 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 100 }} transition={{ duration: 0.5 }}
+            sx={{ position: "fixed", bottom: 40, right: 40, backgroundColor: "#d32f2f", color: "white", p: 2, borderRadius: 2, boxShadow: 3, zIndex: 9999 }}>
             <Typography>{toast.message}</Typography>
           </Box>
         )}

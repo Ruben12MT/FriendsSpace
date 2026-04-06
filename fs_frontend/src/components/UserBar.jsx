@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useContext } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
   Box, Avatar, Typography, IconButton, Tooltip,
@@ -10,7 +10,6 @@ import CampaignIcon from "@mui/icons-material/Campaign";
 import ChatBubbleOutlineIcon from "@mui/icons-material/ChatBubbleOutline";
 import LogoutIcon from "@mui/icons-material/Logout";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
-import { useContext } from "react";
 import { SocketContext } from "../context/SocketContext.jsx";
 import useAuthStore from "../store/useAuthStore.js";
 import { useUser } from "../hooks/useUser";
@@ -24,8 +23,8 @@ const TOPBAR_H = 52;
 
 const navItems = [
   { path: "/app/searchnewfriends", icon: <PersonSearchIcon />, label: "Buscar amigos" },
-  { path: "/app/ads",              icon: <CampaignIcon />,      label: "Anuncios" },
-  { path: "/app/chats",            icon: <ChatBubbleOutlineIcon />, label: "Chats" },
+  { path: "/app/ads",               icon: <CampaignIcon />,      label: "Anuncios" },
+  { path: "/app/chats",             icon: <ChatBubbleOutlineIcon />, label: "Chats" },
 ];
 
 export default function UserBar() {
@@ -35,10 +34,10 @@ export default function UserBar() {
   const theme = useAppTheme();
   const { socket } = useContext(SocketContext);
 
-  const unreadCount    = useAuthStore((s) => s.unreadCount);
-  const setUnreadCount = useAuthStore((s) => s.setUnreadCount);
+  const unreadCount     = useAuthStore((s) => s.unreadCount);
+  const setUnreadCount  = useAuthStore((s) => s.setUnreadCount);
   const incrementUnread = useAuthStore((s) => s.incrementUnread);
-  const clearAuth      = useAuthStore((s) => s.clearAuth);
+  const clearAuth       = useAuthStore((s) => s.clearAuth);
 
   const [anchorElUser, setAnchorElUser] = useState(null);
 
@@ -46,15 +45,13 @@ export default function UserBar() {
 
   const estaEnRequests = pathname === "/app/requests";
 
-  // Notificaciones iniciales
   useEffect(() => {
     if (unreadCount > 0) return;
     api.get("/requests/withoutread")
       .then((res) => setUnreadCount(res.data.numRequests))
       .catch(console.error);
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []); 
 
-  // Socket
   useEffect(() => {
     if (!socket) return;
     const inc = () => { if (!estaEnRequests) incrementUnread(); };
@@ -76,37 +73,26 @@ export default function UserBar() {
     } catch (e) { console.error(e); }
   };
 
-  // Tokens de color
-  const bg       = theme.navBar.backColor;
-  const fg       = theme.navBar.textColor;
-  const accent   = theme.primaryBack;
-  const border   = theme.name === "dark"
-    ? "rgba(255,255,255,0.07)"
-    : "rgba(0,0,0,0.08)";
-  const hoverBg  = theme.name === "dark"
-    ? "rgba(201,162,39,0.12)"
-    : "rgba(201,162,39,0.10)";
-  const activeBg = theme.name === "dark"
-    ? "rgba(201,162,39,0.20)"
-    : "rgba(201,162,39,0.15)";
+  const bg      = theme.navBar.backColor;
+  const fg      = theme.navBar.textColor;
+  const accent  = theme.accent || theme.navBar.activeColor;
+  const border  = theme.navBar.borderColor;
+  const hoverBg = theme.navBar.hoverBg;
+  const activeBg = theme.navBar.activeBg;
+  const isDark  = theme.name === "dark";
 
   const isActive = (path) => pathname.startsWith(path);
 
-  // Botón de navegación lateral
   const NavBtn = ({ path, icon, label }) => {
     const active = isActive(path);
     return (
       <Tooltip title={label} placement="right">
         <Box sx={{ position: "relative", width: "100%", display: "flex", justifyContent: "center" }}>
-          {/* Indicador activo izquierda */}
           {active && (
             <Box sx={{
-              position: "absolute",
-              left: 0,
-              top: "50%",
+              position: "absolute", left: 0, top: "50%",
               transform: "translateY(-50%)",
-              width: 3,
-              height: 22,
+              width: 3, height: 22,
               borderRadius: "0 3px 3px 0",
               background: accent,
             }} />
@@ -132,35 +118,23 @@ export default function UserBar() {
 
   return (
     <Box sx={{ display: "flex", minHeight: "100vh" }}>
-
-      <Box
-        sx={{
-          position: "fixed",
-          top: 0, left: 0, right: 0,
-          height: TOPBAR_H,
-          zIndex: 1200,
-          background: bg,
-          borderBottom: `1px solid ${border}`,
-          display: "flex",
-          alignItems: "center",
-          pl: `${SIDEBAR_W}px`,
-          pr: 2,
-          gap: 1,
-        }}
-      >
+      <Box sx={{
+        position: "fixed", top: 0, left: 0, right: 0,
+        height: TOPBAR_H, zIndex: 1200,
+        background: bg,
+        borderBottom: `1px solid ${border}`,
+        display: "flex", alignItems: "center",
+        pl: `${SIDEBAR_W}px`, pr: 2, gap: 1,
+      }}>
         <Box
           onClick={() => navigate("/")}
           sx={{
-            position: "absolute",
-            left: 0, top: 0,
-            width: SIDEBAR_W,
-            height: TOPBAR_H,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
+            position: "absolute", left: 0, top: 0,
+            width: SIDEBAR_W, height: TOPBAR_H,
+            display: "flex", alignItems: "center", justifyContent: "center",
             cursor: "pointer",
-            "&:hover img, &:hover .MuiAvatar-root": { opacity: 0.8 },
             transition: "opacity 0.15s",
+            "&:hover": { opacity: 0.75 },
           }}
         >
           <Avatar src="/logo.png" sx={{ width: 30, height: 30 }} />
@@ -169,14 +143,10 @@ export default function UserBar() {
         <Typography
           onClick={() => navigate("/")}
           sx={{
-            fontFamily: "monospace",
-            fontWeight: 700,
-            fontSize: "0.95rem",
-            color: fg,
-            letterSpacing: "0.06em",
-            cursor: "pointer",
-            userSelect: "none",
-            transition: "color 0.15s",
+            fontFamily: "monospace", fontWeight: 700,
+            fontSize: "0.95rem", color: fg,
+            letterSpacing: "0.06em", cursor: "pointer",
+            userSelect: "none", transition: "color 0.15s",
             "&:hover": { color: accent },
           }}
         >
@@ -189,8 +159,7 @@ export default function UserBar() {
           <IconButton
             onClick={() => navigate("/app/requests")}
             sx={{
-              width: 36, height: 36,
-              borderRadius: "10px",
+              width: 36, height: 36, borderRadius: "10px",
               color: estaEnRequests ? accent : fg,
               background: estaEnRequests ? activeBg : "transparent",
               border: `1px solid ${estaEnRequests ? accent + "50" : "transparent"}`,
@@ -201,14 +170,7 @@ export default function UserBar() {
             <Badge
               badgeContent={unreadCount}
               color="error"
-              sx={{
-                "& .MuiBadge-badge": {
-                  fontSize: "0.6rem",
-                  minWidth: 15,
-                  height: 15,
-                  padding: "0 3px",
-                },
-              }}
+              sx={{ "& .MuiBadge-badge": { fontSize: "0.6rem", minWidth: 15, height: 15, padding: "0 3px" } }}
             >
               <NotificationsIcon sx={{ fontSize: 19 }} />
             </Badge>
@@ -218,35 +180,21 @@ export default function UserBar() {
         <ThemeToggler block={true} />
       </Box>
 
-      <Box
-        sx={{
-          position: "fixed",
-          top: 0, left: 0,
-          width: SIDEBAR_W,
-          height: "100vh",
-          zIndex: 1100,
-          background: bg,
-          borderRight: `1px solid ${border}`,
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          pt: `${TOPBAR_H}px`,
-          pb: 2,
-          boxSizing: "border-box",
-        }}
-      >
-        <Box
-          sx={{
-            flex: 1,
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            gap: 0.5,
-            pt: 2,
-            width: "100%",
-            px: "10px",
-          }}
-        >
+      <Box sx={{
+        position: "fixed", top: 0, left: 0,
+        width: SIDEBAR_W, height: "100vh",
+        zIndex: 1100, background: bg,
+        borderRight: `1px solid ${border}`,
+        display: "flex", flexDirection: "column",
+        alignItems: "center",
+        pt: `${TOPBAR_H}px`, pb: 2,
+        boxSizing: "border-box",
+      }}>
+        <Box sx={{
+          flex: 1, display: "flex", flexDirection: "column",
+          alignItems: "center", gap: 0.5,
+          pt: 2, width: "100%", px: "10px",
+        }}>
           {navItems.map((item) => (
             <NavBtn key={item.path} {...item} />
           ))}
@@ -259,19 +207,15 @@ export default function UserBar() {
               <IconButton
                 onClick={(e) => setAnchorElUser(e.currentTarget)}
                 sx={{
-                  width: 44, height: 44,
-                  borderRadius: "12px",
-                  p: "4px",
-                  border: anchorElUser
-                    ? `2px solid ${accent}`
-                    : `2px solid transparent`,
+                  width: 44, height: 44, borderRadius: "12px", p: "4px",
+                  border: anchorElUser ? `2px solid ${accent}` : `2px solid transparent`,
                   transition: "border 0.15s",
                   "&:hover": { border: `2px solid ${accent}70` },
                 }}
               >
                 <Avatar
                   src={loggedUser?.url_image || "/no_user_avatar_image.png"}
-                  sx={{ width: 32, height: 32, borderRadius: "1000" }}
+                  sx={{ width: 32, height: 32 }}
                 />
               </IconButton>
             </Tooltip>
@@ -279,7 +223,6 @@ export default function UserBar() {
         </Box>
       </Box>
 
-      {/* Menú desplegable del usuario */}
       <Menu
         anchorEl={anchorElUser}
         open={Boolean(anchorElUser)}
@@ -288,35 +231,26 @@ export default function UserBar() {
         transformOrigin={{ vertical: "bottom", horizontal: "left" }}
         PaperProps={{
           sx: {
-            ml: "8px",
-            borderRadius: "14px",
+            ml: "8px", borderRadius: "14px",
             background: bg,
             border: `1px solid ${border}`,
-            boxShadow: theme.name === "dark"
-              ? "0 8px 32px rgba(0,0,0,0.6)"
-              : "0 8px 32px rgba(0,0,0,0.14)",
-            minWidth: 190,
-            overflow: "hidden",
+            boxShadow: isDark ? "0 8px 32px rgba(0,0,0,0.6)" : "0 8px 32px rgba(0,0,0,0.14)",
+            minWidth: 190, overflow: "hidden",
           },
         }}
       >
-        {/* Info usuario */}
         <Box sx={{ px: 2, py: 1.5, borderBottom: `1px solid ${border}` }}>
           <Typography sx={{ fontWeight: 700, color: fg, fontSize: "0.875rem", lineHeight: 1.3 }}>
             {loggedUser?.name}
           </Typography>
-          <Typography sx={{ color: theme.secondaryText, fontSize: "0.72rem", mt: 0.25 }}>
+          <Typography sx={{ color: theme.mutedText || theme.secondaryText, fontSize: "0.72rem", mt: 0.25 }}>
             {loggedUser?.email || ""}
           </Typography>
         </Box>
 
         <MenuItem
           onClick={() => { setAnchorElUser(null); navigate("/app/" + loggedUser?.id); }}
-          sx={{
-            gap: 1.5, py: 1.2,
-            color: fg, fontSize: "0.85rem",
-            "&:hover": { background: hoverBg, color: accent },
-          }}
+          sx={{ gap: 1.5, py: 1.2, color: fg, fontSize: "0.85rem", "&:hover": { background: hoverBg, color: accent } }}
         >
           <AccountCircleIcon fontSize="small" sx={{ opacity: 0.65 }} />
           Ver perfil
@@ -326,11 +260,7 @@ export default function UserBar() {
 
         <MenuItem
           onClick={logout}
-          sx={{
-            gap: 1.5, py: 1.2,
-            color: "#f44336", fontSize: "0.85rem",
-            "&:hover": { background: "rgba(244,67,54,0.08)" },
-          }}
+          sx={{ gap: 1.5, py: 1.2, color: "#f44336", fontSize: "0.85rem", "&:hover": { background: "rgba(244,67,54,0.08)" } }}
         >
           <LogoutIcon fontSize="small" sx={{ opacity: 0.75 }} />
           Cerrar sesión
@@ -344,8 +274,7 @@ export default function UserBar() {
           ml: `${SIDEBAR_W}px`,
           mt: `${TOPBAR_H}px`,
           minHeight: `calc(100vh - ${TOPBAR_H}px)`,
-          display: "flex",
-          flexDirection: "column",
+          display: "flex", flexDirection: "column",
           boxSizing: "border-box",
         }}
       >

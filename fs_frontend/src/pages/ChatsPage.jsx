@@ -54,16 +54,12 @@ export default function ChatsPage() {
   const currentUserIsAdmin =
     loggedUser?.role === "ADMIN" || loggedUser?.role === "DEVELOPER";
 
-  // Vista activa en el panel lateral (Solo admins ven "reportes")
   const [selectedTab, setSelectedTab] = useState("chats");
 
-  // Lista completa de conversaciones del usuario
   const [conversationList, setConversationList] = useState([]);
 
-  // Conversación que está abierta actualmente en el área de chat
   const [openedConversation, setOpenedConversation] = useState(null);
 
-  // Mensajes de la conversación abierta
   const [messageList, setMessageList] = useState([]);
 
   const [reportClosedDialog, setReportClosedDialog] = useState(false);
@@ -73,10 +69,8 @@ export default function ChatsPage() {
   const [messageInputText, setMessageInputText] = useState("");
   const [isSendingMessage, setIsSendingMessage] = useState(false);
 
-  // Mensaje al que se está respondiendo
   const [replyTargetMessage, setReplyTargetMessage] = useState(null);
 
-  // Mensaje que se está editando
   const [messageBeingEdited, setMessageBeingEdited] = useState(null);
 
   const [rightClickMenu, setRightClickMenu] = useState({
@@ -106,7 +100,6 @@ export default function ChatsPage() {
   const mainTextColor = theme.primaryText;
   const mutedTextColor = theme.secondaryText;
 
-  // Transforma el array de conexiones del backend al formato que usa el componente
   const buildConversationList = (rawConnections, currentUserId) => {
     return rawConnections
       .map((connection) => {
@@ -134,7 +127,6 @@ export default function ChatsPage() {
       .filter((conv) => conv.friendUser);
   };
 
-  // Conversaciones filtradas según la pestaña activa
   const visibleConversations = currentUserIsAdmin
     ? conversationList.filter((c) =>
         selectedTab === "reportes" ? c.isReportChat : !c.isReportChat,
@@ -150,7 +142,6 @@ export default function ChatsPage() {
 
   const isCurrentChatBlocked = openedConversation?.isBlocked;
 
-  // Carga la lista de conversaciones al montar
   useEffect(() => {
     async function loadConversationList() {
       if (!loggedUser) return;
@@ -226,7 +217,6 @@ export default function ChatsPage() {
     [],
   );
 
-  // Carga el último mensaje de una conversación y lo actualiza en la lista lateral
   const updateLastMessage = useCallback(async (connectionId) => {
     try {
       const response = await api.get(`/messages/${connectionId}`, {
@@ -247,7 +237,6 @@ export default function ChatsPage() {
     }
   }, []);
 
-  // Abre una conversación en el área de chat
   const selectConversation = (conversation) => {
     if (openedConversation?.connectionId === conversation.connectionId) return;
     if (openedConversation && socket)
@@ -263,7 +252,6 @@ export default function ChatsPage() {
     if (socket) socket.emit("join_chat", conversation.connectionId);
   };
 
-  // Cambia entre pestaña Chats y Reportes (solo admins)
   const handleTabChange = (newTab) => {
     setSelectedTab(newTab);
     if (openedConversation) {
@@ -279,7 +267,6 @@ export default function ChatsPage() {
     }
   };
 
-  // Finaliza la investigación — cierra la conexión de reporte
   const handleFinishInvestigation = async () => {
     try {
       await api.put(`/connections/${openedConversation.connectionId}/finish`);
@@ -295,7 +282,6 @@ export default function ChatsPage() {
     }
   };
 
-  // Muestra el dialog de aviso si la conversación está bloqueada
   const checkIfBlockedBeforeAction = () => {
     if (!openedConversation?.isBlocked) return false;
     if (openedConversation.iBlockedThem) {
@@ -328,11 +314,10 @@ export default function ChatsPage() {
     }
   };
 
-  // Escucha eventos de socket para mensajes en tiempo real
   useEffect(() => {
     if (!socket) return;
 
-    const onInvestigacionFinalizada = ({ connectionId, adminId }) => {
+    const onInvestigacionFinalizada = ({ connectionId }) => {
       setConversationList((prev) =>
         prev.filter((c) => c.connectionId !== connectionId),
       );
@@ -396,7 +381,6 @@ export default function ChatsPage() {
     };
   }, [socket]);
 
-  // Observador para cargar más mensajes al llegar al tope
   useEffect(() => {
     const topElement = topSentinelRef.current;
     if (!topElement) return;
@@ -528,7 +512,6 @@ export default function ChatsPage() {
       }}
       onClick={closeRightClickMenu}
     >
-      {/* Panel lateral con lista de conversaciones */}
       <Box
         sx={{
           width: SIDEBAR_PANEL_WIDTH,
@@ -540,7 +523,6 @@ export default function ChatsPage() {
           overflow: "hidden",
         }}
       >
-        {/* Pestañas Chats / Reportes para admins */}
         {currentUserIsAdmin ? (
           <Box
             sx={{
@@ -632,7 +614,6 @@ export default function ChatsPage() {
           </Box>
         )}
 
-        {/* Lista de conversaciones */}
         <Box
           sx={{
             flex: 1,
@@ -672,7 +653,6 @@ export default function ChatsPage() {
         </Box>
       </Box>
 
-      {/* Área principal de chat */}
       {!openedConversation ? (
         <Box
           sx={{
@@ -845,7 +825,6 @@ export default function ChatsPage() {
             </Menu>
           </Box>
 
-          {/* Lista de mensajes */}
           <Box
             sx={{
               flex: 1,
@@ -886,7 +865,6 @@ export default function ChatsPage() {
             <Box ref={bottomOfMessagesRef} />
           </Box>
 
-          {/* Preview de respuesta o edición activa */}
           {(replyTargetMessage || messageBeingEdited) && (
             <Box
               sx={{
@@ -949,7 +927,6 @@ export default function ChatsPage() {
             </Box>
           )}
 
-          {/* Barra de escritura */}
           <Box
             sx={{
               px: 2,
@@ -1073,7 +1050,6 @@ export default function ChatsPage() {
         />
       )}
 
-      {/* Dialog: Confirmar finalizar investigación */}
       <Dialog
         open={finishInvestigationDialog}
         onClose={() => setFinishInvestigationDialog(false)}
@@ -1129,7 +1105,6 @@ export default function ChatsPage() {
         </DialogActions>
       </Dialog>
 
-      {/* Dialog: Aviso de conversación bloqueada */}
       <Dialog
         open={blockWarningDialog.open}
         onClose={() => setBlockWarningDialog({ open: false, type: null })}

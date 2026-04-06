@@ -1,9 +1,9 @@
 import * as React from "react";
 import { useState, useEffect } from "react";
-import Box from "@mui/material/Box";
-import Typography from "@mui/material/Typography";
-import Modal from "@mui/material/Modal";
 import {
+  Box,
+  Typography,
+  Modal,
   IconButton,
   TextField,
   Tooltip,
@@ -15,21 +15,17 @@ import CloseIcon from "@mui/icons-material/Close";
 import RestartAltIcon from "@mui/icons-material/RestartAlt";
 import PublishIcon from "@mui/icons-material/Publish";
 import CheckIcon from "@mui/icons-material/Check";
+import { TransitionGroup } from "react-transition-group";
 import { useAppTheme } from "../hooks/useAppTheme";
 import InterestItem from "./InterestItem";
 import api from "../utils/api";
 import ErrorMessage from "../components/ErrorMessage";
-import { TransitionGroup } from "react-transition-group";
 
 export default function FormAdCard({ open, handleOpen, adId, handleFinish }) {
   const theme = useAppTheme();
   const [ogAd, setOgAd] = useState({});
   const [allInterests, setAllInterests] = useState([]);
-  const [editedAd, setEditedAd] = useState({
-    title: "",
-    body: "",
-    interests: [],
-  });
+  const [editedAd, setEditedAd] = useState({ title: "", body: "", interests: [] });
   const [loading, setLoading] = useState(false);
   const [localError, setLocalError] = useState({ open: false, message: "" });
 
@@ -53,14 +49,11 @@ export default function FormAdCard({ open, handleOpen, adId, handleFinish }) {
           try {
             const response = await api.get(`/ads/${adId}`);
             if (response.data?.datos) {
-              setOgAd(response.data?.datos);
+              setOgAd(response.data.datos);
               setEditedAd(response.data.datos);
             }
           } catch (err) {
-            setLocalError({
-              open: true,
-              message: "No se pudo cargar el anuncio.",
-            });
+            setLocalError({ open: true, message: "No se pudo cargar el anuncio." });
           } finally {
             setLoading(false);
           }
@@ -72,9 +65,7 @@ export default function FormAdCard({ open, handleOpen, adId, handleFinish }) {
     fetchAd();
   }, [open, adId]);
 
-  const adInterestIds = new Set(
-    (editedAd.interests || []).map((i) => i.id || i.interest_id),
-  );
+  const adInterestIds = new Set((editedAd.interests || []).map((i) => i.id || i.interest_id));
   const restInterests = allInterests.filter((i) => !adInterestIds.has(i.id));
 
   const handleClose = () => {
@@ -101,29 +92,14 @@ export default function FormAdCard({ open, handleOpen, adId, handleFinish }) {
     setEditedAd((prev) => ({
       ...prev,
       interests: prev.interests.filter(
-        (i) =>
-          (i.id || i.interest_id) !== (interest.id || interest.interest_id),
+        (i) => (i.id || i.interest_id) !== (interest.id || interest.interest_id)
       ),
     }));
   };
 
   const handleSubmit = async () => {
-    if (
-      !editedAd.title ||
-      !editedAd.interests ||
-      editedAd.interests.length === 0
-    ) {
-      setLocalError({
-        open: true,
-        message: "El título y al menos un interés son obligatorios.",
-      });
-      return;
-    }
-    if (!editedAd.title || editedAd.interests.length === 0) {
-      setLocalError({
-        open: true,
-        message: "El título y al menos un interés son obligatorios.",
-      });
+    if (!editedAd.title || !editedAd.interests || editedAd.interests.length === 0) {
+      setLocalError({ open: true, message: "El título y al menos un interés son obligatorios." });
       return;
     }
 
@@ -131,6 +107,7 @@ export default function FormAdCard({ open, handleOpen, adId, handleFinish }) {
       ...editedAd,
       interests: editedAd.interests.map((i) => i.id || i.interest_id),
     };
+
     try {
       if (adId) {
         await api.put(`/ads/${adId}`, dataToSend);
@@ -142,16 +119,14 @@ export default function FormAdCard({ open, handleOpen, adId, handleFinish }) {
     } catch (error) {
       setLocalError({
         open: true,
-        message:
-          error.response?.data?.message ||
-          "Ocurrió un error al guardar el anuncio.",
+        message: error.response?.data?.message || "Ocurrió un error al guardar el anuncio.",
       });
     }
   };
 
   const inputStyle = {
     background: theme.tertiaryBack,
-    border: theme.primaryText + " 2px solid",
+    border: `${theme.primaryText} 2px solid`,
     borderRadius: 2,
     "& .MuiOutlinedInput-notchedOutline": { border: "none" },
     "& .MuiInputBase-input": {
@@ -169,29 +144,29 @@ export default function FormAdCard({ open, handleOpen, adId, handleFinish }) {
     <Modal open={open} onClose={handleClose}>
       <Fade in={open}>
         <Box
-          justifyItems={"center"}
-          alignContent={"center"}
-          sx={{ height: "100%", width: "100%", outline: "none" }}
+          sx={{
+            height: "100%",
+            width: "100%",
+            outline: "none",
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+          }}
         >
           <Box
-            display={"flex"}
-            flexDirection={"column"}
-            justifyContent={"space-between"}
             sx={{
               p: 3,
               borderRadius: 4,
               height: "825px",
               width: "65%",
-              border: theme.primaryText + " 2px solid",
+              border: `${theme.primaryText} 2px solid`,
               background: theme.secondaryBack,
+              display: "flex",
+              flexDirection: "column",
+              justifyContent: "space-between",
             }}
           >
-            <Box
-              display={"flex"}
-              justifyContent="space-between"
-              alignItems={"center"}
-              width={"100%"}
-            >
+            <Box display="flex" justifyContent="space-between" alignItems="center" width="100%">
               <Typography variant="h5" sx={{ color: theme.primaryText }}>
                 {adId ? "Editar Anuncio" : "Crear un nuevo anuncio"}
               </Typography>
@@ -200,25 +175,13 @@ export default function FormAdCard({ open, handleOpen, adId, handleFinish }) {
               </IconButton>
             </Box>
 
-            <Box sx={{ flexGrow: 1 }}>
+            <Box sx={{ flexGrow: 1, overflowY: "auto", pr: 1 }}>
               <Grid item sx={{ width: "100%", mt: 3 }}>
                 <Grid container justifyContent="space-between">
-                  <Typography
-                    sx={{
-                      fontWeight: "bold",
-                      mb: 0.5,
-                      color: theme.primaryText,
-                    }}
-                  >
+                  <Typography sx={{ fontWeight: "bold", mb: 0.5, color: theme.primaryText }}>
                     Escribe un asunto
                   </Typography>
-                  <Typography
-                    sx={{
-                      fontWeight: "bold",
-                      mb: 0.5,
-                      color: theme.primaryText,
-                    }}
-                  >
+                  <Typography sx={{ fontWeight: "bold", mb: 0.5, color: theme.primaryText }}>
                     {editedAd.title?.length || 0}/100
                   </Typography>
                 </Grid>
@@ -234,39 +197,21 @@ export default function FormAdCard({ open, handleOpen, adId, handleFinish }) {
 
               <Grid item sx={{ width: "100%", mt: 3 }}>
                 <Grid container justifyContent="space-between">
-                  <Typography
-                    sx={{
-                      fontWeight: "bold",
-                      mb: 0.5,
-                      color: theme.primaryText,
-                    }}
-                  >
+                  <Typography sx={{ fontWeight: "bold", mb: 0.5, color: theme.primaryText }}>
                     Selecciona los intereses del anuncio (Mínimo 1)
                   </Typography>
-                  <Typography
-                    sx={{
-                      fontWeight: "bold",
-                      mb: 0.5,
-                      color: theme.primaryText,
-                    }}
-                  >
+                  <Typography sx={{ fontWeight: "bold", mb: 0.5, color: theme.primaryText }}>
                     {editedAd.interests?.length || 0}/{allInterests.length}
                   </Typography>
                 </Grid>
-                <Grid
-                  container
-                  spacing={2}
-                  alignContent={"center"}
-                  justifyContent={"space-between"}
-                  sx={{ borderRadius: 4, height: "200px", py: 2 }}
-                >
+                <Grid container spacing={2} sx={{ height: "200px", py: 2 }}>
                   {editedAd.interests?.length > 0 && (
                     <Grid
-                      container
-                      size={{ xs: 8 }}
+                      item
+                      xs={8}
                       sx={{
                         background: theme.tertiaryBack,
-                        border: theme.primaryText + " 2px solid",
+                        border: `${theme.primaryText} 2px solid`,
                         borderRadius: 4,
                         height: "175px",
                         p: 2,
@@ -276,15 +221,8 @@ export default function FormAdCard({ open, handleOpen, adId, handleFinish }) {
                       <TransitionGroup component={null}>
                         {editedAd.interests.map((int) => (
                           <Zoom key={int.id || int.interest_id}>
-                            <Box
-                              onClick={() => removeInterest(int)}
-                              sx={{ p: 0.5, cursor: "pointer" }}
-                            >
-                              <InterestItem
-                                title={int.name || int.nombre}
-                                variant="deselect"
-                                onDelete={() => {}}
-                              />
+                            <Box onClick={() => removeInterest(int)} sx={{ p: 0.5, cursor: "pointer" }}>
+                              <InterestItem title={int.name || int.nombre} variant="deselect" />
                             </Box>
                           </Zoom>
                         ))}
@@ -293,18 +231,15 @@ export default function FormAdCard({ open, handleOpen, adId, handleFinish }) {
                   )}
 
                   <Grid
-                    container
-                    spacing={2}
-                    size={{ xs: editedAd.interests?.length === 0 ? 12 : 4 }}
+                    item
+                    xs={editedAd.interests?.length === 0 ? 12 : 4}
                     sx={{
                       background: theme.primaryBack,
-                      border: theme.primaryText + " 2px solid",
+                      border: `${theme.primaryText} 2px solid`,
                       borderRadius: 4,
                       height: "175px",
                       py: 1,
-                      pl: 0.25,
                       overflowY: "auto",
-                      display: "block",
                       "&::-webkit-scrollbar": { width: "6px" },
                       "&::-webkit-scrollbar-thumb": {
                         borderRadius: "10px",
@@ -315,14 +250,8 @@ export default function FormAdCard({ open, handleOpen, adId, handleFinish }) {
                     <TransitionGroup component={null}>
                       {restInterests.map((int) => (
                         <Zoom key={int.id || int.interest_id}>
-                          <Box
-                            onClick={() => addInterest(int)}
-                            sx={{ p: 0.5, cursor: "pointer" }}
-                          >
-                            <InterestItem
-                              title={int.name || int.nombre}
-                              variant="select"
-                            />
+                          <Box onClick={() => addInterest(int)} sx={{ p: 0.5, cursor: "pointer" }}>
+                            <InterestItem title={int.name || int.nombre} variant="select" />
                           </Box>
                         </Zoom>
                       ))}
@@ -333,27 +262,15 @@ export default function FormAdCard({ open, handleOpen, adId, handleFinish }) {
 
               <Grid item sx={{ width: "100%", mt: 3 }}>
                 <Grid container justifyContent="space-between">
-                  <Typography
-                    sx={{
-                      fontWeight: "bold",
-                      mb: 0.5,
-                      color: theme.primaryText,
-                    }}
-                  >
+                  <Typography sx={{ fontWeight: "bold", mb: 0.5, color: theme.primaryText }}>
                     Añade un cuerpo (Opcional)
                   </Typography>
-                  <Typography
-                    sx={{
-                      fontWeight: "bold",
-                      mb: 0.5,
-                      color: theme.primaryText,
-                    }}
-                  >
+                  <Typography sx={{ fontWeight: "bold", mb: 0.5, color: theme.primaryText }}>
                     {editedAd.body?.length || 0}/500
                   </Typography>
                 </Grid>
                 <TextField
-                  placeholder="Añade un cuerpo a tu anuncio. &#10;Ej: Buenas soy... , Busco personas para... etc."
+                  placeholder="Añade un cuerpo a tu anuncio..."
                   name="body"
                   fullWidth
                   multiline
@@ -363,30 +280,24 @@ export default function FormAdCard({ open, handleOpen, adId, handleFinish }) {
                   sx={inputStyle}
                 />
               </Grid>
+
               <ErrorMessage
                 message={localError.message}
                 open={localError.open}
-                setOpen={(val) =>
-                  setLocalError((prev) => ({ ...prev, open: val }))
-                }
+                setOpen={(val) => setLocalError((prev) => ({ ...prev, open: val }))}
               />
             </Box>
 
             <Box
-              width={"100%"}
-              display={"flex"}
+              display="flex"
               justifyContent="center"
-              alignItems={"center"}
+              alignItems="center"
               gap={6}
-              sx={{ pt: 3, borderTop: theme.primaryText + " solid 2px" }}
+              sx={{ pt: 3, borderTop: `${theme.primaryText} solid 2px` }}
             >
               <Tooltip title="Restablecer cambios" arrow placement="top">
                 <IconButton
-                  onClick={() =>
-                    adId
-                      ? setEditedAd(ogAd)
-                      : setEditedAd({ title: "", body: "", interests: [] })
-                  }
+                  onClick={() => adId ? setEditedAd(ogAd) : setEditedAd({ title: "", body: "", interests: [] })}
                   sx={{
                     backgroundColor: theme.primaryBack,
                     width: 55,
@@ -399,17 +310,11 @@ export default function FormAdCard({ open, handleOpen, adId, handleFinish }) {
                     },
                   }}
                 >
-                  <RestartAltIcon
-                    sx={{ color: theme.primaryText, fontSize: 30 }}
-                  />
+                  <RestartAltIcon sx={{ color: theme.primaryText, fontSize: 30 }} />
                 </IconButton>
               </Tooltip>
 
-              <Tooltip
-                title={adId ? "Aplicar Cambios" : "Publicar Anuncio"}
-                arrow
-                placement="top"
-              >
+              <Tooltip title={adId ? "Aplicar Cambios" : "Publicar Anuncio"} arrow placement="top">
                 <IconButton
                   onClick={handleSubmit}
                   sx={{
@@ -425,13 +330,9 @@ export default function FormAdCard({ open, handleOpen, adId, handleFinish }) {
                   }}
                 >
                   {adId ? (
-                    <CheckIcon
-                      sx={{ color: theme.secondaryBack, fontSize: 32 }}
-                    />
+                    <CheckIcon sx={{ color: theme.secondaryBack, fontSize: 32 }} />
                   ) : (
-                    <PublishIcon
-                      sx={{ color: theme.secondaryBack, fontSize: 32 }}
-                    />
+                    <PublishIcon sx={{ color: theme.secondaryBack, fontSize: 32 }} />
                   )}
                 </IconButton>
               </Tooltip>

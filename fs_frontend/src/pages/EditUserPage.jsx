@@ -1,3 +1,4 @@
+import React, { useEffect, useRef, useState } from "react";
 import {
   Autocomplete,
   Avatar,
@@ -8,7 +9,6 @@ import {
   IconButton,
   CircularProgress,
 } from "@mui/material";
-import React, { useEffect, useRef, useState } from "react";
 import { useUser } from "../hooks/useUser";
 import { useNavigate } from "react-router-dom";
 import api from "../utils/api";
@@ -52,14 +52,11 @@ export default function EditUserPage() {
     "& .MuiInputLabel-root.Mui-focused": { color: theme.primaryText },
   };
 
-  // Inicializamos editedUser directamente desde loggedUser — ya tiene todos los datos
-  // porque checkAuth devuelve el usuario completo de BD al arrancar la app
   useEffect(() => {
     if (!loggedUser) return;
     setEditedUser({ ...loggedUser, first_login: 0 });
   }, [loggedUser]);
 
-  // Cargamos los intereses del usuario y todos los intereses disponibles
   useEffect(() => {
     if (!loggedUser) return;
     async function fetchData() {
@@ -154,7 +151,6 @@ export default function EditUserPage() {
         });
       }
 
-      // Actualizamos Zustand con todos los datos del usuario editado
       setLoggedUser({
         ...loggedUser,
         name: cleanData.name || loggedUser.name,

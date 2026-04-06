@@ -1,10 +1,6 @@
 import React from "react";
 import { Box, Avatar, Typography } from "@mui/material";
 import BlockIcon from "@mui/icons-material/Block";
-import ImageIcon from "@mui/icons-material/Image";
-import AudiotrackIcon from "@mui/icons-material/Audiotrack";
-import VideocamIcon from "@mui/icons-material/Videocam";
-import InsertDriveFileIcon from "@mui/icons-material/InsertDriveFile";
 import { useAppTheme } from "../hooks/useAppTheme";
 import { useUser } from "../hooks/useUser";
 

@@ -20,7 +20,7 @@ export function AuthProvider({ children }) {
     }
 
     verificarSesion();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [setLoggedUser, clearAuth]);
 
   return children;
 }

@@ -4,16 +4,13 @@ import { Box } from "@mui/material";
 const BackgroundVideo = ({ src }) => {
   const [currentSrc, setCurrentSrc] = useState(src);
   const [prevSrc, setPrevSrc] = useState(null);
-
-  // IMPORTANTE: Empezamos en TRUE para que el video nuevo esté invisible
-  // hasta que onLoadedData nos diga que hay imagen.
   const [isChanging, setIsChanging] = useState(true);
 
   useEffect(() => {
     if (src !== currentSrc) {
       setPrevSrc(currentSrc);
       setCurrentSrc(src);
-      setIsChanging(true); // Bloqueamos la opacidad al cambiar de src
+      setIsChanging(true);
     }
   }, [src, currentSrc]);
 
@@ -30,7 +27,6 @@ const BackgroundVideo = ({ src }) => {
         overflow: "hidden",
       }}
     >
-      {/* Video de respaldo (el anterior) */}
       {prevSrc && (
         <video
           key={prevSrc}
@@ -50,7 +46,6 @@ const BackgroundVideo = ({ src }) => {
         </video>
       )}
 
-      {/* Video principal */}
       <video
         key={currentSrc}
         autoPlay

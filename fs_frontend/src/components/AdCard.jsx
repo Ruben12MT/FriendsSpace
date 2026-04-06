@@ -1,18 +1,8 @@
 import {
-  Avatar,
-  Box,
-  Grid,
-  Typography,
-  IconButton,
-  Button,
-  TextField,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogContentText,
-  DialogActions,
+  Avatar, Box, Typography, Button, TextField, 
+  Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions,
 } from "@mui/material";
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useAppTheme } from "../hooks/useAppTheme";
 import InterestItem from "../components/InterestItem";
 import { useUser } from "../hooks/useUser";
@@ -23,24 +13,18 @@ import FlagIcon from "@mui/icons-material/Flag";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import api from "../utils/api";
-import FormAdCard from "./FormAdCard";
 
 export default function AdCard({ ad, onDelete, setOpenFormAd, onSelect }) {
   const { loggedUser } = useUser();
   const theme = useAppTheme();
   const navigate = useNavigate();
-  const [allInterests, setAllInterests] = useState([]);
+
+  const accent = theme.accent || theme.primaryBack;
+  const isDark = theme.name === "dark";
+
   const [reportOpen, setReportOpen] = useState(false);
   const [reportMotivo, setReportMotivo] = useState("");
   const [reportSending, setReportSending] = useState(false);
-
-  useEffect(() => {
-    if (allInterests.length === 0) {
-      api.get("/interests")
-        .then((res) => { if (res.data?.datos) setAllInterests(res.data.datos); })
-        .catch(console.error);
-    }
-  }, [allInterests.length]);
 
   const formatDate = (timestamp) => {
     const date = new Date(timestamp);
@@ -80,45 +64,48 @@ export default function AdCard({ ad, onDelete, setOpenFormAd, onSelect }) {
 
   return (
     <>
-      <Grid
-        container
+      <Box
         sx={{
-          backgroundColor: theme.tertiaryBack,
           width: "100%",
-          minHeight: hasBody ? "200px" : "140px",
-          display: "flex",
-          flexDirection: "column",
-          borderRadius: 2,
-          border: "solid 2px " + theme.primaryText,
-          boxShadow: 6,
-          px: 4, pt: 3, pb: 3,
-          gap: hasBody ? 2 : 1,
+          background: theme.secondaryBack,
+          borderRadius: "16px",
+          border: `1px solid ${accent}25`,
+          boxShadow: isDark
+            ? "0 2px 12px rgba(0,0,0,0.25)"
+            : `0 2px 12px rgba(184,134,11,0.08)`,
+          px: 3, pt: 2.5, pb: 2.5,
+          display: "flex", flexDirection: "column",
+          gap: hasBody ? 2 : 1.5,
         }}
       >
-        {/* Cabecera */}
         <Box
           component={motion.div}
           onClick={() => navigate("/app/" + ad.user_id)}
-          whileHover={{ scale: 0.98, transition: { duration: 0.1 } }}
+          whileHover={{ scale: 0.99, transition: { duration: 0.1 } }}
           sx={{
-            display: "flex", alignItems: "center", width: "100%", gap: 2,
-            border: "solid 2px " + theme.primaryText, borderRadius: 1000,
-            p: 1.5, mb: 1, background: theme.secondaryBack, cursor: "pointer",
+            display: "flex", alignItems: "center", gap: 2,
+            background: theme.tertiaryBack,
+            borderRadius: "12px",
+            border: `1px solid ${accent}20`,
+            p: 1.5, cursor: "pointer",
           }}
         >
-          <Avatar sx={{ width: 70, height: 70, flexShrink: 0 }} src={ad.user.url_image ?? "/no_user_avatar_image.png"} />
-          <Box sx={{ flexGrow: 1, display: "flex", flexDirection: "column", gap: 1 }}>
-            <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-              <Typography sx={{ color: theme.primaryText, fontWeight: 500, lineHeight: 1.2 }}>
+          <Avatar
+            sx={{ width: 52, height: 52, flexShrink: 0, border: `2px solid ${accent}30` }}
+            src={ad.user.url_image ?? "/no_user_avatar_image.png"}
+          />
+          <Box sx={{ flexGrow: 1, display: "flex", flexDirection: "column", gap: 0.75 }}>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+              <Typography sx={{ color: theme.primaryText, fontWeight: 600, fontSize: "0.95rem" }}>
                 {ad.user.name}
-                {ad.user.role === "ADMIN" && <GradeIcon sx={{ color: "#FFD700", fontSize: "0.9rem", ml: 0.5 }} />}
-                {ad.user.role === "DEVELOPER" && <GradeIcon sx={{ color: "#00bcd4", fontSize: "0.9rem", ml: 0.5 }} />}
-                <Box component="span" sx={{ color: theme.textSecondary, fontWeight: 400, ml: 2, fontSize: "0.85rem" }}>
-                  {fechaFormateada}
-                </Box>
+                {ad.user.role === "ADMIN" && <GradeIcon sx={{ color: "#FFD700", fontSize: "0.85rem", ml: 0.5 }} />}
+                {ad.user.role === "DEVELOPER" && <GradeIcon sx={{ color: "#00bcd4", fontSize: "0.85rem", ml: 0.5 }} />}
+              </Typography>
+              <Typography sx={{ color: theme.mutedText, fontSize: "0.8rem" }}>
+                {fechaFormateada}
               </Typography>
             </Box>
-            <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, width: "100%" }}>
+            <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.75 }}>
               {ad.interests.map((interest) => (
                 <InterestItem key={interest.id} title={interest.name} variant="ad" />
               ))}
@@ -126,71 +113,67 @@ export default function AdCard({ ad, onDelete, setOpenFormAd, onSelect }) {
           </Box>
         </Box>
 
-        {/* Contenido */}
-        <Box sx={{ display: "flex", flexDirection: "column", gap: 1, mb: 2 }}>
-          <Typography sx={{ fontWeight: "bold", fontSize: "20px", color: theme.primaryText }}>
+        <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
+          <Typography sx={{ fontWeight: 700, fontSize: "1.1rem", color: theme.primaryText }}>
             {ad.title}
           </Typography>
           {hasBody && (
             <Box sx={{
-              p: 2, border: theme.primaryText + " 2px solid", background: theme.secondaryBack,
-              borderRadius: 4, maxHeight: "180px", overflowY: "auto",
+              p: 1.5,
+              border: `1px solid ${accent}20`,
+              background: theme.tertiaryBack,
+              borderRadius: "10px",
+              maxHeight: "180px", overflowY: "auto",
               "&::-webkit-scrollbar": { width: "3px" },
-              "&::-webkit-scrollbar-thumb": { backgroundColor: theme.secondaryText, borderRadius: "10px" },
+              "&::-webkit-scrollbar-thumb": { backgroundColor: `${accent}60`, borderRadius: "10px" },
             }}>
-              <Typography sx={{ whiteSpace: "pre-line", color: theme.fieldsText, fontSize: "0.95rem", lineHeight: 1.6, wordBreak: "break-word" }}>
+              <Typography sx={{ whiteSpace: "pre-line", color: theme.fieldsText, fontSize: "0.9rem", lineHeight: 1.6, wordBreak: "break-word" }}>
                 {ad.body}
               </Typography>
             </Box>
           )}
         </Box>
 
-        {/* Acciones */}
-        <Box sx={{ mt: "auto", pt: 1 }}>
-          <Box sx={{ width: "100%", height: "2px", borderRadius: 1000, background: theme.primaryText, opacity: 0.15, mb: 2 }} />
+        <Box>
+          <Box sx={{ height: "1px", background: `${accent}20`, mb: 1.5 }} />
           <Box sx={{ display: "flex", gap: 1, justifyContent: "space-between", alignItems: "center" }}>
-
-            {/* Botones de propietario o admin */}
             {(isLoggedUser || isAdmin) && (
               <>
-                <Button onClick={() => { onSelect(ad.id); setOpenFormAd(true); }} sx={{ color: theme.primaryText, borderRadius: 1000, px: 2 }}>
-                  <Typography sx={{ mr: 1, fontSize: "0.9rem", textTransform: "none" }}>Editar anuncio</Typography>
-                  <EditIcon fontSize="small" />
+                <Button
+                  onClick={() => { onSelect(ad.id); setOpenFormAd(true); }}
+                  startIcon={<EditIcon fontSize="small" />}
+                  sx={{ color: theme.primaryText, borderRadius: "8px", textTransform: "none", fontSize: "0.85rem", px: 1.5, "&:hover": { background: `${accent}10` } }}
+                >
+                  Editar
                 </Button>
-                <Button onClick={() => onDelete(ad.id)} sx={{ color: "#ff4444", borderRadius: 1000, px: 2 }}>
-                  <Typography sx={{ mr: 1, fontSize: "0.9rem", textTransform: "none" }}>Eliminar anuncio</Typography>
-                  <DeleteIcon fontSize="small" />
+                <Button
+                  onClick={() => onDelete(ad.id)}
+                  startIcon={<DeleteIcon fontSize="small" />}
+                  sx={{ color: "#f44336", borderRadius: "8px", textTransform: "none", fontSize: "0.85rem", px: 1.5, "&:hover": { background: "rgba(244,67,54,0.08)" } }}
+                >
+                  Eliminar
                 </Button>
               </>
             )}
-
-            {/* Botón reportar para usuarios normales sobre anuncios ajenos */}
             {puedeReportar && (
               <Box sx={{ ml: "auto" }}>
                 <Button
                   onClick={() => setReportOpen(true)}
-                  sx={{ color: theme.secondaryText, borderRadius: 1000, px: 2, "&:hover": { color: "#f44336" } }}
+                  startIcon={<FlagIcon fontSize="small" />}
+                  sx={{ color: theme.mutedText, borderRadius: "8px", textTransform: "none", fontSize: "0.85rem", px: 1.5, "&:hover": { color: "#f44336", background: "rgba(244,67,54,0.06)" } }}
                 >
-                  <Typography sx={{ mr: 1, fontSize: "0.9rem", textTransform: "none" }}>Reportar</Typography>
-                  <FlagIcon fontSize="small" />
+                  Reportar
                 </Button>
               </Box>
             )}
           </Box>
         </Box>
-      </Grid>
+      </Box>
 
-      {/* Modal de reporte */}
       <Dialog
         open={reportOpen}
         onClose={() => { setReportOpen(false); setReportMotivo(""); }}
-        PaperProps={{
-          sx: {
-            borderRadius: "16px",
-            background: theme.secondaryBack,
-            minWidth: 360,
-          },
-        }}
+        PaperProps={{ sx: { borderRadius: "16px", background: theme.secondaryBack, minWidth: 360 } }}
       >
         <DialogTitle sx={{ color: theme.primaryText, fontWeight: 700 }}>
           <Box display="flex" alignItems="center" gap={1}>
@@ -199,7 +182,7 @@ export default function AdCard({ ad, onDelete, setOpenFormAd, onSelect }) {
           </Box>
         </DialogTitle>
         <DialogContent>
-          <DialogContentText sx={{ color: theme.secondaryText, fontSize: "0.875rem", mb: 2 }}>
+          <DialogContentText sx={{ color: theme.mutedText, fontSize: "0.875rem", mb: 2 }}>
             Anuncio de <strong style={{ color: theme.primaryText }}>@{ad.user?.name}</strong>: "{ad.title}"
           </DialogContentText>
           <TextField
@@ -208,16 +191,14 @@ export default function AdCard({ ad, onDelete, setOpenFormAd, onSelect }) {
             value={reportMotivo}
             onChange={(e) => setReportMotivo(e.target.value)}
             sx={{
-              "& .MuiOutlinedInput-root": { borderRadius: "10px" },
+              "& .MuiOutlinedInput-root": { borderRadius: "10px", background: theme.tertiaryBack },
               "& .MuiInputBase-input": { color: theme.primaryText },
+              "& fieldset": { borderColor: `${accent}30` },
             }}
           />
         </DialogContent>
         <DialogActions sx={{ px: 2, pb: 2, gap: 1 }}>
-          <Button
-            onClick={() => { setReportOpen(false); setReportMotivo(""); }}
-            sx={{ color: theme.secondaryText, textTransform: "none", borderRadius: "8px" }}
-          >
+          <Button onClick={() => { setReportOpen(false); setReportMotivo(""); }} sx={{ color: theme.mutedText, textTransform: "none", borderRadius: "8px" }}>
             Cancelar
           </Button>
           <Button

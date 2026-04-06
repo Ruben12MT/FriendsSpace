@@ -1,5 +1,9 @@
-import React, { useState, useEffect, useContext } from "react";
+import React, { useState, useEffect, useContext, useCallback } from "react";
 import { Box, Typography, Button, ButtonGroup, Tooltip, Chip } from "@mui/material";
+import { useNavigate } from "react-router-dom";
+import DeleteSweepIcon from "@mui/icons-material/DeleteSweep";
+import ReportIcon from "@mui/icons-material/Report";
+import NotificationsIcon from "@mui/icons-material/Notifications";
 import { useAppTheme } from "../hooks/useAppTheme";
 import { useUser } from "../hooks/useUser";
 import api from "../utils/api";
@@ -7,93 +11,89 @@ import RequestCard from "../components/RequestCard";
 import ConfirmModal from "../components/ConfirmModal";
 import { SocketContext } from "../context/SocketContext";
 import useAuthStore from "../store/useAuthStore";
-import { useNavigate } from "react-router-dom";
-import DeleteSweepIcon from "@mui/icons-material/DeleteSweep";
-import ReportIcon from "@mui/icons-material/Report";
-import NotificationsIcon from "@mui/icons-material/Notifications";
 
 export default function RequestsPages() {
-  const navbarHeight = "52px";
   const theme = useAppTheme();
   const { loggedUser } = useUser();
   const { socket } = useContext(SocketContext);
   const navigate = useNavigate();
+  const resetUnread = useAuthStore((state) => state.resetUnread);
 
+  const accent = theme.accent || theme.primaryBack;
+  const isDark = theme.name === "dark";
   const isAdmin = loggedUser?.role === "ADMIN" || loggedUser?.role === "DEVELOPER";
-  const [activeView, setActiveView] = useState("solicitudes");
 
+  const [activeView, setActiveView] = useState("solicitudes");
   const [allUserRequests, setAllUserRequests] = useState([]);
   const [allReports, setAllReports] = useState([]);
   const [requestsToShow, setRequestsToShow] = useState([]);
   const [openDeleteModal, setOpenDeleteModal] = useState(false);
   const [openClearModal, setOpenClearModal] = useState(false);
   const [requestToDelete, setRequestToDelete] = useState(null);
+  const [filter, setFilter] = useState("ALL");
 
-  const resetUnread = useAuthStore((state) => state.resetUnread);
+  const filterBtnSx = (type) => ({
+    flex: 1, py: 1.25, fontWeight: 700, fontSize: "0.8rem",
+    textTransform: "none",
+    backgroundColor: filter === type ? accent : theme.secondaryBack,
+    color: filter === type ? (isDark ? "#1a1200" : "#ffffff") : theme.primaryText,
+    border: `1px solid ${accent}40 !important`,
+    transition: "all 0.2s ease",
+    "&:hover": {
+      backgroundColor: filter === type ? accent : `${accent}15`,
+      color: filter === type ? (isDark ? "#1a1200" : "#ffffff") : accent,
+    },
+  });
 
-  const [types, setTypes] = useState({ ALL: true, PENDING: false, ACCEPTED: false, REJECTED: false });
+  const sortRequests = (lista) =>
+    ([...lista].sort((a, b) => new Date(b.updated_at || b.created_at) - new Date(a.updated_at || a.created_at)));
 
-  const staticButtonStyle = {
-    flex: 1, py: 1.5, fontWeight: "bold",
-    backgroundColor: theme.secondaryBack, color: theme.primaryText,
-    border: `1px solid ${theme.primaryBack} !important`, transition: "all 0.2s ease",
-    "&:hover": { backgroundColor: theme.secondaryText, color: theme.tertiaryBack },
-  };
-
-  const ordenarRequestsPorFecha = (lista) =>
-    [...lista].sort((a, b) => new Date(b.updated_at || b.created_at) - new Date(a.updated_at || a.created_at));
-
-  const fetchAll = async () => {
+  const fetchAll = useCallback(async () => {
     try {
       const res = await api.get("/requests/list");
       if (res.data.ok && loggedUser) {
         const solicitudes = res.data.datos.filter((r) => !r.is_report);
         const reportes = res.data.datos.filter((r) => r.is_report && r.receiver_id === loggedUser.id);
-        setAllUserRequests(ordenarRequestsPorFecha(solicitudes));
-        if (isAdmin) setAllReports(ordenarRequestsPorFecha(reportes));
+        setAllUserRequests(sortRequests(solicitudes));
+        if (isAdmin) setAllReports(sortRequests(reportes));
       }
     } catch (error) { console.error(error.message); }
-  };
+  }, [loggedUser, isAdmin]);
 
   useEffect(() => {
-    if (!loggedUser) return;
-    fetchAll();
-  }, [loggedUser?.id]);
+    if (loggedUser) fetchAll();
+  }, [fetchAll]);
 
   useEffect(() => {
     if (!socket || !loggedUser) return;
 
-    const onNuevaSolicitud = (payload) => {
+    const handleNewRequest = (payload) => {
       const data = payload.data || payload;
-      if (data.is_report) return;
-      const fmt = { ...data, sender: data.sender || { id: data.sender_id, name: "Usuario", url_image: null }, created_at: data.created_at || new Date().toISOString() };
-      setAllUserRequests((prev) => prev.find((r) => r.id === fmt.id) ? prev : ordenarRequestsPorFecha([fmt, ...prev]));
+      if (data.is_report) {
+        if (isAdmin) setAllReports(prev => prev.find(r => r.id === data.id) ? prev : sortRequests([data, ...prev]));
+      } else {
+        const fmt = { ...data, sender: data.sender || { id: data.sender_id, name: "Usuario" }, created_at: data.created_at || new Date().toISOString() };
+        setAllUserRequests(prev => prev.find(r => r.id === fmt.id) ? prev : sortRequests([fmt, ...prev]));
+      }
     };
 
-    const onSolicitudRespondida = (payload) => {
+    const handleUpdatedRequest = (payload) => {
       const data = payload.data || payload;
-      setAllUserRequests((prev) => {
-        if (prev.find((r) => r.id === data.id)) return ordenarRequestsPorFecha(prev.map((r) => r.id === data.id ? { ...r, ...data } : r));
-        return ordenarRequestsPorFecha([data, ...prev]);
-      });
+      const updateFn = prev => sortRequests(prev.map(r => r.id === data.id ? { ...r, ...data } : r));
+      setAllUserRequests(updateFn);
+      setAllReports(updateFn);
     };
 
-    const onNuevoReporte = (payload) => {
-      const data = payload.data || payload;
-      if (!isAdmin) return;
-      setAllReports((prev) => prev.find((r) => r.id === data.id) ? prev : ordenarRequestsPorFecha([data, ...prev]));
-    };
-
-    socket.on("nueva_solicitud", onNuevaSolicitud);
-    socket.on("solicitud_respondida", onSolicitudRespondida);
-    socket.on("nuevo_reporte", onNuevoReporte);
+    socket.on("nueva_solicitud", handleNewRequest);
+    socket.on("solicitud_respondida", handleUpdatedRequest);
+    socket.on("nuevo_reporte", handleNewRequest);
 
     return () => {
-      socket.off("nueva_solicitud", onNuevaSolicitud);
-      socket.off("solicitud_respondida", onSolicitudRespondida);
-      socket.off("nuevo_reporte", onNuevoReporte);
+      socket.off("nueva_solicitud", handleNewRequest);
+      socket.off("solicitud_respondida", handleUpdatedRequest);
+      socket.off("nuevo_reporte", handleNewRequest);
     };
-  }, [socket, loggedUser?.id]);
+  }, [socket, loggedUser, isAdmin]);
 
   useEffect(() => {
     api.put("/requests/read-all", {}).catch(() => {});
@@ -101,151 +101,130 @@ export default function RequestsPages() {
   }, [resetUnread]);
 
   useEffect(() => {
-    if (activeView === "reportes") { setRequestsToShow(allReports); return; }
-    let filtradas = [...allUserRequests];
-    if (types.PENDING) filtradas = allUserRequests.filter((r) => r.status === "PENDING");
-    else if (types.ACCEPTED) filtradas = allUserRequests.filter((r) => r.status === "ACCEPTED");
-    else if (types.REJECTED) filtradas = allUserRequests.filter((r) => r.status === "REJECTED");
-    setRequestsToShow(filtradas);
-  }, [allUserRequests, allReports, types, activeView]);
-
-  const handleOpenDelete = (idReq) => { setRequestToDelete(idReq); setOpenDeleteModal(true); };
+    if (activeView === "reportes") {
+      setRequestsToShow(allReports);
+    } else {
+      const filtered = filter === "ALL" 
+        ? allUserRequests 
+        : allUserRequests.filter(r => r.status === filter);
+      setRequestsToShow(filtered);
+    }
+  }, [allUserRequests, allReports, filter, activeView]);
 
   const confirmDelete = async () => {
     if (!requestToDelete) return;
     try {
       const res = await api.put(`/requests/${requestToDelete}/invisible`);
       if (res.data.ok) {
-        setAllUserRequests((prev) => prev.filter((r) => r.id !== requestToDelete));
-        setAllReports((prev) => prev.filter((r) => r.id !== requestToDelete));
+        setAllUserRequests(prev => prev.filter(r => r.id !== requestToDelete));
+        setAllReports(prev => prev.filter(r => r.id !== requestToDelete));
       }
     } catch (e) { console.error(e); }
     finally { setOpenDeleteModal(false); setRequestToDelete(null); }
   };
 
   const confirmClearAll = async () => {
-    const noP = allUserRequests.filter((r) => r.status !== "PENDING");
+    const toClear = allUserRequests.filter(r => r.status !== "PENDING");
     try {
-      await Promise.all(noP.map((r) => api.put(`/requests/${r.id}/invisible`)));
-      setAllUserRequests((prev) => prev.filter((r) => r.status === "PENDING"));
+      await Promise.all(toClear.map(r => api.put(`/requests/${r.id}/invisible`)));
+      setAllUserRequests(prev => prev.filter(r => r.status === "PENDING"));
     } catch (e) { console.error(e); }
     finally { setOpenClearModal(false); }
   };
 
-  const updateInLists = (idReq, changes) => {
-    setAllUserRequests((prev) => ordenarRequestsPorFecha(prev.map((r) => r.id === idReq ? { ...r, ...changes } : r)));
-    setAllReports((prev) => ordenarRequestsPorFecha(prev.map((r) => r.id === idReq ? { ...r, ...changes } : r)));
-  };
-
-  const onAccept = async (idReq) => {
+  const onAction = async (idReq, action) => {
     try {
-      const res = await api.put(`/requests/${idReq}/accept`);
+      const res = await api.put(`/requests/${idReq}/${action}`);
       if (res.data.ok) {
-        updateInLists(idReq, { status: "ACCEPTED", is_read_receiver: true, is_read_sender: false, updated_at: new Date().toISOString() });
+        const changes = { status: action === "accept" ? "ACCEPTED" : "REJECTED", updated_at: new Date().toISOString() };
+        const update = prev => sortRequests(prev.map(r => r.id === idReq ? { ...r, ...changes } : r));
+        setAllUserRequests(update);
+        setAllReports(update);
 
-        // Si es un reporte, navegar al chat con el reportador
-        const reporte = allReports.find((r) => r.id === idReq);
-        if (reporte) {
-          try {
-            const connRes = await api.get(`/connections/check/${reporte.sender_id}`);
-            if (connRes.data.exists) {
-              navigate("/app/chats", { state: { openConnectionId: connRes.data.connection_id } });
-            }
-          } catch (e) { console.error(e); }
+        if (action === "accept" && activeView === "reportes") {
+          const report = allReports.find(r => r.id === idReq);
+          if (report) {
+            const conn = await api.get(`/connections/check/${report.sender_id}`);
+            if (conn.data.exists) navigate("/app/chats", { state: { openConnectionId: conn.data.connection_id } });
+          }
         }
-      }
-    } catch (error) { console.error(error); }
-  };
-
-  const onReject = async (idReq) => {
-    try {
-      const res = await api.put(`/requests/${idReq}/reject`);
-      if (res.data.ok) {
-        updateInLists(idReq, { status: "REJECTED", is_read_receiver: true, is_read_sender: false, updated_at: new Date().toISOString() });
       }
     } catch (e) { console.error(e); }
   };
 
-  const hayLeidas = allUserRequests.some((r) => r.status !== "PENDING");
-  const reportesPendientes = allReports.filter((r) => r.status === "PENDING").length;
-  const solicitudesPendientes = allUserRequests.filter((r) => r.status === "PENDING").length;
+  const pendingReports = allReports.filter(r => r.status === "PENDING").length;
+  const pendingRequests = allUserRequests.filter(r => r.status === "PENDING").length;
 
   return (
-    <Box sx={{ position: "fixed", top: navbarHeight, left: "68px", right: 0, bottom: 0, display: "flex", flexDirection: "column", alignItems: "center", p: 2, overflowY: "auto", width: "100%" }}>
+    <Box sx={{
+      position: "fixed", top: "52px", left: "68px", right: 0, bottom: 0,
+      display: "flex", flexDirection: "column", alignItems: "center",
+      p: 3, overflowY: "auto", background: theme.primaryBack,
+    }}>
       <ConfirmModal open={openDeleteModal} handleClose={() => setOpenDeleteModal(false)} onConfirm={confirmDelete} title="Eliminar notificación" message="¿Estás seguro de que quieres ocultar esta notificación?" />
-      <ConfirmModal open={openClearModal} handleClose={() => setOpenClearModal(false)} onConfirm={confirmClearAll} title="Limpiar notificaciones" message="Se ocultarán todas las notificaciones leídas. Las pendientes se conservan." />
+      <ConfirmModal open={openClearModal} handleClose={() => setOpenClearModal(false)} onConfirm={confirmClearAll} title="Limpiar notificaciones" message="Se ocultarán todas las notificaciones leídas." />
 
-      <Box sx={{ width: { xs: "100%", md: "80%", lg: "70%" }, mt: 2, flexShrink: 0 }}>
+      <Box sx={{ width: { xs: "100%", md: "80%", lg: "65%" }, flexShrink: 0 }}>
         <Box display="flex" alignItems="center" justifyContent="space-between" mb={3}>
-          <Typography variant="h4" sx={{ fontWeight: "bold", color: theme.primaryText }}>
+          <Typography sx={{ fontWeight: 800, fontSize: "1.6rem", color: theme.primaryText }}>
             {activeView === "reportes" ? "Reportes asignados" : "Notificaciones"}
           </Typography>
-          {hayLeidas && activeView === "solicitudes" && (
-            <Tooltip title="Ocultar todas las notificaciones leídas">
-              <Button size="small" startIcon={<DeleteSweepIcon fontSize="small" />} onClick={() => setOpenClearModal(true)}
-                sx={{ color: theme.secondaryText, border: `1px solid ${theme.secondaryText}40`, borderRadius: "10px", textTransform: "none", fontSize: "0.8rem", px: 1.5, py: 0.6, "&:hover": { color: "#f44336", borderColor: "#f44336", background: "rgba(244,67,54,0.06)" } }}>
-                Limpiar leídas
-              </Button>
-            </Tooltip>
+          {activeView === "solicitudes" && allUserRequests.some(r => r.status !== "PENDING") && (
+            <Button size="small" startIcon={<DeleteSweepIcon />} onClick={() => setOpenClearModal(true)}
+              sx={{ color: theme.mutedText, textTransform: "none", borderRadius: "10px" }}>
+              Limpiar leídas
+            </Button>
           )}
         </Box>
 
-        {/* Selector de vista para admins */}
         {isAdmin && (
           <Box display="flex" gap={1} mb={3}>
             <Button
-              startIcon={<NotificationsIcon fontSize="small" />}
-              onClick={() => setActiveView("solicitudes")}
+              startIcon={<NotificationsIcon />} onClick={() => setActiveView("solicitudes")}
               variant={activeView === "solicitudes" ? "contained" : "outlined"}
-              sx={{ borderRadius: "10px", textTransform: "none", fontWeight: 600, background: activeView === "solicitudes" ? theme.primaryBack : "transparent", borderColor: theme.primaryBack, color: activeView === "solicitudes" ? "#fff" : theme.primaryBack, "&:hover": { background: theme.primaryBack, color: "#fff" } }}
+              sx={{ borderRadius: "10px", textTransform: "none", background: activeView === "solicitudes" ? accent : "transparent", color: activeView === "solicitudes" ? (isDark ? "#1a1200" : "#fff") : accent }}
             >
-              Solicitudes
-              {solicitudesPendientes > 0 && (
-                <Chip label={solicitudesPendientes} size="small" sx={{ ml: 1, height: 18, fontSize: "0.68rem", background: "rgba(255,255,255,0.25)", color: "inherit" }} />
-              )}
+              Solicitudes {pendingRequests > 0 && <Chip label={pendingRequests} size="small" sx={{ ml: 1, height: 18 }} />}
             </Button>
             <Button
-              startIcon={<ReportIcon fontSize="small" />}
-              onClick={() => setActiveView("reportes")}
+              startIcon={<ReportIcon />} onClick={() => setActiveView("reportes")}
               variant={activeView === "reportes" ? "contained" : "outlined"}
-              sx={{ borderRadius: "10px", textTransform: "none", fontWeight: 600, background: activeView === "reportes" ? "#f44336" : "transparent", borderColor: "#f44336", color: activeView === "reportes" ? "#fff" : "#f44336", "&:hover": { background: "#f44336", color: "#fff" } }}
+              sx={{ borderRadius: "10px", textTransform: "none", background: activeView === "reportes" ? "#f44336" : "transparent", color: activeView === "reportes" ? "#fff" : "#f44336" }}
             >
-              Reportes
-              {reportesPendientes > 0 && (
-                <Chip label={reportesPendientes} size="small" sx={{ ml: 1, height: 18, fontSize: "0.68rem", background: "rgba(255,255,255,0.25)", color: "inherit" }} />
-              )}
+              Reportes {pendingReports > 0 && <Chip label={pendingReports} size="small" sx={{ ml: 1, height: 18 }} />}
             </Button>
           </Box>
         )}
 
         {activeView === "solicitudes" && (
-          <ButtonGroup variant="contained" fullWidth disableElevation sx={{ mb: 4, borderRadius: 2, overflow: "hidden" }}>
-            <Button sx={{ ...staticButtonStyle, backgroundColor: types.ALL ? theme.primaryBack : theme.secondaryBack }} onClick={() => setTypes({ ALL: true, PENDING: false, ACCEPTED: false, REJECTED: false })}>TODAS</Button>
-            <Button sx={{ ...staticButtonStyle, backgroundColor: types.PENDING ? theme.primaryBack : theme.secondaryBack }} onClick={() => setTypes({ ALL: false, PENDING: true, ACCEPTED: false, REJECTED: false })}>PENDIENTES</Button>
-            <Button sx={{ ...staticButtonStyle, backgroundColor: types.ACCEPTED ? theme.primaryBack : theme.secondaryBack }} onClick={() => setTypes({ ALL: false, PENDING: false, ACCEPTED: true, REJECTED: false })}>ACEPTADAS</Button>
-            <Button sx={{ ...staticButtonStyle, backgroundColor: types.REJECTED ? theme.primaryBack : theme.secondaryBack }} onClick={() => setTypes({ ALL: false, PENDING: false, ACCEPTED: false, REJECTED: true })}>RECHAZADAS</Button>
+          <ButtonGroup fullWidth sx={{ mb: 3, borderRadius: "12px", overflow: "hidden" }}>
+            {["ALL", "PENDING", "ACCEPTED", "REJECTED"].map((type) => (
+              <Button key={type} sx={filterBtnSx(type)} onClick={() => setFilter(type)}>
+                {type === "ALL" ? "Todas" : type === "PENDING" ? "Pendientes" : type === "ACCEPTED" ? "Aceptadas" : "Rechazadas"}
+              </Button>
+            ))}
           </ButtonGroup>
-        )}
-
-        {activeView === "reportes" && reportesPendientes > 0 && (
-          <Box sx={{ mb: 2, p: 1.5, background: "rgba(244,67,54,0.08)", borderRadius: "10px", border: "1px solid rgba(244,67,54,0.2)" }}>
-            <Typography sx={{ fontSize: "0.82rem", color: "#f44336" }}>
-              Tienes {reportesPendientes} reporte{reportesPendientes !== 1 ? "s" : ""} pendiente{reportesPendientes !== 1 ? "s" : ""}.
-              Al aceptar uno se abrirá automáticamente el chat con el reportador.
-            </Typography>
-          </Box>
         )}
       </Box>
 
-      <Box sx={{ width: { xs: "100%", md: "80%", lg: "70%" }, display: "flex", flexDirection: "column", gap: 2, pb: 4 }}>
+      <Box sx={{ width: { xs: "100%", md: "80%", lg: "65%" }, display: "flex", flexDirection: "column", gap: 1.5, pb: 4 }}>
         {requestsToShow.length > 0 ? (
           requestsToShow.map((req) => (
-            <RequestCard key={req.id} request={req} onAccept={onAccept} onReject={onReject} onDelete={handleOpenDelete} />
+            <RequestCard 
+              key={req.id} 
+              request={req} 
+              onAccept={() => onAction(req.id, "accept")} 
+              onReject={() => onAction(req.id, "reject")} 
+              onDelete={() => { setRequestToDelete(req.id); setOpenDeleteModal(true); }} 
+            />
           ))
         ) : (
-          <Typography sx={{ color: theme.secondaryText, textAlign: "center", mt: 4 }}>
-            {activeView === "reportes" ? "No tienes reportes asignados" : "No tienes notificaciones"}
-          </Typography>
+          <Box sx={{ textAlign: "center", mt: 8, opacity: 0.5 }}>
+            <NotificationsIcon sx={{ fontSize: 48, color: theme.mutedText, mb: 1 }} />
+            <Typography sx={{ color: theme.mutedText }}>
+              {activeView === "reportes" ? "Sin reportes asignados" : "Sin notificaciones"}
+            </Typography>
+          </Box>
         )}
       </Box>
     </Box>

@@ -1,13 +1,5 @@
 import React, { useRef } from "react";
-import {
-  Box,
-  Typography,
-  Avatar,
-  Paper,
-  Button,
-  Divider,
-  IconButton,
-} from "@mui/material";
+import { Box, Typography, Avatar, IconButton } from "@mui/material";
 import PeopleIcon from "@mui/icons-material/People";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
@@ -20,264 +12,198 @@ export default function UserCard({ user, variant = "card" }) {
   const navigate = useNavigate();
   const scrollRef = useRef(null);
 
+  const accent = theme.accent || theme.primaryBack;
+  const cardBg = theme.secondaryBack;
+  const textMain = theme.primaryText;
+  const textMuted = theme.mutedText || theme.secondaryText;
+  const isDark = theme.name === "dark";
+
+  const btnBg = accent;
+  const btnText = isDark ? "#1a1200" : "#ffffff";
+
   const scroll = (direction) => {
     if (scrollRef.current) {
-      const { scrollLeft } = scrollRef.current;
-      const scrollTo =
-        direction === "left" ? scrollLeft - 120 : scrollLeft + 120;
-      scrollRef.current.scrollTo({ left: scrollTo, behavior: "smooth" });
+      scrollRef.current.scrollTo({
+        left: scrollRef.current.scrollLeft + (direction === "left" ? -120 : 120),
+        behavior: "smooth",
+      });
     }
   };
 
   if (variant === "card") {
     return (
-      <Paper
-        elevation={2}
+      <Box
         sx={{
-          width: "100%",
-          maxWidth: 340,
-          margin: "0 auto",
-          borderRadius: 4,
-          overflow: "hidden",
-          background: theme.tertiaryBack,
-          transition: "transform 0.2s",
-          border: `${theme.primaryText} solid 2.5px`,
+          width: "100%", maxWidth: 320, margin: "0 auto",
+          borderRadius: "20px", overflow: "hidden",
+          background: cardBg,
+          border: `1px solid ${accent}30`,
+          boxShadow: isDark
+            ? `0 4px 24px rgba(0,0,0,0.3)`
+            : `0 4px 24px rgba(184,134,11,0.10)`,
+          transition: "transform 0.2s, box-shadow 0.2s",
+          cursor: "pointer",
           "&:hover": {
             transform: "translateY(-4px)",
-            border: `${theme.primaryText} solid 3px`,
+            boxShadow: isDark
+              ? `0 8px 32px rgba(0,0,0,0.45)`
+              : `0 8px 32px rgba(184,134,11,0.18)`,
           },
         }}
+        onClick={() => navigate("/app/" + user.id)}
       >
-        <Box
-          sx={{
-            height: 100,
-            background:
-              theme.name === "dark" ? theme.primaryBack : theme.variantBack,
-            display: "flex",
-            justifyContent: "center",
-            position: "relative",
-          }}
-        >
+        <Box sx={{
+          height: 72,
+          background: isDark
+            ? `linear-gradient(135deg, #3a2e0a, #2a2000)`
+            : `linear-gradient(135deg, ${accent}, #d4a017)`,
+          position: "relative",
+          display: "flex", alignItems: "flex-end", justifyContent: "center",
+        }}>
           <Avatar
             src={user.url_image ?? "/no_user_avatar_image.png"}
             sx={{
-              width: 90,
-              height: 90,
-              border: "4px solid " + theme.tertiaryBack,
-              mb: -12,
-              zIndex: 1,
-              mt: 5,
+              width: 72, height: 72,
+              border: `3px solid ${cardBg}`,
+              boxShadow: `0 4px 16px rgba(0,0,0,0.2)`,
+              mb: "-36px", zIndex: 1,
             }}
           />
         </Box>
 
-        <Box sx={{ height: 50 }} />
-
-        <Box sx={{ p: 2 }}>
-          <Typography
-            variant="h6"
-            align="center"
-            sx={{ fontWeight: "bold", color: theme.primaryText }}
-          >
+        <Box sx={{ pt: "44px", px: 2.5, pb: 2.5 }}>
+          <Typography sx={{
+            fontWeight: 700, fontSize: "1rem", color: textMain,
+            textAlign: "center", mb: 0.5, lineHeight: 1.3,
+          }}>
             {user.username || user.name}
           </Typography>
-          <Typography
-            variant="body2"
-            align="center"
-            sx={{
-              color: theme.secondaryText,
-              mb: 2,
-              height: 40,
-              overflow: "hidden",
-              display: "-webkit-box",
-              WebkitLineClamp: 2,
-              WebkitBoxOrient: "vertical",
-            }}
-          >
-            {user.short_sentece || "¡Hola! Estoy usando FriendApp."}
+
+          <Typography sx={{
+            fontSize: "0.8rem", color: textMuted, textAlign: "center",
+            mb: 2, lineHeight: 1.4,
+            display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical",
+            overflow: "hidden", minHeight: "2.8em",
+          }}>
+            {user.short_sentece || "¡Hola! Estoy en Friends Space."}
           </Typography>
 
-          <Divider sx={{ mb: 2, background: theme.primaryText }} />
+          <Box sx={{ height: "1px", background: `${accent}25`, mb: 2 }} />
 
-          <Box
-            sx={{
-              display: "flex",
-              alignItems: "center",
-              mb: 2,
-              position: "relative",
-              minHeight: 40,
-            }}
-          >
+          <Box sx={{ display: "flex", alignItems: "center", mb: 2.5, minHeight: 32 }}>
             {user.interests?.length > 2 && (
-              <IconButton
-                size="small"
-                onClick={() => scroll("left")}
-                sx={{ p: 0, color: theme.primaryText, zIndex: 2 }}
-              >
-                <ChevronLeftIcon />
+              <IconButton size="small" onClick={(e) => { e.stopPropagation(); scroll("left"); }}
+                sx={{ p: 0.25, color: textMuted, flexShrink: 0 }}>
+                <ChevronLeftIcon fontSize="small" />
               </IconButton>
             )}
-
-            <Box
-              sx={{
-                position: "relative",
-                flexGrow: 1,
-                overflow: "hidden",
-                display: "flex",
-                justifyContent: "center",
-              }}
-            >
+            <Box sx={{ flex: 1, overflow: "hidden" }}>
               <Box
                 ref={scrollRef}
                 sx={{
                   display: "flex",
-                  justifyContent:
-                    user.interests?.length > 2 ? "flex-start" : "center",
-                  overflowX: "hidden",
-                  scrollBehavior: "smooth",
-                  gap: 1,
-                  py: 0.5,
+                  justifyContent: user.interests?.length > 2 ? "flex-start" : "center",
+                  overflowX: "hidden", gap: 0.75, py: 0.25,
                   "&::-webkit-scrollbar": { display: "none" },
-                  msOverflowStyle: "none",
                   scrollbarWidth: "none",
                 }}
               >
-                {user.interests && user.interests.length > 0 ? (
+                {user.interests?.length > 0 ? (
                   user.interests.map((int) => (
                     <Box key={int.id} sx={{ flexShrink: 0 }}>
                       <InterestItem title={int.name} variant="deselect" />
                     </Box>
                   ))
                 ) : (
-                  <Typography
-                    variant="caption"
-                    sx={{
-                      color: theme.secondaryText,
-                      width: "100%",
-                      textAlign: "center",
-                      opacity: 0.6,
-                    }}
-                  >
+                  <Typography sx={{ fontSize: "0.75rem", color: textMuted, opacity: 0.6, width: "100%", textAlign: "center" }}>
                     Sin intereses
                   </Typography>
                 )}
               </Box>
             </Box>
-
             {user.interests?.length > 2 && (
-              <IconButton
-                size="small"
-                onClick={() => scroll("right")}
-                sx={{ p: 0, color: theme.primaryText, zIndex: 2 }}
-              >
-                <ChevronRightIcon />
+              <IconButton size="small" onClick={(e) => { e.stopPropagation(); scroll("right"); }}
+                sx={{ p: 0.25, color: textMuted, flexShrink: 0 }}>
+                <ChevronRightIcon fontSize="small" />
               </IconButton>
             )}
           </Box>
 
-          <Box
-            display="flex"
-            justifyContent="space-between"
-            alignItems="center"
-          >
-            <Typography variant="caption" sx={{ color: theme.primaryText }}>
-              <PeopleIcon
-                fontSize="inherit"
-                sx={{ verticalAlign: "middle", mr: 0.5 }}
-              />
-              {user.connections_count || 0} conex.
-            </Typography>
-            <Button
-              size="small"
-              variant="contained"
+          <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+              <PeopleIcon sx={{ fontSize: 14, color: textMuted }} />
+              <Typography sx={{ fontSize: "0.75rem", color: textMuted }}>
+                {user.connections_count || 0} conexiones
+              </Typography>
+            </Box>
+
+            <Box
+              component="span"
+              onClick={(e) => { e.stopPropagation(); navigate("/app/" + user.id); }}
               sx={{
-                backgroundColor: theme.secondaryBack,
-                color: theme.primaryText,
-                textTransform: "none",
-                borderRadius: 2,
-                fontWeight: "bold",
+                fontSize: "0.78rem", fontWeight: 700,
+                color: btnText,
+                px: 1.5, py: "5px",
+                borderRadius: "8px",
+                background: btnBg,
+                boxShadow: `0 2px 8px ${accent}40`,
+                cursor: "pointer",
+                transition: "opacity 0.15s, transform 0.15s",
+                "&:hover": { opacity: 0.88, transform: "translateY(-1px)" },
+                "&:active": { transform: "translateY(0)" },
               }}
-              onClick={() => navigate("/app/" + user.id)}
             >
-              Ver más
-            </Button>
+              Ver perfil
+            </Box>
           </Box>
         </Box>
-      </Paper>
+      </Box>
     );
   }
 
   if (variant === "row") {
     return (
-      <Paper
-        elevation={0}
+      <Box
         sx={{
-          display: "flex",
-          alignItems: "center",
-          p: 1.5,
-          borderRadius: 3,
-          background: theme.tertiaryBack,
-          width: "100%",
-          maxWidth: "none",
-          margin: 0,
-          mb: 1,
-          transition: "0.2s",
+          display: "flex", alignItems: "center", p: 1.5, mb: 1,
+          borderRadius: "14px", background: cardBg,
+          border: `1px solid ${accent}20`,
+          transition: "background 0.15s, box-shadow 0.15s",
+          cursor: "pointer",
+          "&:hover": {
+            background: isDark ? `${accent}10` : `${accent}08`,
+            boxShadow: `0 2px 12px ${accent}15`,
+          },
         }}
+        onClick={() => navigate("/app/" + user.id)}
       >
         <Avatar
           src={user.url_image ?? "/no_user_avatar_image.png"}
           sx={{
-            width: 55,
-            height: 55,
-            mr: 2,
-            border: `2px solid ${theme.secondaryBack}`,
+            width: 48, height: 48, mr: 1.5, flexShrink: 0,
+            border: `2px solid ${accent}40`,
           }}
         />
 
-        <Box sx={{ flexGrow: 1, minWidth: 0 }}>
-          <Box
-            display="flex"
-            justifyContent="space-between"
-            alignItems="center"
-          >
-            <Typography
-              variant="subtitle1"
-              sx={{ fontWeight: "bold", color: theme.primaryText }}
-              noWrap
-            >
+        <Box sx={{ flex: 1, minWidth: 0 }}>
+          <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <Typography sx={{ fontWeight: 700, color: textMain, fontSize: "0.9rem" }} noWrap>
               {user.username || user.name}
             </Typography>
-            <Typography
-              variant="caption"
-              sx={{ color: theme.primaryText, ml: 1, flexShrink: 0 }}
-            >
-              {user.connections_count || 0} conex.
-            </Typography>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, flexShrink: 0, ml: 1 }}>
+              <PeopleIcon sx={{ fontSize: 12, color: textMuted }} />
+              <Typography sx={{ fontSize: "0.72rem", color: textMuted }}>
+                {user.connections_count || 0}
+              </Typography>
+            </Box>
           </Box>
-          <Typography
-            variant="body2"
-            noWrap
-            sx={{ color: theme.secondaryText, fontSize: "0.85rem" }}
-          >
-            {user.short_sentece || "¡Hola! Estoy usando FriendApp."}
+          <Typography sx={{ fontSize: "0.8rem", color: textMuted }} noWrap>
+            {user.short_sentece || "¡Hola! Estoy en Friends Space."}
           </Typography>
         </Box>
 
-        <Box sx={{ ml: 2, display: "flex", alignItems: "center" }}>
-          <Button
-            size="small"
-            sx={{
-              color: theme.primaryText,
-              textTransform: "none",
-              fontWeight: "bold",
-            }}
-            onClick={() => navigate("/app/" + user.id)}
-          >
-            Ver
-          </Button>
-          <ChevronRightIcon sx={{ fontSize: 18, color: theme.primaryText }} />
-        </Box>
-      </Paper>
+        <ChevronRightIcon sx={{ fontSize: 18, color: `${accent}80`, ml: 1, flexShrink: 0 }} />
+      </Box>
     );
   }
 }

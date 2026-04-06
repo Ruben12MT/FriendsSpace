@@ -16,24 +16,24 @@ export default function ChatMessage({
   const subtleColor = theme.secondaryText;
 
   const handleDownload = async (messageId, fileName) => {
-  try {
-    const res = await fetch(
-      `${window.__APP_CONFIG__?.API_URL}/messages/${messageId}/download`,
-      { credentials: "include" }
-    );
-    const blob = await res.blob();
-    const blobUrl = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = blobUrl;
-    a.download = fileName || "archivo";
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(blobUrl);
-  } catch (e) {
-    console.error(e);
-  }
-};
+    try {
+      const res = await fetch(
+        `${window.__APP_CONFIG__?.API_URL}/messages/${messageId}/download`,
+        { credentials: "include" }
+      );
+      const blob = await res.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = blobUrl;
+      a.download = fileName || "archivo";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(blobUrl);
+    } catch (e) {
+      console.error(e);
+    }
+  };
 
   const renderMessageContent = () => {
     if (message.deleted) {

@@ -1,21 +1,16 @@
 import React, { useState, useEffect } from "react";
 import {
-  Box,
-  Container,
-  Typography,
-  Grid,
-  CircularProgress,
-  ToggleButton,
-  ToggleButtonGroup,
+  Box, Container, Typography, Grid,
+  CircularProgress, ToggleButton, ToggleButtonGroup,
 } from "@mui/material";
 import ViewModuleIcon from "@mui/icons-material/ViewModule";
 import ViewStreamIcon from "@mui/icons-material/ViewStream";
+import PeopleOutlineIcon from "@mui/icons-material/PeopleOutline";
 import { useAppTheme } from "../hooks/useAppTheme";
 import { useUser } from "../hooks/useUser";
 import UserCard from "../components/UserCard";
 import MainSearchBar from "../components/MainSearchBar";
 import api from "../utils/api";
-import { AnimatePresence } from "framer-motion";
 
 export default function SearchNewFriendsPage() {
   const theme = useAppTheme();
@@ -30,7 +25,9 @@ export default function SearchNewFriendsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [viewMode, setViewMode] = useState("card");
 
-  const navbarHeight = "52px";
+  const accent = theme.accent || theme.primaryBack;
+  const textMain = theme.primaryText;
+  const textMuted = theme.mutedText || theme.secondaryText;
 
   const fetchAllUsers = async () => {
     setIsLoading(true);
@@ -55,10 +52,9 @@ export default function SearchNewFriendsPage() {
 
   useEffect(() => {
     if (loggedUser) {
-      api
-        .get(`/users/${loggedUser.id}/interests`)
+      api.get(`/users/${loggedUser.id}/interests`)
         .then((res) => setUserInterests(res.data.datos || []))
-        .catch((err) => console.log(err));
+        .catch(console.error);
     }
     fetchAllUsers();
     fetchAllInterests();
@@ -77,9 +73,7 @@ export default function SearchNewFriendsPage() {
         user.interests?.some((uInt) => {
           const idInt = uInt.id || uInt.interest_id;
           if (selectedInterests.includes(0)) {
-            return userInterests.some(
-              (myInt) => (myInt.id || myInt.interest_id) === idInt,
-            );
+            return userInterests.some((myInt) => (myInt.id || myInt.interest_id) === idInt);
           }
           return selectedInterests.includes(Number(idInt));
         });
@@ -101,33 +95,21 @@ export default function SearchNewFriendsPage() {
   };
 
   return (
-    <Box
-      sx={{
-        position: "fixed",
-        top: navbarHeight,
-        left: "68px",
-        right: 0,
-        bottom: 0,
-        display: "flex",
-        overflow: "hidden",
-      }}
-    >
-      <Container
-        maxWidth="lg"
-        sx={{ height: "100%", display: "flex", flexDirection: "column", py: 3 }}
-      >
-        <Box
-          display="flex"
-          justifyContent="space-between"
-          alignItems="center"
-          sx={{ mb: 2 }}
-        >
-          <Typography
-            variant="h4"
-            sx={{ color: theme.primaryText, fontWeight: "bold" }}
-          >
-            ¡Encuentra tu friend!
-          </Typography>
+    <Box sx={{
+      position: "fixed", top: "52px", left: "68px", right: 0, bottom: 0,
+      display: "flex", overflow: "hidden",
+    }}>
+      <Container maxWidth="lg" sx={{ height: "100%", display: "flex", flexDirection: "column", py: 3 }}>
+
+        <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2.5 }}>
+          <Box>
+            <Typography sx={{ fontWeight: 700, fontSize: "1.5rem", color: textMain, lineHeight: 1.2 }}>
+              Encuentra tu friend
+            </Typography>
+            <Typography sx={{ fontSize: "0.85rem", color: textMuted, mt: 0.25 }}>
+              {usersToShow.length > 0 && !isLoading ? `${usersToShow.length} usuario${usersToShow.length !== 1 ? "s" : ""} encontrado${usersToShow.length !== 1 ? "s" : ""}` : "Busca por nombre o intereses"}
+            </Typography>
+          </Box>
 
           <ToggleButtonGroup
             value={viewMode}
@@ -135,16 +117,35 @@ export default function SearchNewFriendsPage() {
             onChange={(e, v) => v && setViewMode(v)}
             sx={{
               background: theme.tertiaryBack,
-              borderRadius: 3,
+              borderRadius: "12px",
               p: 0.5,
-              height: 40,
+              height: 38,
+              border: `1px solid ${accent}20`,
             }}
           >
-            <ToggleButton value="card" sx={{ border: "none" }}>
-              <ViewModuleIcon sx={{ color: theme.primaryText }} />
+            <ToggleButton
+              value="card"
+              sx={{
+                border: "none", borderRadius: "8px !important",
+                color: viewMode === "card" ? accent : textMuted,
+                background: viewMode === "card" ? `${accent}15` : "transparent",
+                "&:hover": { background: `${accent}10` },
+                px: 1.25,
+              }}
+            >
+              <ViewModuleIcon fontSize="small" />
             </ToggleButton>
-            <ToggleButton value="row" sx={{ border: "none" }}>
-              <ViewStreamIcon sx={{ color: theme.primaryText }} />
+            <ToggleButton
+              value="row"
+              sx={{
+                border: "none", borderRadius: "8px !important",
+                color: viewMode === "row" ? accent : textMuted,
+                background: viewMode === "row" ? `${accent}15` : "transparent",
+                "&:hover": { background: `${accent}10` },
+                px: 1.25,
+              }}
+            >
+              <ViewStreamIcon fontSize="small" />
             </ToggleButton>
           </ToggleButtonGroup>
         </Box>
@@ -153,51 +154,43 @@ export default function SearchNewFriendsPage() {
           placeholder="Busca por nombre..."
           searchValue={query}
           onSearchChange={setQuery}
-          onReset={() => {
-            setQuery("");
-            setSelectedInterests([-1]);
-            fetchAllUsers();
-          }}
+          onReset={() => { setQuery(""); setSelectedInterests([-1]); fetchAllUsers(); }}
           showAdd={false}
           interests={allInterests}
           selectedInterests={selectedInterests}
           onInterestChange={handleSelectInterest}
         />
 
-        <Box
-          sx={{
-            flexGrow: 1,
-            overflowY: "auto",
-            mt: 3,
-            pr: 1,
-            "&::-webkit-scrollbar": { width: "6px" },
-            "&::-webkit-scrollbar-thumb": {
-              backgroundColor: "rgba(255,255,255,0.2)",
-              borderRadius: "10px",
-            },
-          }}
-        >
+        <Box sx={{
+          flexGrow: 1, overflowY: "auto", mt: 3, pr: 0.5, pt: 0.5,
+          "&::-webkit-scrollbar": { width: "4px" },
+          "&::-webkit-scrollbar-thumb": { background: `${accent}40`, borderRadius: "10px" },
+          "&::-webkit-scrollbar-track": { background: "transparent" },
+        }}>
           {isLoading ? (
-            <Box sx={{ display: "flex", justifyContent: "center", mt: 10 }}>
-              <CircularProgress sx={{ color: "#fff" }} />
+            <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", mt: 12, gap: 2 }}>
+              <CircularProgress sx={{ color: accent }} size={36} />
+              <Typography sx={{ color: textMuted, fontSize: "0.875rem" }}>Cargando usuarios...</Typography>
+            </Box>
+          ) : usersToShow.length === 0 ? (
+            <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", mt: 12, gap: 2, opacity: 0.5 }}>
+              <PeopleOutlineIcon sx={{ fontSize: 52, color: textMuted }} />
+              <Typography sx={{ color: textMuted, fontSize: "0.9rem" }}>No se encontraron usuarios</Typography>
             </Box>
           ) : (
-            <Grid container spacing={2} sx={{ minHeight: "auto" }}>
-              {usersToShow.map((user) => {
-                return (
-                  <Grid
-                    key={user.id}
-                    size={{
-                      xs: viewMode === "card" ? 6 : 12,
-                      md: viewMode === "card" ? 6 : 12,
-                      lg: viewMode === "card" ? 4 : 12,
-                    }}
-                    sx={{ pt: 1 }}
-                  >
-                    <UserCard user={user} variant={viewMode} />
-                  </Grid>
-                );
-              })}
+            <Grid container spacing={2}>
+              {usersToShow.map((user) => (
+                <Grid
+                  key={user.id}
+                  size={{
+                    xs: viewMode === "card" ? 6 : 12,
+                    md: viewMode === "card" ? 6 : 12,
+                    lg: viewMode === "card" ? 4 : 12,
+                  }}
+                >
+                  <UserCard user={user} variant={viewMode} />
+                </Grid>
+              ))}
             </Grid>
           )}
         </Box>

@@ -4,26 +4,35 @@ import AddIcon from "@mui/icons-material/Add";
 import { RotateCcw } from "lucide-react";
 import { useAppTheme } from "../hooks/useAppTheme";
 
-export default function MainSearchBar({ 
-  placeholder, 
-  searchValue, 
-  onSearchChange, 
-  onReset, 
+export default function MainSearchBar({
+  placeholder,
+  searchValue,
+  onSearchChange,
+  onReset,
   onAdd,
   showAdd = true,
-  // Para el select de intereses
   interests = [],
   selectedInterests,
   onInterestChange,
-  getInterestText
 }) {
   const theme = useAppTheme();
+  const accent = theme.accent || theme.primaryBack;
+  const isDark = theme.name === "dark";
 
-  const noBorderInput = {
+  const inputStyles = {
     background: theme.tertiaryBack,
-    borderRadius: 4,
+    borderRadius: 2,
     "& .MuiOutlinedInput-notchedOutline": { border: "none" },
     "& .MuiInputBase-input": { color: theme.fieldsText, px: 2 },
+    "& .MuiSelect-icon": { color: theme.fieldsText },
+  };
+
+  const buttonBaseStyles = {
+    width: 42,
+    height: 42,
+    flexShrink: 0,
+    borderRadius: "10px",
+    transition: "all 0.2s",
   };
 
   return (
@@ -31,26 +40,24 @@ export default function MainSearchBar({
       sx={{
         display: "flex",
         width: "100%",
-        px: 3,
-        py: 1.5,
+        px: 2,
+        py: 1.25,
         alignItems: "center",
-        gap: 2,
+        gap: 1.5,
         background: theme.secondaryBack,
-        border: `1px solid ${theme.primaryBack}44`,
-        borderRadius: 4,
+        border: `1px solid ${accent}25`,
+        borderRadius: "14px",
       }}
     >
-      {/* Input de texto */}
       <TextField
         fullWidth
         placeholder={placeholder}
         autoComplete="off"
         value={searchValue}
         onChange={(e) => onSearchChange(e.target.value)}
-        sx={{ ...noBorderInput, flex: 7 }}
+        sx={{ ...inputStyles, flex: 7 }}
       />
 
-      {/* Select de Intereses */}
       <TextField
         select
         fullWidth
@@ -63,43 +70,48 @@ export default function MainSearchBar({
             multiple: true,
           },
         }}
-        sx={{ ...noBorderInput, flex: 3 }}
+        sx={{ ...inputStyles, flex: 3 }}
       >
-        <MenuItem value={0} sx={{ color: theme.secondaryText }}>Mis intereses</MenuItem>
-        <MenuItem value={-1} sx={{ color: theme.secondaryText }}>Todos</MenuItem>
+        <MenuItem value={0} sx={{ color: theme.secondaryText }}>
+          Mis intereses
+        </MenuItem>
+        <MenuItem value={-1} sx={{ color: theme.secondaryText }}>
+          Todos
+        </MenuItem>
         {interests.map((int) => (
-          <MenuItem key={int.id} value={int.id} sx={{ color: "black" }}>
+          <MenuItem
+            key={int.id}
+            value={int.id}
+            sx={{ color: isDark ? theme.primaryText : "#1a1200" }}
+          >
             {int.name}
           </MenuItem>
         ))}
       </TextField>
 
-      {/* Botón Reset */}
       <IconButton
         onClick={onReset}
         sx={{
-          backgroundColor: theme.primaryBack,
-          color: "white",
-          width: 45,
-          height: 45,
-          "&:hover": { backgroundColor: theme.secondaryText },
+          ...buttonBaseStyles,
+          background: accent,
+          color: isDark ? "#1a1200" : "#ffffff",
+          "&:hover": { background: theme.accentHover || accent, opacity: 0.9 },
         }}
       >
-        <RotateCcw size={20} />
+        <RotateCcw size={18} />
       </IconButton>
 
-      {/* Botón Añadir (Opcional) */}
       {showAdd && (
         <IconButton
           onClick={onAdd}
           sx={{
-            backgroundColor: theme.primaryText,
-            width: 45,
-            height: 45,
-            ":hover": { background: theme.secondaryText },
+            ...buttonBaseStyles,
+            background: theme.primaryText,
+            color: theme.secondaryBack,
+            "&:hover": { opacity: 0.85 },
           }}
         >
-          <AddIcon sx={{ color: theme.secondaryBack }} />
+          <AddIcon fontSize="small" />
         </IconButton>
       )}
     </Box>
