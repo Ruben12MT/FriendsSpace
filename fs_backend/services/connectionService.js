@@ -1,37 +1,23 @@
 const sequelize = require("../config/sequelize.js");
 const { initModels } = require("../src/models/init-models.js");
 const models = initModels(sequelize);
-const { Op } = require("sequelize");
+const { Op, literal } = require("sequelize");
 
 class ConnectionService {
-  static includeFriend(userId) {
-    return [
-      {
-        model: models.user_connection,
-        as: "user_connections",
-        include: [
-          {
-            model: models.user,
-            as: "user",
-            attributes: ["id", "name", "url_image"],
-            where: { id: { [Op.ne]: userId } },
-          },
-        ],
-      },
-    ];
-  }
-
   async getAllMyConnections(userId) {
-    const myConnections = await models.user_connection.findAll({
+    const misConexiones = await models.user_connection.findAll({
       where: { user_id: userId },
       attributes: ["connection_id"],
     });
 
-    const connectionIds = myConnections.map((uc) => uc.connection_id);
-    if (connectionIds.length === 0) return [];
+    const idsDeConexiones = misConexiones.map((uc) => uc.connection_id);
+    if (idsDeConexiones.length === 0) return [];
 
     return await models.connection.findAll({
-      where: { status: { [Op.in]: ["ACTIVE", "BLOCKED"] }, id: connectionIds },
+      where: {
+        status: { [Op.in]: ["ACTIVE", "BLOCKED"] },
+        id: idsDeConexiones,
+      },
       include: [
         {
           model: models.user_connection,
@@ -43,6 +29,16 @@ class ConnectionService {
               attributes: ["id", "name", "url_image", "role"],
             },
           ],
+        },
+        {
+          model: models.message,
+          as: "messages",
+          required: false,
+          where: { deleted: false },
+          attributes: ["id", "body", "type", "user_id", "createdAt"],
+          order: [["createdAt", "DESC"]],
+          limit: 1,
+          separate: true,
         },
       ],
     });
@@ -64,10 +60,7 @@ class ConnectionService {
       );
       await models.user_connection.update(
         { blocked_by: userId },
-        {
-          where: { connection_id: connectionId, user_id: userId },
-          transaction,
-        },
+        { where: { connection_id: connectionId, user_id: userId }, transaction },
       );
       await transaction.commit();
       return true;
@@ -97,25 +90,25 @@ class ConnectionService {
   }
 
   async findActiveConnection(myId, profileId) {
-    const myConnections = await models.user_connection.findAll({
+    const misConexiones = await models.user_connection.findAll({
       where: { user_id: myId },
       attributes: ["connection_id"],
     });
 
-    const connectionIds = myConnections.map((uc) => uc.connection_id);
-    if (connectionIds.length === 0) return null;
+    const idsDeConexiones = misConexiones.map((uc) => uc.connection_id);
+    if (idsDeConexiones.length === 0) return null;
 
-    const profileConnections = await models.user_connection.findAll({
-      where: { user_id: profileId, connection_id: { [Op.in]: connectionIds } },
+    const conexionesDelPerfil = await models.user_connection.findAll({
+      where: { user_id: profileId, connection_id: { [Op.in]: idsDeConexiones } },
       attributes: ["connection_id"],
     });
 
-    const sharedIds = profileConnections.map((uc) => uc.connection_id);
-    if (sharedIds.length === 0) return null;
+    const idsCompartidos = conexionesDelPerfil.map((uc) => uc.connection_id);
+    if (idsCompartidos.length === 0) return null;
 
     return await models.connection.findOne({
       where: {
-        id: { [Op.in]: sharedIds },
+        id: { [Op.in]: idsCompartidos },
         status: { [Op.in]: ["ACTIVE", "BLOCKED"] },
       },
       include: [

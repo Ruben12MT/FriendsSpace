@@ -72,7 +72,7 @@ export default function RegisterPage() {
   const registrarUsuario = async () => {
     const hasErrors = {
       email: form.email === "",
-      username: form.username === "",
+      name: form.username === "",
       password: form.password === "",
       confirmPassword: form.confirmPassword === "",
     };

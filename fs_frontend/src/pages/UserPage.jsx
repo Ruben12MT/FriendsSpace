@@ -5,14 +5,10 @@ import {
   Box, TextField, IconButton, Menu, MenuItem,
 } from "@mui/material";
 import {
-  Grade as GradeIcon,
-  MoreVert as MoreVertIcon,
-  Block as BlockIcon,
-  LockOpen as LockOpenIcon,
-  People as PeopleIcon,
-  CalendarToday as CalendarTodayIcon,
+  Grade as GradeIcon, MoreVert as MoreVertIcon,
+  Block as BlockIcon, LockOpen as LockOpenIcon,
+  People as PeopleIcon, CalendarToday as CalendarTodayIcon,
 } from "@mui/icons-material";
-
 import { useUser } from "../hooks/useUser";
 import { useAppTheme } from "../hooks/useAppTheme";
 import api from "../utils/api";
@@ -29,6 +25,7 @@ export default function UserPage() {
 
   const isOwnProfile = String(loggedUser?.id) === String(visitedUserId);
   const accent = theme.accent || theme.primaryBack;
+  const isDark = theme.name === "dark";
 
   const [visitedUser, setVisitedUser] = useState({});
   const [userInterests, setUserInterests] = useState([]);
@@ -37,7 +34,6 @@ export default function UserPage() {
   const [isButtonLoading, setIsButtonLoading] = useState(false);
   const [isFriend, setIsFriend] = useState(false);
   const [isBanned, setIsBanned] = useState(false);
-  
   const [isAvatarZoomed, setIsAvatarZoomed] = useState(false);
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [confirmModalMode, setConfirmModalMode] = useState("SEND");
@@ -59,14 +55,13 @@ export default function UserPage() {
     try {
       setIsButtonLoading(true);
       const { data: friendship } = await api.get(`/connections/check/${visitedUserId}`);
-      
       if (friendship.exists) {
         setActiveConnectionId(friendship.connection_id);
         if (friendship.status === "BLOCKED") {
           const blockedByMe = friendship.blocked_by === loggedUser.id;
           setIsFriend(false);
-          setPrimaryButton(blockedByMe 
-            ? { text: "Desbloquear usuario", type: "UNBLOCK" } 
+          setPrimaryButton(blockedByMe
+            ? { text: "Desbloquear usuario", type: "UNBLOCK" }
             : { text: "Usuario no disponible", type: "NONE" });
         } else {
           setIsFriend(true);
@@ -77,32 +72,34 @@ export default function UserPage() {
         const { data: pending } = await api.get(`/requests/check-pending/${visitedUserId}`);
         if (pending.exists) {
           setPendingRequestData(pending.data);
-          setPrimaryButton(pending.type === "SENT" 
-            ? { text: "Solicitud Pendiente", type: "NONE" } 
+          setPrimaryButton(pending.type === "SENT"
+            ? { text: "Solicitud Pendiente", type: "NONE" }
             : { text: "Responder Solicitud", type: "ACCEPT" });
         } else {
           setPrimaryButton({ text: "Enviar Solicitud", type: "SEND" });
         }
       }
-    } catch (e) { console.error(e); }
-    finally { setIsButtonLoading(false); }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsButtonLoading(false);
+    }
   }, [visitedUserId, isOwnProfile, loggedUser?.id]);
 
   useEffect(() => {
     const loadUser = async () => {
       try {
-        if (isOwnProfile) {
-          setVisitedUser(loggedUser);
-        } else {
-          const { data } = await api.get(`/users/${visitedUserId}`);
-          const user = data.usuario || data;
-          setVisitedUser(user);
-          setIsBanned(!!user.banned);
-        }
+        const { data } = await api.get(`/users/${visitedUserId}`);
+        const user = data.usuario || data;
+        setVisitedUser(user);
+        setIsBanned(!!user.banned);
+
         const { data: ints } = await api.get(`/users/${visitedUserId}/interests`);
         setUserInterests(ints.datos || []);
         refreshButtonState();
-      } catch (e) { console.error(e); }
+      } catch (e) {
+        console.error(e);
+      }
     };
     loadUser();
 
@@ -110,82 +107,81 @@ export default function UserPage() {
       socket.on("nueva_solicitud", refreshButtonState);
       return () => socket.off("nueva_solicitud", refreshButtonState);
     }
-  }, [visitedUserId, isOwnProfile, loggedUser, socket, refreshButtonState]);
+  }, [visitedUserId, socket, refreshButtonState]);
 
   const handleAction = async () => {
     setIsConfirmModalOpen(false);
     setIsButtonLoading(true);
     try {
       switch (confirmModalMode) {
-        case "SEND": 
-          await api.post("/requests", { receiver_id: visitedUserId, body: requestBodyText }); 
-          break;
-        case "ACCEPT": 
-          await api.put(`/requests/${pendingRequestData.id}/accept`); 
-          break;
-        case "DELETE_FRIEND": 
-          await api.put(`/connections/${activeConnectionId}/finish`); 
-          break;
-        case "BLOCK": 
-          await api.put(`/connections/${activeConnectionId}/block`); 
-          break;
-        case "UNBLOCK": 
-          await api.put(`/connections/${activeConnectionId}/activate`); 
-          break;
+        case "SEND": await api.post("/requests", { receiver_id: visitedUserId, body: requestBodyText }); break;
+        case "ACCEPT": await api.put(`/requests/${pendingRequestData.id}/accept`); break;
+        case "DELETE_FRIEND": await api.put(`/connections/${activeConnectionId}/finish`); break;
+        case "BLOCK": await api.put(`/connections/${activeConnectionId}/block`); break;
+        case "UNBLOCK": await api.put(`/connections/${activeConnectionId}/activate`); break;
         case "BLOCK_AND_REPORT":
           await api.put(`/connections/${activeConnectionId}/block`);
-          await api.post("/requests/report", { 
-            body: reportMotivo, 
-            infoReport: { type: "USER", user_id: visitedUser.id, user_name: visitedUser.name } 
-          });
+          await api.post("/requests/report", { body: reportMotivo, infoReport: { type: "USER", user_id: visitedUser.id, user_name: visitedUser.name } });
           setReportMotivo("");
           break;
-        case "BAN": 
-          await api.put(`/users/${visitedUserId}/ban`); 
-          setIsBanned(true); 
-          break;
-        case "UNBAN": 
-          await api.put(`/users/${visitedUserId}/unban`); 
-          setIsBanned(false); 
-          break;
+        case "BAN": await api.put(`/users/${visitedUserId}/ban`); setIsBanned(true); break;
+        case "UNBAN": await api.put(`/users/${visitedUserId}/unban`); setIsBanned(false); break;
         default: break;
       }
       await refreshButtonState();
-    } catch (e) { console.error(e); }
-    finally { setIsButtonLoading(false); }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsButtonLoading(false);
+    }
   };
 
   const getModalContent = () => {
-    const config = {
-      SEND: { title: "Enviar solicitud", msg: <Box sx={{ pt: 1 }}><Typography mb={2}>Mensaje para @{visitedUser.name}:</Typography><TextField fullWidth multiline rows={3} value={requestBodyText} onChange={e => setRequestBodyText(e.target.value)} /></Box> },
-      ACCEPT: { title: "Responder solicitud", msg: <Box><Typography>@{visitedUser.name} dice:</Typography><Typography sx={{ fontStyle: "italic", my: 2, p: 1.5, bgcolor: theme.tertiaryBack, borderRadius: 2, borderLeft: `3px solid ${accent}` }}>"{pendingRequestData?.body || "Sin mensaje"}"</Typography></Box> },
+    const cfg = {
+      SEND: { title: "Enviar solicitud", msg: <Box sx={{ pt: 1 }}><Typography mb={2}>Mensaje para @{visitedUser.name}:</Typography><TextField fullWidth multiline rows={3} value={requestBodyText} onChange={(e) => setRequestBodyText(e.target.value)} /></Box> },
+      ACCEPT: { title: "Responder solicitud", msg: <Box><Typography>@{visitedUser.name} dice:</Typography><Typography sx={{ fontStyle: "italic", my: 2, p: 1.5, bgcolor: theme.tertiaryBack, borderRadius: 2, borderLeft: `3px solid ${accent}` }}>"{pendingRequestData?.body || "Sin mensaje"}"</Typography><Typography>¿Quieres aceptar la conexión?</Typography></Box> },
       DELETE_FRIEND: { title: "Eliminar amigo", msg: `¿Eliminar amistad con @${visitedUser.name}?` },
       BLOCK: { title: "Bloquear usuario", msg: `¿Bloquear a @${visitedUser.name}? No podrá contactarte.` },
-      BLOCK_AND_REPORT: { title: "Bloquear y reportar", msg: <Box sx={{ pt: 1 }}><Typography mb={2}>Indica el motivo del reporte:</Typography><TextField fullWidth multiline rows={3} value={reportMotivo} onChange={e => setReportMotivo(e.target.value)} /></Box> },
-      BAN: { title: "Banear usuario", msg: `¿Suspender permanentemente a @${visitedUser.name}?` },
+      BLOCK_AND_REPORT: { title: "Bloquear y reportar", msg: <Box sx={{ pt: 1 }}><Typography mb={2}>Indica el motivo del reporte:</Typography><TextField fullWidth multiline rows={3} value={reportMotivo} onChange={(e) => setReportMotivo(e.target.value)} /></Box> },
+      BAN: { title: "Banear usuario", msg: `¿Suspender a @${visitedUser.name}?` },
       UNBAN: { title: "Desbanear usuario", msg: `¿Restaurar acceso a @${visitedUser.name}?` },
-      UNBLOCK: { title: "Desbloquear", msg: `¿Permitir contacto de @${visitedUser.name}?` }
+      UNBLOCK: { title: "Desbloquear", msg: `¿Permitir contacto de @${visitedUser.name}?` },
     };
-    return config[confirmModalMode] || { title: "", msg: "" };
+    return cfg[confirmModalMode] || { title: "", msg: "" };
   };
 
   const Section = ({ title, children, empty, emptyMsg }) => (
     <Box sx={{ mb: 2, p: 2.5, borderRadius: "16px", bgcolor: theme.secondaryBack, border: `1px solid ${accent}15` }}>
-      <Typography sx={{ fontWeight: 700, fontSize: "0.75rem", color: accent, letterSpacing: "0.08em", textTransform: "uppercase", mb: 1 }}>{title}</Typography>
-      {empty ? <Typography sx={{ color: theme.mutedText, fontSize: "0.875rem", fontStyle: "italic" }}>{emptyMsg}</Typography> : children}
+      <Typography sx={{ fontWeight: 700, fontSize: "0.75rem", color: accent, letterSpacing: "0.08em", textTransform: "uppercase", mb: 1 }}>
+        {title}
+      </Typography>
+      {empty
+        ? <Typography sx={{ color: theme.mutedText, fontSize: "0.875rem", fontStyle: "italic" }}>{emptyMsg}</Typography>
+        : children
+      }
     </Box>
   );
 
   return (
     <Box sx={{ maxWidth: 960, mx: "auto", width: "100%", px: { xs: 2, md: 4 }, py: 4 }}>
+
       <Box sx={{ borderRadius: "20px", overflow: "hidden", bgcolor: theme.secondaryBack, border: `1px solid ${isBanned ? "#f4433650" : accent + "20"}`, mb: 2 }}>
         <Box sx={{ height: 100, background: isBanned ? "linear-gradient(135deg, #f4433640, #f4433610)" : `linear-gradient(135deg, ${accent}25, ${accent}05)` }} />
+
         <Box sx={{ px: 3, pb: 3 }}>
           <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", mt: "-45px", mb: 2 }}>
             <Avatar
               src={visitedUser.url_image ?? "/no_user_avatar_image.png"}
               onClick={() => setIsAvatarZoomed(true)}
-              sx={{ width: 90, height: 90, border: `4px solid ${theme.secondaryBack}`, boxShadow: `0 4px 16px ${accent}30`, cursor: "pointer", filter: isBanned ? "grayscale(100%)" : "none", transition: "transform 0.2s", "&:hover": { transform: "scale(1.05)" } }}
+              sx={{
+                width: 90, height: 90,
+                border: `4px solid ${theme.secondaryBack}`,
+                boxShadow: `0 4px 16px ${accent}30`,
+                cursor: "pointer",
+                filter: isBanned ? "grayscale(100%)" : "none",
+                transition: "transform 0.2s",
+                "&:hover": { transform: "scale(1.05)" },
+              }}
             />
             <Box display="flex" gap={1}>
               {!isOwnProfile ? (
@@ -198,57 +194,121 @@ export default function UserPage() {
                         if (primaryButton.type === "MESSAGE") navigate("/app/chats", { state: { openConnectionId: activeConnectionId } });
                         else { setConfirmModalMode(primaryButton.type); setIsConfirmModalOpen(true); }
                       }}
-                      sx={{ bgcolor: accent, borderRadius: "10px", textTransform: "none", fontWeight: 600 }}
+                      sx={{
+                        background: `linear-gradient(135deg, ${accent}, ${theme.variantBack || accent})`,
+                        color: isDark ? "#1a1200" : "#ffffff",
+                        borderRadius: "10px", textTransform: "none", fontWeight: 600,
+                        boxShadow: `0 4px 12px ${accent}40`,
+                        "&:hover": { opacity: 0.9 },
+                        "&.Mui-disabled": { background: theme.tertiaryBack, color: theme.mutedText },
+                      }}
                     >
-                      {isButtonLoading ? <CircularProgress size={20} /> : primaryButton.text}
+                      {isButtonLoading ? <CircularProgress size={20} sx={{ color: "inherit" }} /> : primaryButton.text}
                     </Button>
                   )}
                   {(isFriend || puedeGestionar()) && (
                     <>
-                      <IconButton onClick={e => setMoreOptionsAnchor(e.currentTarget)} sx={{ border: `1px solid ${accent}25`, borderRadius: "8px" }}><MoreVertIcon /></IconButton>
-                      <Menu anchorEl={moreOptionsAnchor} open={isMoreOptionsOpen} onClose={() => setMoreOptionsAnchor(null)} PaperProps={{ sx: { minWidth: 180, borderRadius: "12px" } }}>
-                        {isFriend && !isBanned && <MenuItem onClick={() => { setConfirmModalMode("DELETE_FRIEND"); setIsConfirmModalOpen(true); setMoreOptionsAnchor(null); }}>Eliminar amigo</MenuItem>}
-                        {isFriend && !isBanned && <MenuItem onClick={() => { setConfirmModalMode("BLOCK"); setIsConfirmModalOpen(true); setMoreOptionsAnchor(null); }}>Bloquear</MenuItem>}
-                        {puedeGestionar() && (
-                          <MenuItem onClick={() => { setConfirmModalMode(isBanned ? "UNBAN" : "BAN"); setIsConfirmModalOpen(true); setMoreOptionsAnchor(null); }} sx={{ color: "#f44336" }}>
-                            {isBanned ? "Desbanear" : "Banear"} usuario
-                          </MenuItem>
-                        )}
+                      <IconButton
+                        onClick={(e) => setMoreOptionsAnchor(e.currentTarget)}
+                        sx={{ border: `1px solid ${accent}25`, borderRadius: "8px", color: theme.mutedText, "&:hover": { color: accent } }}
+                      >
+                        <MoreVertIcon />
+                      </IconButton>
+                      <Menu
+                        anchorEl={moreOptionsAnchor}
+                        open={isMoreOptionsOpen}
+                        onClose={() => setMoreOptionsAnchor(null)}
+                        PaperProps={{ sx: { minWidth: 180, borderRadius: "12px", background: theme.secondaryBack, border: `1px solid ${accent}20` } }}
+                      >
+                        {isFriend && !isBanned && <MenuItem onClick={() => { setConfirmModalMode("DELETE_FRIEND"); setIsConfirmModalOpen(true); setMoreOptionsAnchor(null); }} sx={{ color: theme.primaryText, "&:hover": { color: accent } }}>Eliminar amigo</MenuItem>}
+                        {isFriend && !isBanned && <MenuItem onClick={() => { setConfirmModalMode("BLOCK"); setIsConfirmModalOpen(true); setMoreOptionsAnchor(null); }} sx={{ color: theme.primaryText, "&:hover": { color: accent } }}>Bloquear</MenuItem>}
+                        {isFriend && !isBanned && <MenuItem onClick={() => { setConfirmModalMode("BLOCK_AND_REPORT"); setIsConfirmModalOpen(true); setMoreOptionsAnchor(null); }} sx={{ color: "#f44336" }}>Bloquear y reportar</MenuItem>}
+                        {puedeGestionar() && <MenuItem onClick={() => { setConfirmModalMode(isBanned ? "UNBAN" : "BAN"); setIsConfirmModalOpen(true); setMoreOptionsAnchor(null); }} sx={{ color: isBanned ? "#4caf50" : "#f44336" }}>{isBanned ? <><LockOpenIcon sx={{ fontSize: 15, mr: 1 }} />Desbanear</> : <><BlockIcon sx={{ fontSize: 15, mr: 1 }} />Banear</>} usuario</MenuItem>}
                       </Menu>
                     </>
                   )}
                 </>
               ) : (
-                <Button variant="outlined" onClick={() => navigate("/app/user/edit")} sx={{ borderRadius: "10px", textTransform: "none" }}>Editar perfil</Button>
+                <Button
+                  variant="outlined"
+                  onClick={() => navigate("/app/user/edit")}
+                  sx={{ borderColor: `${accent}50`, color: accent, borderRadius: "10px", textTransform: "none", fontWeight: 600, "&:hover": { borderColor: accent, background: `${accent}10` } }}
+                >
+                  Editar perfil
+                </Button>
               )}
             </Box>
           </Box>
 
           <Box display="flex" alignItems="center" gap={1} mb={1}>
-            <Typography variant="h5" fontWeight={800}>@{visitedUser.name}</Typography>
-            {visitedUser.role !== "USER" && <GradeIcon sx={{ color: visitedUser.role === "ADMIN" ? "#FFD700" : "#00bcd4" }} />}
-            {isBanned && <Box sx={{ bgcolor: "#f4433620", color: "#f44336", px: 1, borderRadius: "6px", fontSize: "0.7rem", fontWeight: 700 }}>SUSPENDIDO</Box>}
+            <Typography variant="h5" fontWeight={800} sx={{ color: theme.primaryText }}>
+              @{visitedUser.name}
+            </Typography>
+            {visitedUser.role !== "USER" && (
+              <GradeIcon sx={{ color: visitedUser.role === "ADMIN" ? "#FFD700" : "#00bcd4" }} />
+            )}
+            {isBanned && (
+              <Box sx={{ bgcolor: "#f4433620", color: "#f44336", px: 1, borderRadius: "6px", fontSize: "0.7rem", fontWeight: 700, display: "flex", alignItems: "center", gap: 0.5 }}>
+                <BlockIcon sx={{ fontSize: 11 }} /> SUSPENDIDO
+              </Box>
+            )}
           </Box>
 
-          <Box display="flex" gap={2} sx={{ opacity: 0.8 }}>
-            <Box display="flex" alignItems="center" gap={0.5}><PeopleIcon fontSize="small" /><Typography variant="caption"><strong>{visitedUser.connections_count || 0}</strong> conexiones</Typography></Box>
-            <Box display="flex" alignItems="center" gap={0.5}><CalendarTodayIcon fontSize="small" /><Typography variant="caption">Desde {new Date(visitedUser.created_at).getFullYear() || "..."}</Typography></Box>
+          {isOwnProfile && (
+            <Typography sx={{ color: theme.mutedText, fontSize: "0.85rem", mb: 0.5 }}>
+              {visitedUser.email}
+            </Typography>
+          )}
+
+          <Box display="flex" gap={2} sx={{ color: theme.mutedText }}>
+            <Box display="flex" alignItems="center" gap={0.5}>
+              <PeopleIcon sx={{ fontSize: 15 }} />
+              <Typography variant="caption"><strong style={{ color: theme.primaryText }}>{visitedUser.connections_count || 0}</strong> conexiones</Typography>
+            </Box>
+            <Box display="flex" alignItems="center" gap={0.5}>
+              <CalendarTodayIcon sx={{ fontSize: 13 }} />
+              <Typography variant="caption">Desde {visitedUser.created_at ? new Date(visitedUser.created_at).getFullYear() : "..."}</Typography>
+            </Box>
           </Box>
         </Box>
       </Box>
 
-      <Section title="Sobre mí" empty={!visitedUser.bio} emptyMsg="Sin descripción disponible.">
-        <Typography sx={{ whiteSpace: "pre-wrap", color: theme.fieldsText }}>{visitedUser.bio}</Typography>
+      <Section
+        title="Sobre mí"
+        empty={!visitedUser.bio}
+        emptyMsg={isOwnProfile ? "No has definido una descripción todavía." : "Este usuario no ha definido una descripción."}
+      >
+        <Typography sx={{ whiteSpace: "pre-wrap", color: theme.fieldsText, lineHeight: 1.7 }}>{visitedUser.bio}</Typography>
       </Section>
 
-      <Section title="Intereses" empty={userInterests.length === 0} emptyMsg="No ha seleccionado intereses.">
-        <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
-          {userInterests.map(i => <InterestItem key={i.id} title={i.interest?.name || i.name} variant="deselect" />)}
+      <Section
+        title="Intereses"
+        empty={userInterests.length === 0}
+        emptyMsg={isOwnProfile ? "No has añadido ningún interés todavía." : "Este usuario no ha añadido intereses."}
+      >
+        <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.75 }}>
+          {userInterests.map((i) => (
+            <InterestItem key={i.id} title={i.interest?.name || i.name} variant="deselect" />
+          ))}
         </Box>
       </Section>
 
-      <Section title="Frase" empty={!visitedUser.short_sentece}>
-        <Typography sx={{ fontStyle: "italic", borderLeft: `3px solid ${accent}40`, pl: 2 }}>"{visitedUser.short_sentece}"</Typography>
+      <Section
+        title="Objetivos personales"
+        empty={!visitedUser.goals}
+        emptyMsg={isOwnProfile ? "No has definido tus objetivos todavía." : "Este usuario no ha definido sus objetivos."}
+      >
+        <Typography sx={{ whiteSpace: "pre-wrap", color: theme.fieldsText, lineHeight: 1.7 }}>{visitedUser.goals}</Typography>
+      </Section>
+
+      <Section
+        title="Frase pública"
+        empty={!visitedUser.short_sentece?.trim()}
+        emptyMsg={isOwnProfile ? "No has definido una frase pública todavía." : "Este usuario no ha definido una frase pública."}
+      >
+        <Typography sx={{ fontStyle: "italic", color: theme.fieldsText, borderLeft: `3px solid ${accent}40`, pl: 2, lineHeight: 1.6 }}>
+          "{visitedUser.short_sentece}"
+        </Typography>
       </Section>
 
       <ConfirmModal
@@ -260,7 +320,7 @@ export default function UserPage() {
       />
 
       <Backdrop sx={{ zIndex: 9999, color: "#fff" }} open={isAvatarZoomed} onClick={() => setIsAvatarZoomed(false)}>
-        <img src={visitedUser.url_image ?? "/no_user_avatar_image.png"} style={{ width: "min(90%, 450px)", borderRadius: "50%" }} alt="Zoom" />
+        <img src={visitedUser.url_image ?? "/no_user_avatar_image.png"} style={{ width: "min(90%, 450px)", borderRadius: "50%", boxShadow: "0 20px 60px rgba(0,0,0,0.5)" }} alt="Zoom" />
       </Backdrop>
     </Box>
   );

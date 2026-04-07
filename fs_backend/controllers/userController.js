@@ -93,9 +93,14 @@ class UserController {
       const newUser = await userService.createUser(req.body);
       return res.status(201).json({ ok: true, datos: newUser });
     } catch (err) {
+      console.error("ERROR REGISTER:", err.message, err.stack);
       return res
         .status(500)
-        .json({ ok: false, mensaje: "Error al registrar usuario" });
+        .json({
+          ok: false,
+          mensaje: "Error al registrar usuario",
+          detalle: err.message,
+        });
     }
   }
 
@@ -329,34 +334,40 @@ class UserController {
   }
 
   async unbanUser(req, res) {
-  try {
-    const { id } = req.params;
-    const requestingRole = req.user.role;
+    try {
+      const { id } = req.params;
+      const requestingRole = req.user.role;
 
-    if (requestingRole === "USER") {
-      return res.status(403).json({ ok: false, mensaje: "No tienes permiso" });
+      if (requestingRole === "USER") {
+        return res
+          .status(403)
+          .json({ ok: false, mensaje: "No tienes permiso" });
+      }
+
+      const targetUser = await userService.getUserById(id);
+      if (!targetUser) {
+        return res
+          .status(404)
+          .json({ ok: false, mensaje: "Usuario no encontrado" });
+      }
+
+      await userService.updateUser(id, { banned: false });
+
+      const io = req.app.get("socketio");
+      if (io) {
+        io.to(`user_${id}`).emit("usuario_desbaneado", {
+          mensaje: "Tu cuenta ha sido reactivada",
+        });
+      }
+
+      return res.status(200).json({ ok: true, mensaje: "Usuario desbaneado" });
+    } catch (err) {
+      logger.error("Error en unbanUser: " + err.message);
+      return res
+        .status(500)
+        .json({ ok: false, mensaje: "Error al desbanear usuario" });
     }
-
-    const targetUser = await userService.getUserById(id);
-    if (!targetUser) {
-      return res.status(404).json({ ok: false, mensaje: "Usuario no encontrado" });
-    }
-
-    await userService.updateUser(id, { banned: false });
-
-    const io = req.app.get("socketio");
-    if (io) {
-      io.to(`user_${id}`).emit("usuario_desbaneado", {
-        mensaje: "Tu cuenta ha sido reactivada",
-      });
-    }
-
-    return res.status(200).json({ ok: true, mensaje: "Usuario desbaneado" });
-  } catch (err) {
-    logger.error("Error en unbanUser: " + err.message);
-    return res.status(500).json({ ok: false, mensaje: "Error al desbanear usuario" });
   }
-}
 
   async removeInterests(req, res) {
     try {

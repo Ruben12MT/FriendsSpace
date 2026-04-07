@@ -121,7 +121,7 @@ export default function ChatsPage() {
           isBlocked,
           iBlockedThem,
           isReportChat,
-          lastMessage: null,
+          lastMessage: connection.messages?.[0] || null,
         };
       })
       .filter((conv) => conv.friendUser);
@@ -474,7 +474,10 @@ export default function ChatsPage() {
   const openRightClickMenu = (e, message) => {
     e.preventDefault();
     if (message.deleted) return;
-    setRightClickMenu({ visible: true, x: e.clientX, y: e.clientY, message });
+    const isMine = messageIsFromMe(message);
+    const menuWidth = 160;
+    const x = isMine ? e.clientX - menuWidth : e.clientX;
+    setRightClickMenu({ visible: true, x, y: e.clientY, message });
   };
 
   const closeRightClickMenu = () =>
@@ -892,7 +895,7 @@ export default function ChatsPage() {
                   sx={{
                     fontSize: "0.72rem",
                     fontWeight: 700,
-                    color: accentColor,
+                    color: theme.secondaryText,
                     mb: 0.25,
                   }}
                 >
@@ -934,7 +937,7 @@ export default function ChatsPage() {
               borderTop: `1px solid ${dividerColor}`,
               background: sidebarBg,
               display: "flex",
-              alignItems: "flex-end",
+              alignItems: "center",
               gap: 1,
               flexShrink: 0,
             }}

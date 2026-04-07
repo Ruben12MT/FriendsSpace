@@ -3,13 +3,14 @@ const logger = require("../utils/logger");
 
 class ConnectionController {
   async getAllMyConnections(req, res) {
-    try {
-      const datos = await connectionService.getAllMyConnections(req.user.id);
-      res.json({ ok: true, datos });
-    } catch (error) {
-      res.status(500).json({ ok: false, mensaje: error.message });
-    }
+  try {
+    const datos = await connectionService.getAllMyConnections(req.user.id);
+    res.json({ ok: true, datos });
+  } catch (error) {
+    console.error("ERROR getAllMyConnections:", error.message, error.stack);
+    res.status(500).json({ ok: false, mensaje: error.message });
   }
+}
 
   async activateConnection(req, res) {
     try {

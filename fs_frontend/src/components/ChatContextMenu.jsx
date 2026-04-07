@@ -7,41 +7,29 @@ import { useAppTheme } from "../hooks/useAppTheme";
 
 export default function ChatContextMenu({ x, y, message, isMine, onReply, onEdit, onDelete, onClose }) {
   const theme = useAppTheme();
-  const accentColor = theme.primaryBack;
+  const accent = theme.accent || theme.primaryBack;
   const textColor = theme.primaryText;
   const backgroundColor = theme.secondaryBack;
   const borderColor = theme.name === "dark" ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.08)";
 
   const menuItemStyle = {
-    display: "flex",
-    alignItems: "center",
-    gap: 1.5,
-    px: 2,
-    py: 1,
-    cursor: "pointer",
-    fontSize: "0.85rem",
+    display: "flex", alignItems: "center", gap: 1.5,
+    px: 2, py: 1, cursor: "pointer", fontSize: "0.85rem",
   };
 
   return (
     <Box
       onClick={(e) => e.stopPropagation()}
       sx={{
-        position: "fixed",
-        top: y,
-        left: x,
-        zIndex: 9999,
-        background: backgroundColor,
-        border: `1px solid ${borderColor}`,
-        borderRadius: "12px",
-        boxShadow: "0 8px 24px rgba(0,0,0,0.15)",
-        minWidth: 160,
-        overflow: "hidden",
-        py: 0.5,
+        position: "fixed", top: y, left: x, zIndex: 9999,
+        background: backgroundColor, border: `1px solid ${borderColor}`,
+        borderRadius: "12px", boxShadow: "0 8px 24px rgba(0,0,0,0.15)",
+        minWidth: 160, overflow: "hidden", py: 0.5,
       }}
     >
       <Box
         onClick={() => { onReply(message); onClose(); }}
-        sx={{ ...menuItemStyle, color: textColor, "&:hover": { background: `${accentColor}15`, color: accentColor } }}
+        sx={{ ...menuItemStyle, color: textColor, "&:hover": { background: `${accent}15`, color: accent } }}
       >
         <ReplyIcon fontSize="small" sx={{ opacity: 0.7 }} />
         Responder
@@ -50,7 +38,7 @@ export default function ChatContextMenu({ x, y, message, isMine, onReply, onEdit
       {isMine && message.type === "TEXT" && (
         <Box
           onClick={() => { onEdit(message); onClose(); }}
-          sx={{ ...menuItemStyle, color: textColor, "&:hover": { background: `${accentColor}15`, color: accentColor } }}
+          sx={{ ...menuItemStyle, color: textColor, "&:hover": { background: `${accent}15`, color: accent } }}
         >
           <EditIcon fontSize="small" sx={{ opacity: 0.7 }} />
           Editar

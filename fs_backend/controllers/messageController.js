@@ -1,6 +1,9 @@
 const messageService = require("../services/messageService");
 const { uploadChat } = require("../config/cloudinary");
 const logger = require("../utils/logger");
+const sequelize = require("../config/sequelize");
+const { initModels } = require("../src/models/init-models");
+const models = initModels(sequelize);
 
 class MessageController {
   async getMessages(req, res) {
@@ -71,6 +74,17 @@ class MessageController {
         io.to(`chat_${connectionId}`).emit("nuevo_mensaje", {
           data: newMessage,
         });
+
+        const participants = await models.user_connection.findAll({
+          where: { connection_id: connectionId },
+        });
+        participants.forEach((p) => {
+          if (p.user_id !== userId) {
+            io.to(`user_${p.user_id}`).emit("nuevo_mensaje", {
+              data: newMessage,
+            });
+          }
+        });
       }
 
       return res.status(201).json({ ok: true, datos: newMessage });
@@ -124,6 +138,17 @@ class MessageController {
       if (io) {
         io.to(`chat_${connectionId}`).emit("nuevo_mensaje", {
           data: newMessage,
+        });
+
+        const participants = await models.user_connection.findAll({
+          where: { connection_id: connectionId },
+        });
+        participants.forEach((p) => {
+          if (p.user_id !== userId) {
+            io.to(`user_${p.user_id}`).emit("nuevo_mensaje", {
+              data: newMessage,
+            });
+          }
         });
       }
 
@@ -203,26 +228,32 @@ class MessageController {
   }
 
   async downloadFile(req, res) {
-  try {
-    const { messageId } = req.params;
-    const msg = await messageService.getMessageById(messageId);
-    if (!msg || !msg.url) return res.status(404).json({ ok: false });
+    try {
+      const { messageId } = req.params;
+      const msg = await messageService.getMessageById(messageId);
+      if (!msg || !msg.url) return res.status(404).json({ ok: false });
 
-    const axios = require("axios");
+      const axios = require("axios");
 
-    const response = await axios.get(msg.url, {
-      responseType: "arraybuffer",
-    });
+      const response = await axios.get(msg.url, {
+        responseType: "arraybuffer",
+      });
 
-    const fileName = msg.body || "archivo";
-    res.setHeader("Content-Disposition", `attachment; filename="${fileName}"`);
-    res.setHeader("Content-Type", response.headers["content-type"] || "application/octet-stream");
-    res.send(Buffer.from(response.data));
-  } catch (err) {
-    logger.error("Error en downloadFile: " + err.message);
-    res.status(500).json({ ok: false });
+      const fileName = msg.body || "archivo";
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename="${fileName}"`,
+      );
+      res.setHeader(
+        "Content-Type",
+        response.headers["content-type"] || "application/octet-stream",
+      );
+      res.send(Buffer.from(response.data));
+    } catch (err) {
+      logger.error("Error en downloadFile: " + err.message);
+      res.status(500).json({ ok: false });
+    }
   }
-}
 }
 
 module.exports = new MessageController();
