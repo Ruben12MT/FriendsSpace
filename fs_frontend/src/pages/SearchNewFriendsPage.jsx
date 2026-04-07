@@ -29,6 +29,20 @@ export default function SearchNewFriendsPage() {
   const textMain = theme.primaryText;
   const textMuted = theme.mutedText || theme.secondaryText;
 
+  const toggleButtonSx = {
+    border: "none",
+    borderRadius: "8px !important",
+    color: textMuted,
+    background: "transparent",
+    "&.Mui-selected": {
+      color: textMain,
+      background: `${accent}20`,
+      "&:hover": { background: `${accent}30` },
+    },
+    "&:hover": { background: `${accent}10` },
+    px: 1.25,
+  };
+
   const fetchAllUsers = async () => {
     setIsLoading(true);
     try {
@@ -107,7 +121,9 @@ export default function SearchNewFriendsPage() {
               Encuentra tu friend
             </Typography>
             <Typography sx={{ fontSize: "0.85rem", color: textMuted, mt: 0.25 }}>
-              {usersToShow.length > 0 && !isLoading ? `${usersToShow.length} usuario${usersToShow.length !== 1 ? "s" : ""} encontrado${usersToShow.length !== 1 ? "s" : ""}` : "Busca por nombre o intereses"}
+              {usersToShow.length > 0 && !isLoading
+                ? `${usersToShow.length} usuario${usersToShow.length !== 1 ? "s" : ""} encontrado${usersToShow.length !== 1 ? "s" : ""}`
+                : "Busca por nombre o intereses"}
             </Typography>
           </Box>
 
@@ -123,28 +139,10 @@ export default function SearchNewFriendsPage() {
               border: `1px solid ${accent}20`,
             }}
           >
-            <ToggleButton
-              value="card"
-              sx={{
-                border: "none", borderRadius: "8px !important",
-                color: viewMode === "card" ? accent : textMuted,
-                background: viewMode === "card" ? `${accent}15` : "transparent",
-                "&:hover": { background: `${accent}10` },
-                px: 1.25,
-              }}
-            >
+            <ToggleButton value="card" sx={toggleButtonSx}>
               <ViewModuleIcon fontSize="small" />
             </ToggleButton>
-            <ToggleButton
-              value="row"
-              sx={{
-                border: "none", borderRadius: "8px !important",
-                color: viewMode === "row" ? accent : textMuted,
-                background: viewMode === "row" ? `${accent}15` : "transparent",
-                "&:hover": { background: `${accent}10` },
-                px: 1.25,
-              }}
-            >
+            <ToggleButton value="row" sx={toggleButtonSx}>
               <ViewStreamIcon fontSize="small" />
             </ToggleButton>
           </ToggleButtonGroup>

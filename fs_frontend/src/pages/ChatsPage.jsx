@@ -93,7 +93,7 @@ export default function ChatsPage() {
   const filePickerRef = useRef(null);
 
   const sidebarBg = theme.secondaryBack;
-  const chatAreaBg = theme.tertiaryBack;
+  const chatAreaBg = theme.name === "dark" ? "#1e1e1e" : "#f9f9f9";
   const dividerColor =
     theme.name === "dark" ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.08)";
   const accentColor = theme.primaryBack;
@@ -1031,7 +1031,7 @@ export default function ChatsPage() {
                   {messageBeingEdited ? (
                     <DoneIcon fontSize="small" />
                   ) : (
-                    <SendIcon fontSize="small" />
+                    <SendIcon fontSize="small" sx={{color: theme.secondaryText}} />
                   )}
                 </IconButton>
               </span>

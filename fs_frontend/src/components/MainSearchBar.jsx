@@ -68,6 +68,23 @@ export default function MainSearchBar({
             displayEmpty: true,
             sx: { color: theme.fieldsText },
             multiple: true,
+            MenuProps: {
+              PaperProps: {
+                sx: {
+                  background: theme.secondaryBack,
+                  border: `1px solid ${theme.borderLight || accent + "20"}`,
+                  borderRadius: "12px",
+                  "& .MuiMenuItem-root": {
+                    color: theme.primaryText,
+                    "&:hover": { background: `${accent}15` },
+                    "&.Mui-selected": {
+                      background: `${accent}20`,
+                      "&:hover": { background: `${accent}30` },
+                    },
+                  },
+                },
+              },
+            },
           },
         }}
         sx={{ ...inputStyles, flex: 3 }}
