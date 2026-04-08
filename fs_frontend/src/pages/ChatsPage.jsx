@@ -32,6 +32,7 @@ import ReportIcon from "@mui/icons-material/Report";
 import ChatIcon from "@mui/icons-material/Chat";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import GavelIcon from "@mui/icons-material/Gavel";
+import LockIcon from "@mui/icons-material/Lock";
 import { useAppTheme } from "../hooks/useAppTheme";
 import { useUser } from "../hooks/useUser";
 import { SocketContext } from "../context/SocketContext";
@@ -55,24 +56,18 @@ export default function ChatsPage() {
     loggedUser?.role === "ADMIN" || loggedUser?.role === "DEVELOPER";
 
   const [selectedTab, setSelectedTab] = useState("chats");
-
   const [conversationList, setConversationList] = useState([]);
-
   const [openedConversation, setOpenedConversation] = useState(null);
-
   const [messageList, setMessageList] = useState([]);
-
   const [reportClosedDialog, setReportClosedDialog] = useState(false);
-
+  const [conversationFinishedDialog, setConversationFinishedDialog] =
+    useState(false);
   const [isLoadingMessages, setIsLoadingMessages] = useState(false);
   const [hasMoreMessagesToLoad, setHasMoreMessagesToLoad] = useState(true);
   const [messageInputText, setMessageInputText] = useState("");
   const [isSendingMessage, setIsSendingMessage] = useState(false);
-
   const [replyTargetMessage, setReplyTargetMessage] = useState(null);
-
   const [messageBeingEdited, setMessageBeingEdited] = useState(null);
-
   const [rightClickMenu, setRightClickMenu] = useState({
     visible: false,
     x: 0,
@@ -96,9 +91,9 @@ export default function ChatsPage() {
   const chatAreaBg = theme.name === "dark" ? "#1e1e1e" : "#f9f9f9";
   const dividerColor =
     theme.name === "dark" ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.08)";
-  const accentColor = theme.primaryBack;
+  const accentColor = theme.accent || theme.primaryBack;
   const mainTextColor = theme.primaryText;
-  const mutedTextColor = theme.secondaryText;
+  const mutedTextColor = theme.mutedText || theme.secondaryText;
 
   const buildConversationList = (rawConnections, currentUserId) => {
     return rawConnections
@@ -139,7 +134,6 @@ export default function ChatsPage() {
   const normalChatsCount = conversationList.filter(
     (c) => !c.isReportChat,
   ).length;
-
   const isCurrentChatBlocked = openedConversation?.isBlocked;
 
   useEffect(() => {
@@ -168,6 +162,8 @@ export default function ChatsPage() {
               } else {
                 selectConversation(targetConversation);
               }
+            } else {
+              setConversationFinishedDialog(true);
             }
           } else if (navigationState?.openConnectionId) {
             const targetConversation = builtList.find(
@@ -180,6 +176,8 @@ export default function ChatsPage() {
               } else {
                 selectConversation(targetConversation);
               }
+            } else {
+              setConversationFinishedDialog(true);
             }
           }
         }
@@ -190,7 +188,6 @@ export default function ChatsPage() {
     if (loggedUser) loadConversationList();
   }, [loggedUser]);
 
-  // Carga los mensajes de una conversación (con paginación hacia arriba)
   const loadMessages = useCallback(
     async (connectionId, beforeMessageId = null) => {
       setIsLoadingMessages(true);
@@ -321,9 +318,29 @@ export default function ChatsPage() {
       setConversationList((prev) =>
         prev.filter((c) => c.connectionId !== connectionId),
       );
-      setOpenedConversation(null);
-      setMessageList([]);
+      setOpenedConversation((prev) => {
+        if (prev?.connectionId === connectionId) {
+          setMessageList([]);
+          return null;
+        }
+        return prev;
+      });
       setReportClosedDialog(true);
+    };
+
+    const onReporteAceptado = ({ connectionId }) => {
+      api
+        .get("/connections")
+        .then((response) => {
+          if (response.data.ok) {
+            const builtList = buildConversationList(
+              response.data.datos,
+              loggedUser.id,
+            );
+            setConversationList(builtList);
+          }
+        })
+        .catch(console.error);
     };
 
     const onIncomingMessage = (payload) => {
@@ -372,14 +389,16 @@ export default function ChatsPage() {
     socket.on("mensaje_editado", onEditedMessage);
     socket.on("mensaje_borrado", onDeletedMessage);
     socket.on("investigacion_finalizada", onInvestigacionFinalizada);
+    socket.on("reporte_aceptado", onReporteAceptado);
 
     return () => {
       socket.off("nuevo_mensaje", onIncomingMessage);
       socket.off("mensaje_editado", onEditedMessage);
       socket.off("mensaje_borrado", onDeletedMessage);
       socket.off("investigacion_finalizada", onInvestigacionFinalizada);
+      socket.off("reporte_aceptado", onReporteAceptado);
     };
-  }, [socket]);
+  }, [socket, loggedUser]);
 
   useEffect(() => {
     const topElement = topSentinelRef.current;
@@ -766,6 +785,7 @@ export default function ChatsPage() {
                 </Button>
               </Tooltip>
             )}
+
             <Tooltip title="Opciones">
               <IconButton
                 size="small"
@@ -1031,7 +1051,7 @@ export default function ChatsPage() {
                   {messageBeingEdited ? (
                     <DoneIcon fontSize="small" />
                   ) : (
-                    <SendIcon fontSize="small" sx={{color: theme.secondaryText}} />
+                    <SendIcon fontSize="small" />
                   )}
                 </IconButton>
               </span>
@@ -1109,6 +1129,59 @@ export default function ChatsPage() {
       </Dialog>
 
       <Dialog
+        open={conversationFinishedDialog}
+        onClose={() => setConversationFinishedDialog(false)}
+        PaperProps={{
+          sx: {
+            borderRadius: "16px",
+            background: sidebarBg,
+            border: `1px solid ${dividerColor}`,
+            minWidth: 320,
+            textAlign: "center",
+          },
+        }}
+      >
+        <DialogTitle sx={{ color: mainTextColor, fontWeight: 700, pt: 3 }}>
+          <Box
+            display="flex"
+            alignItems="center"
+            justifyContent="center"
+            gap={1}
+          >
+            <LockIcon sx={{ color: mutedTextColor, fontSize: 20 }} />
+            Conversación cerrada
+          </Box>
+        </DialogTitle>
+        <DialogContent>
+          <DialogContentText
+            sx={{
+              color: mutedTextColor,
+              fontSize: "0.875rem",
+              lineHeight: 1.7,
+            }}
+          >
+            Esta conversación ha sido cerrada y ya no está disponible.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions sx={{ justifyContent: "center", pb: 2.5 }}>
+          <Button
+            onClick={() => setConversationFinishedDialog(false)}
+            variant="contained"
+            sx={{
+              background: `linear-gradient(135deg, ${accentColor}, ${theme.variantBack})`,
+              color: "#fff",
+              textTransform: "none",
+              borderRadius: "8px",
+              fontWeight: 600,
+              px: 3,
+            }}
+          >
+            Entendido
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog
         open={blockWarningDialog.open}
         onClose={() => setBlockWarningDialog({ open: false, type: null })}
         PaperProps={{
@@ -1180,6 +1253,7 @@ export default function ChatsPage() {
           )}
         </DialogActions>
       </Dialog>
+
       <Dialog
         open={reportClosedDialog}
         PaperProps={{

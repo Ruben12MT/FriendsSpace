@@ -1,12 +1,5 @@
 import React, { useState, useEffect, useContext, useCallback } from "react";
-import {
-  Box,
-  Typography,
-  Button,
-  ButtonGroup,
-  Tooltip,
-  Chip,
-} from "@mui/material";
+import { Box, Typography, Button, ButtonGroup, Chip } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import DeleteSweepIcon from "@mui/icons-material/DeleteSweep";
 import ReportIcon from "@mui/icons-material/Report";
@@ -68,12 +61,23 @@ export default function RequestsPages() {
     try {
       const res = await api.get("/requests/list");
       if (res.data.ok && loggedUser) {
-        const solicitudes = res.data.datos.filter((r) => !r.is_report);
-        const reportes = res.data.datos.filter(
-          (r) => r.is_report && r.receiver_id === loggedUser.id,
-        );
+        const todasLasRequests = res.data.datos;
+
+        // Solicitudes normales — no son reportes
+        const solicitudes = todasLasRequests.filter((r) => !r.is_report);
+
+        // Reportes — los que recibe el admin + los que envió el usuario normal
+        const reportes = todasLasRequests.filter((r) => {
+          if (!r.is_report) return false;
+          // Admin ve los que le asignaron
+          if (isAdmin && r.receiver_id === loggedUser.id) return true;
+          // Usuario normal ve los que él envió
+          if (!isAdmin && r.sender_id === loggedUser.id) return true;
+          return false;
+        });
+
         setAllUserRequests(sortRequests(solicitudes));
-        if (isAdmin) setAllReports(sortRequests(reportes));
+        setAllReports(sortRequests(reportes));
       }
     } catch (error) {
       console.error(error.message);
@@ -90,12 +94,11 @@ export default function RequestsPages() {
     const handleNewRequest = (payload) => {
       const data = payload.data || payload;
       if (data.is_report) {
-        if (isAdmin)
-          setAllReports((prev) =>
-            prev.find((r) => r.id === data.id)
-              ? prev
-              : sortRequests([data, ...prev]),
-          );
+        setAllReports((prev) =>
+          prev.find((r) => r.id === data.id)
+            ? prev
+            : sortRequests([data, ...prev]),
+        );
       } else {
         const fmt = {
           ...data,
@@ -112,10 +115,18 @@ export default function RequestsPages() {
 
     const handleUpdatedRequest = (payload) => {
       const data = payload.data || payload;
-      const updateFn = (prev) =>
-        sortRequests(
-          prev.map((r) => (r.id === data.id ? { ...r, ...data } : r)),
-        );
+      const updateFn = (prev) => {
+        const existe = prev.find((r) => r.id === data.id);
+        if (existe) {
+          return sortRequests(
+            prev.map((r) => (r.id === data.id ? { ...r, ...data } : r)),
+          );
+        }
+        if (data.is_report && data.sender_id === loggedUser?.id) {
+          return sortRequests([data, ...prev]);
+        }
+        return prev;
+      };
       setAllUserRequests(updateFn);
       setAllReports(updateFn);
     };
@@ -167,16 +178,36 @@ export default function RequestsPages() {
   };
 
   const confirmClearAll = async () => {
-    const toClear = allUserRequests.filter((r) => r.status !== "PENDING");
-    try {
-      await Promise.all(
-        toClear.map((r) => api.put(`/requests/${r.id}/invisible`)),
+    if (activeView === "reportes") {
+      const reportesAccionados = allReports.filter(
+        (r) => r.status !== "PENDING",
       );
-      setAllUserRequests((prev) => prev.filter((r) => r.status === "PENDING"));
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setOpenClearModal(false);
+      try {
+        await Promise.all(
+          reportesAccionados.map((r) => api.put(`/requests/${r.id}/invisible`)),
+        );
+        setAllReports((prev) => prev.filter((r) => r.status === "PENDING"));
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setOpenClearModal(false);
+      }
+    } else {
+      const solicitudesLeidas = allUserRequests.filter(
+        (r) => r.status !== "PENDING",
+      );
+      try {
+        await Promise.all(
+          solicitudesLeidas.map((r) => api.put(`/requests/${r.id}/invisible`)),
+        );
+        setAllUserRequests((prev) =>
+          prev.filter((r) => r.status === "PENDING"),
+        );
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setOpenClearModal(false);
+      }
     }
   };
 
@@ -184,9 +215,11 @@ export default function RequestsPages() {
     try {
       const res = await api.put(`/requests/${idReq}/${action}`);
       if (res.data.ok) {
+        const connectionId = res.data.connectionId;
         const changes = {
           status: action === "accept" ? "ACCEPTED" : "REJECTED",
           updated_at: new Date().toISOString(),
+          ...(connectionId && { connection_id: connectionId }),
         };
         const update = (prev) =>
           sortRequests(
@@ -195,17 +228,8 @@ export default function RequestsPages() {
         setAllUserRequests(update);
         setAllReports(update);
 
-        if (action === "accept" && activeView === "reportes") {
-          const report = allReports.find((r) => r.id === idReq);
-          if (report) {
-            const conn = await api.get(
-              `/connections/check/${report.sender_id}`,
-            );
-            if (conn.data.exists)
-              navigate("/app/chats", {
-                state: { openConnectionId: conn.data.connection_id },
-              });
-          }
+        if (action === "accept" && activeView === "reportes" && connectionId) {
+          navigate("/app/chats", { state: { openConnectionId: connectionId } });
         }
       }
     } catch (e) {
@@ -219,6 +243,10 @@ export default function RequestsPages() {
   const pendingRequests = allUserRequests.filter(
     (r) => r.status === "PENDING",
   ).length;
+  const hayReportesAccionados = allReports.some((r) => r.status !== "PENDING");
+  const haySolicitudesLeidas = allUserRequests.some(
+    (r) => r.status !== "PENDING",
+  );
 
   return (
     <Box
@@ -247,8 +275,16 @@ export default function RequestsPages() {
         open={openClearModal}
         handleClose={() => setOpenClearModal(false)}
         onConfirm={confirmClearAll}
-        title="Limpiar notificaciones"
-        message="Se ocultarán todas las notificaciones leídas."
+        title={
+          activeView === "reportes"
+            ? "Limpiar reportes respondidos"
+            : "Limpiar notificaciones"
+        }
+        message={
+          activeView === "reportes"
+            ? "Se ocultarán todos los reportes aceptados y desestimados."
+            : "Se ocultarán todas las notificaciones leídas."
+        }
       />
 
       <Box sx={{ width: { xs: "100%", md: "80%", lg: "65%" }, flexShrink: 0 }}>
@@ -266,89 +302,107 @@ export default function RequestsPages() {
             }}
           >
             {activeView === "reportes"
-              ? "Reportes asignados"
+              ? isAdmin
+                ? "Reportes asignados"
+                : "Mis reportes"
               : "Notificaciones"}
           </Typography>
-          {activeView === "solicitudes" &&
-            allUserRequests.some((r) => r.status !== "PENDING") && (
-              <Button
-                size="small"
-                startIcon={<DeleteSweepIcon />}
-                onClick={() => setOpenClearModal(true)}
-                sx={{
-                  color: theme.mutedText,
-                  textTransform: "none",
-                  borderRadius: "10px",
-                }}
-              >
-                Limpiar leídas
-              </Button>
-            )}
+          {activeView === "solicitudes" && haySolicitudesLeidas && (
+            <Button
+              size="small"
+              startIcon={<DeleteSweepIcon />}
+              onClick={() => setOpenClearModal(true)}
+              sx={{
+                color: theme.mutedText,
+                textTransform: "none",
+                borderRadius: "10px",
+              }}
+            >
+              Limpiar leídas
+            </Button>
+          )}
+          {activeView === "reportes" && hayReportesAccionados && (
+            <Button
+              size="small"
+              startIcon={<DeleteSweepIcon />}
+              onClick={() => setOpenClearModal(true)}
+              sx={{
+                color: theme.mutedText,
+                textTransform: "none",
+                borderRadius: "10px",
+              }}
+            >
+              Limpiar respondidos
+            </Button>
+          )}
         </Box>
 
-        {isAdmin && (
-          <Box display="flex" gap={1} mb={3}>
-            <Button
-              startIcon={<NotificationsIcon />}
-              onClick={() => setActiveView("solicitudes")}
-              variant={activeView === "solicitudes" ? "contained" : "outlined"}
-              sx={{
-                borderRadius: "10px",
-                textTransform: "none",
-                background:
-                  activeView === "solicitudes" ? accent : "transparent",
-                color:
-                  activeView === "solicitudes"
-                    ? isDark
-                      ? "#1a1200"
-                      : "#fff"
-                    : accent,
-              }}
-            >
-              Solicitudes{" "}
-              {pendingRequests > 0 && (
-                <Chip
-                  label={pendingRequests}
-                  size="small"
-                  sx={{
-                    ml: 1,
-                    height: 18,
-                    fontSize: "0.68rem",
-                    background: "rgba(255,255,255,0.3)",
-                    color: isDark ? "#1a1200" : "#fff",
-                  }}
-                />
-              )}
-            </Button>
-            <Button
-              startIcon={<ReportIcon />}
-              onClick={() => setActiveView("reportes")}
-              variant={activeView === "reportes" ? "contained" : "outlined"}
-              sx={{
-                borderRadius: "10px",
-                textTransform: "none",
-                background:
-                  activeView === "reportes" ? "#f44336" : "transparent",
-                color: activeView === "reportes" ? "#fff" : "#f44336",
-              }}
-            >
-              Reportes{" "}
-              {pendingReports > 0 && (
-                <Chip
-                  label={pendingReports}
-                  size="small"
-                  sx={{
-                    ml: 1,
-                    height: 18,
-                    fontSize: "0.68rem",
-                    background: "rgba(255,255,255,0.3)",
-                    color: "#fff",
-                  }}
-                />
-              )}
-            </Button>
-          </Box>
-        )}
+        <Box display="flex" gap={1} mb={3}>
+          <Button
+            startIcon={<NotificationsIcon />}
+            onClick={() => setActiveView("solicitudes")}
+            variant={activeView === "solicitudes" ? "contained" : "outlined"}
+            sx={{
+              borderRadius: "10px",
+              textTransform: "none",
+              background: activeView === "solicitudes" ? accent : "transparent",
+              borderColor: accent,
+              color:
+                activeView === "solicitudes"
+                  ? isDark
+                    ? "#1a1200"
+                    : "#fff"
+                  : accent,
+              "&:hover": {
+                background: accent,
+                color: isDark ? "#1a1200" : "#fff",
+              },
+            }}
+          >
+            Solicitudes{" "}
+            {pendingRequests > 0 && (
+              <Chip
+                label={pendingRequests}
+                size="small"
+                sx={{
+                  ml: 1,
+                  height: 18,
+                  fontSize: "0.68rem",
+                  background: "rgba(255,255,255,0.3)",
+                  color: isDark ? "#1a1200" : "#fff",
+                }}
+              />
+            )}
+          </Button>
+          <Button
+            startIcon={<ReportIcon />}
+            onClick={() => setActiveView("reportes")}
+            variant={activeView === "reportes" ? "contained" : "outlined"}
+            sx={{
+              borderRadius: "10px",
+              textTransform: "none",
+              background: activeView === "reportes" ? "#f44336" : "transparent",
+              borderColor: "#f44336",
+              color: activeView === "reportes" ? "#fff" : "#f44336",
+              "&:hover": { background: "#f44336", color: "#fff" },
+            }}
+          >
+            Reportes{" "}
+            {pendingReports > 0 && (
+              <Chip
+                label={pendingReports}
+                size="small"
+                sx={{
+                  ml: 1,
+                  height: 18,
+                  fontSize: "0.68rem",
+                  background: "rgba(255,255,255,0.3)",
+                  color: "#fff",
+                }}
+              />
+            )}
+          </Button>
+        </Box>
 
         {activeView === "solicitudes" && (
           <ButtonGroup
@@ -403,7 +457,7 @@ export default function RequestsPages() {
             />
             <Typography sx={{ color: theme.mutedText }}>
               {activeView === "reportes"
-                ? "Sin reportes asignados"
+                ? "No tienes reportes"
                 : "Sin notificaciones"}
             </Typography>
           </Box>

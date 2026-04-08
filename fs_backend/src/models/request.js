@@ -12,18 +12,18 @@ module.exports = function (sequelize, DataTypes) {
       sender_id: {
         type: DataTypes.INTEGER,
         allowNull: true,
-        references: {
-          model: "user",
-          key: "id",
-        },
+        references: { model: "user", key: "id" },
       },
       receiver_id: {
         type: DataTypes.INTEGER,
         allowNull: true,
-        references: {
-          model: "user",
-          key: "id",
-        },
+        references: { model: "user", key: "id" },
+      },
+      connection_id: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+        defaultValue: null,
+        references: { model: "connection", key: "id" },
       },
       is_report: {
         type: DataTypes.BOOLEAN,
@@ -55,12 +55,10 @@ module.exports = function (sequelize, DataTypes) {
         type: DataTypes.DATE,
         allowNull: true,
       },
-
       updated_at: {
         type: DataTypes.DATE,
         allowNull: true,
       },
-
       is_read_sender: {
         type: DataTypes.BOOLEAN,
         allowNull: true,
@@ -75,24 +73,11 @@ module.exports = function (sequelize, DataTypes) {
     {
       sequelize,
       tableName: "request",
-      timestamps: false, 
+      timestamps: false,
       indexes: [
-        {
-          name: "PRIMARY",
-          unique: true,
-          using: "BTREE",
-          fields: [{ name: "id" }],
-        },
-        {
-          name: "sender_id",
-          using: "BTREE",
-          fields: [{ name: "sender_id" }],
-        },
-        {
-          name: "receiver_id",
-          using: "BTREE",
-          fields: [{ name: "receiver_id" }],
-        },
+        { name: "PRIMARY", unique: true, using: "BTREE", fields: [{ name: "id" }] },
+        { name: "sender_id", using: "BTREE", fields: [{ name: "sender_id" }] },
+        { name: "receiver_id", using: "BTREE", fields: [{ name: "receiver_id" }] },
       ],
     }
   );

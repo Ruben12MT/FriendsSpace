@@ -5,17 +5,13 @@ const { Op } = require("sequelize");
 
 class RequestService {
   async createRequest(data) {
-    const nuevaReq = await request.create({
-      ...data,
-      created_at: new Date(),
-    });
-    const reqCompleta = await request.findByPk(nuevaReq.id, {
+    const nuevaReq = await request.create({ ...data, created_at: new Date() });
+    return await request.findByPk(nuevaReq.id, {
       include: [
         { model: user, as: "sender", attributes: ["id", "name", "url_image"] },
         { model: user, as: "receiver", attributes: ["id", "name", "url_image"] },
       ],
     });
-    return reqCompleta;
   }
 
   async getRequestById(id) {
@@ -52,12 +48,17 @@ class RequestService {
     return { pending, activeFriendship };
   }
 
-  async acceptRequest(requestId, receiverId, senderId) {
+  async acceptRequest(requestId, receiverId, senderId, isReport = false) {
     const t = await sequelize.transaction();
     try {
+      const newConn = await connection.create({ status: "ACTIVE" }, { transaction: t });
+      await user_connection.create({ user_id: senderId, connection_id: newConn.id }, { transaction: t });
+      await user_connection.create({ user_id: receiverId, connection_id: newConn.id }, { transaction: t });
+
       await request.update(
         {
           status: "ACCEPTED",
+          connection_id: newConn.id,
           visible_sender: true,
           visible_receiver: true,
           is_read_receiver: true,
@@ -67,12 +68,8 @@ class RequestService {
         { where: { id: requestId }, transaction: t },
       );
 
-      const newConn = await connection.create({ status: "ACTIVE" }, { transaction: t });
-      await user_connection.create({ user_id: senderId, connection_id: newConn.id }, { transaction: t });
-      await user_connection.create({ user_id: receiverId, connection_id: newConn.id }, { transaction: t });
-
       await t.commit();
-      return true;
+      return newConn.id;
     } catch (error) {
       await t.rollback();
       throw error;
@@ -144,9 +141,6 @@ class RequestService {
     });
   }
 
-  // Busca el admin con menos carga de trabajo sumando:
-  // - Reportes PENDING asignados a él
-  // - Conexiones ACTIVE donde él participa junto a un USER (chats de reporte activos)
   async findAdminWithLeastWorkload() {
     const admins = await user.findAll({
       where: { role: { [Op.in]: ["ADMIN", "DEVELOPER"] }, banned: false },
@@ -160,40 +154,21 @@ class RequestService {
 
     for (const admin of admins) {
       const reportesPendientes = await request.count({
-        where: {
-          receiver_id: admin.id,
-          is_report: true,
-          status: "PENDING",
-        },
+        where: { receiver_id: admin.id, is_report: true, status: "PENDING" },
       });
 
       const conexionesActivas = await connection.count({
         where: { status: "ACTIVE" },
         include: [
+          { model: user_connection, as: "user_connections", where: { user_id: admin.id }, required: true },
           {
-            model: user_connection,
-            as: "user_connections",
-            where: { user_id: admin.id },
-            required: true,
-          },
-          {
-            model: user_connection,
-            as: "user_connections",
-            required: true,
-            include: [
-              {
-                model: user,
-                as: "user",
-                where: { role: "USER" },
-                required: true,
-              },
-            ],
+            model: user_connection, as: "user_connections", required: true,
+            include: [{ model: user, as: "user", where: { role: "USER" }, required: true }],
           },
         ],
       });
 
       const cargaTotal = reportesPendientes + conexionesActivas;
-
       if (cargaTotal < menorCarga) {
         menorCarga = cargaTotal;
         adminConMenosCarga = admin;
@@ -203,7 +178,6 @@ class RequestService {
     return adminConMenosCarga;
   }
 
-  // Crea un reporte asignándolo automáticamente al admin con menos carga
   async createReport(senderId, body, infoReport) {
     const adminAsignado = await this.findAdminWithLeastWorkload();
 
