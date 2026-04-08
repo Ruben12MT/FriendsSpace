@@ -10,6 +10,7 @@ import CampaignIcon from "@mui/icons-material/Campaign";
 import ChatBubbleOutlineIcon from "@mui/icons-material/ChatBubbleOutline";
 import LogoutIcon from "@mui/icons-material/Logout";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
+import AdminPanelSettingsIcon from "@mui/icons-material/AdminPanelSettings";
 import { SocketContext } from "../context/SocketContext.jsx";
 import useAuthStore from "../store/useAuthStore.js";
 import { useUser } from "../hooks/useUser";
@@ -20,12 +21,6 @@ import api from "../utils/api";
 
 const SIDEBAR_W = 68;
 const TOPBAR_H = 52;
-
-const navItems = [
-  { path: "/app/searchnewfriends", icon: <PersonSearchIcon />, label: "Buscar amigos" },
-  { path: "/app/ads",              icon: <CampaignIcon />,      label: "Anuncios" },
-  { path: "/app/chats",            icon: <ChatBubbleOutlineIcon />, label: "Chats" },
-];
 
 export default function UserBar() {
   const navigate = useNavigate();
@@ -44,6 +39,13 @@ export default function UserBar() {
   useFirstLogin();
 
   const estaEnRequests = pathname === "/app/requests";
+const isAdminOrDev = loggedUser?.role === "DEVELOPER" || loggedUser?.role === "ADMIN";
+  const navItems = [
+    { path: "/app/searchnewfriends", icon: <PersonSearchIcon />, label: loggedUser?.role === "DEVELOPER" || loggedUser?.role === "ADMIN" ? "Buscar usuarios" : "Buscar amigos" },
+    { path: "/app/ads",              icon: <CampaignIcon />,      label: "Anuncios" },
+    { path: "/app/chats",            icon: <ChatBubbleOutlineIcon />, label: "Chats" },
+    ...(isAdminOrDev ? [{ path: "/app/admins", icon: <AdminPanelSettingsIcon />, label: "Gestión de admins" }] : []),
+  ];
 
   useEffect(() => {
     if (unreadCount > 0) return;
@@ -75,13 +77,13 @@ export default function UserBar() {
     } catch (e) { console.error(e); }
   };
 
-  const bg      = theme.navBar.backColor;
-  const fg      = theme.navBar.textColor;
-  const accent  = theme.accent || theme.navBar.activeColor;
-  const border  = theme.navBar.borderColor;
-  const hoverBg = theme.navBar.hoverBg;
+  const bg       = theme.navBar.backColor;
+  const fg       = theme.navBar.textColor;
+  const accent   = theme.accent || theme.navBar.activeColor;
+  const border   = theme.navBar.borderColor;
+  const hoverBg  = theme.navBar.hoverBg;
   const activeBg = theme.navBar.activeBg;
-  const isDark  = theme.name === "dark";
+  const isDark   = theme.name === "dark";
 
   const isActive = (path) => pathname.startsWith(path);
 

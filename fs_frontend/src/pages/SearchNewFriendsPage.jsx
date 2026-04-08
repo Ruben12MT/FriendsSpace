@@ -1,7 +1,12 @@
 import React, { useState, useEffect } from "react";
 import {
-  Box, Container, Typography, Grid,
-  CircularProgress, ToggleButton, ToggleButtonGroup,
+  Box,
+  Container,
+  Typography,
+  Grid,
+  CircularProgress,
+  ToggleButton,
+  ToggleButtonGroup,
 } from "@mui/material";
 import ViewModuleIcon from "@mui/icons-material/ViewModule";
 import ViewStreamIcon from "@mui/icons-material/ViewStream";
@@ -66,7 +71,8 @@ export default function SearchNewFriendsPage() {
 
   useEffect(() => {
     if (loggedUser) {
-      api.get(`/users/${loggedUser.id}/interests`)
+      api
+        .get(`/users/${loggedUser.id}/interests`)
         .then((res) => setUserInterests(res.data.datos || []))
         .catch(console.error);
     }
@@ -87,7 +93,9 @@ export default function SearchNewFriendsPage() {
         user.interests?.some((uInt) => {
           const idInt = uInt.id || uInt.interest_id;
           if (selectedInterests.includes(0)) {
-            return userInterests.some((myInt) => (myInt.id || myInt.interest_id) === idInt);
+            return userInterests.some(
+              (myInt) => (myInt.id || myInt.interest_id) === idInt,
+            );
           }
           return selectedInterests.includes(Number(idInt));
         });
@@ -109,18 +117,45 @@ export default function SearchNewFriendsPage() {
   };
 
   return (
-    <Box sx={{
-      position: "fixed", top: "52px", left: "68px", right: 0, bottom: 0,
-      display: "flex", overflow: "hidden",
-    }}>
-      <Container maxWidth="lg" sx={{ height: "100%", display: "flex", flexDirection: "column", py: 3 }}>
-
-        <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2.5 }}>
+    <Box
+      sx={{
+        position: "fixed",
+        top: "52px",
+        left: "68px",
+        right: 0,
+        bottom: 0,
+        display: "flex",
+        overflow: "hidden",
+      }}
+    >
+      <Container
+        maxWidth="lg"
+        sx={{ height: "100%", display: "flex", flexDirection: "column", py: 3 }}
+      >
+        <Box
+          sx={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            mb: 2.5,
+          }}
+        >
           <Box>
-            <Typography sx={{ fontWeight: 700, fontSize: "1.5rem", color: textMain, lineHeight: 1.2 }}>
-              Encuentra tu friend
+            <Typography
+              sx={{
+                fontWeight: 700,
+                fontSize: "1.5rem",
+                color: textMain,
+                lineHeight: 1.2,
+              }}
+            >
+              {loggedUser?.role === "DEVELOPER" || loggedUser?.role === "ADMIN"
+                ? "Buscar usuarios"
+                : "Buscar amigos"}{" "}
             </Typography>
-            <Typography sx={{ fontSize: "0.85rem", color: textMuted, mt: 0.25 }}>
+            <Typography
+              sx={{ fontSize: "0.85rem", color: textMuted, mt: 0.25 }}
+            >
               {usersToShow.length > 0 && !isLoading
                 ? `${usersToShow.length} usuario${usersToShow.length !== 1 ? "s" : ""} encontrado${usersToShow.length !== 1 ? "s" : ""}`
                 : "Busca por nombre o intereses"}
@@ -152,28 +187,62 @@ export default function SearchNewFriendsPage() {
           placeholder="Busca por nombre..."
           searchValue={query}
           onSearchChange={setQuery}
-          onReset={() => { setQuery(""); setSelectedInterests([-1]); fetchAllUsers(); }}
+          onReset={() => {
+            setQuery("");
+            setSelectedInterests([-1]);
+            fetchAllUsers();
+          }}
           showAdd={false}
           interests={allInterests}
           selectedInterests={selectedInterests}
           onInterestChange={handleSelectInterest}
         />
 
-        <Box sx={{
-          flexGrow: 1, overflowY: "auto", mt: 3, pr: 0.5, pt: 0.5,
-          "&::-webkit-scrollbar": { width: "4px" },
-          "&::-webkit-scrollbar-thumb": { background: `${accent}40`, borderRadius: "10px" },
-          "&::-webkit-scrollbar-track": { background: "transparent" },
-        }}>
+        <Box
+          sx={{
+            flexGrow: 1,
+            overflowY: "auto",
+            mt: 3,
+            pr: 0.5,
+            pt: 0.5,
+            "&::-webkit-scrollbar": { width: "4px" },
+            "&::-webkit-scrollbar-thumb": {
+              background: `${accent}40`,
+              borderRadius: "10px",
+            },
+            "&::-webkit-scrollbar-track": { background: "transparent" },
+          }}
+        >
           {isLoading ? (
-            <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", mt: 12, gap: 2 }}>
+            <Box
+              sx={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                mt: 12,
+                gap: 2,
+              }}
+            >
               <CircularProgress sx={{ color: accent }} size={36} />
-              <Typography sx={{ color: textMuted, fontSize: "0.875rem" }}>Cargando usuarios...</Typography>
+              <Typography sx={{ color: textMuted, fontSize: "0.875rem" }}>
+                Cargando usuarios...
+              </Typography>
             </Box>
           ) : usersToShow.length === 0 ? (
-            <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", mt: 12, gap: 2, opacity: 0.5 }}>
+            <Box
+              sx={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                mt: 12,
+                gap: 2,
+                opacity: 0.5,
+              }}
+            >
               <PeopleOutlineIcon sx={{ fontSize: 52, color: textMuted }} />
-              <Typography sx={{ color: textMuted, fontSize: "0.9rem" }}>No se encontraron usuarios</Typography>
+              <Typography sx={{ color: textMuted, fontSize: "0.9rem" }}>
+                No se encontraron usuarios
+              </Typography>
             </Box>
           ) : (
             <Grid container spacing={2}>

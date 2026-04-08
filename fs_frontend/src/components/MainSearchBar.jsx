@@ -12,12 +12,15 @@ export default function MainSearchBar({
   onAdd,
   showAdd = true,
   interests = [],
-  selectedInterests,
+  selectedInterests = [],
   onInterestChange,
+  variant = "default",
 }) {
   const theme = useAppTheme();
   const accent = theme.accent || theme.primaryBack;
   const isDark = theme.name === "dark";
+
+  const showInterests = variant !== "searchAdmins";
 
   const inputStyles = {
     background: theme.tertiaryBack,
@@ -28,106 +31,74 @@ export default function MainSearchBar({
   };
 
   const buttonBaseStyles = {
-    width: 42,
-    height: 42,
-    flexShrink: 0,
-    borderRadius: "10px",
-    transition: "all 0.2s",
+    width: 42, height: 42, flexShrink: 0,
+    borderRadius: "10px", transition: "all 0.2s",
   };
 
   return (
-    <Box
-      sx={{
-        display: "flex",
-        width: "100%",
-        px: 2,
-        py: 1.25,
-        alignItems: "center",
-        gap: 1.5,
-        background: theme.secondaryBack,
-        border: `1px solid ${accent}25`,
-        borderRadius: "14px",
-      }}
-    >
+    <Box sx={{
+      display: "flex", width: "100%",
+      px: 2, py: 1.25, alignItems: "center", gap: 1.5,
+      background: theme.secondaryBack,
+      border: `1px solid ${accent}25`,
+      borderRadius: "14px",
+    }}>
       <TextField
         fullWidth
         placeholder={placeholder}
         autoComplete="off"
         value={searchValue}
         onChange={(e) => onSearchChange(e.target.value)}
-        sx={{ ...inputStyles, flex: 7 }}
+        sx={{ ...inputStyles, flex: showInterests ? 7 : 1 }}
       />
 
-      <TextField
-        select
-        fullWidth
-        value={selectedInterests}
-        onChange={onInterestChange}
-        slotProps={{
-          select: {
-            displayEmpty: true,
-            sx: { color: theme.fieldsText },
-            multiple: true,
-            MenuProps: {
-              PaperProps: {
-                sx: {
-                  background: theme.secondaryBack,
-                  border: `1px solid ${theme.borderLight || accent + "20"}`,
-                  borderRadius: "12px",
-                  "& .MuiMenuItem-root": {
-                    color: theme.primaryText,
-                    "&:hover": { background: `${accent}15` },
-                    "&.Mui-selected": {
-                      background: `${accent}20`,
-                      "&:hover": { background: `${accent}30` },
+      {showInterests && (
+        <TextField
+          select fullWidth
+          value={selectedInterests}
+          onChange={onInterestChange}
+          slotProps={{
+            select: {
+              displayEmpty: true,
+              sx: { color: theme.fieldsText },
+              multiple: true,
+              MenuProps: {
+                PaperProps: {
+                  sx: {
+                    background: theme.secondaryBack,
+                    border: `1px solid ${theme.borderLight || accent + "20"}`,
+                    borderRadius: "12px",
+                    "& .MuiMenuItem-root": {
+                      color: theme.primaryText,
+                      "&:hover": { background: `${accent}15` },
+                      "&.Mui-selected": {
+                        background: `${accent}20`,
+                        "&:hover": { background: `${accent}30` },
+                      },
                     },
                   },
                 },
               },
             },
-          },
-        }}
-        sx={{ ...inputStyles, flex: 3 }}
-      >
-        <MenuItem value={0} sx={{ color: theme.secondaryText }}>
-          Mis intereses
-        </MenuItem>
-        <MenuItem value={-1} sx={{ color: theme.secondaryText }}>
-          Todos
-        </MenuItem>
-        {interests.map((int) => (
-          <MenuItem
-            key={int.id}
-            value={int.id}
-            sx={{ color: isDark ? theme.primaryText : "#1a1200" }}
-          >
-            {int.name}
-          </MenuItem>
-        ))}
-      </TextField>
+          }}
+          sx={{ ...inputStyles, flex: 3 }}
+        >
+          <MenuItem value={0} sx={{ color: theme.secondaryText }}>Mis intereses</MenuItem>
+          <MenuItem value={-1} sx={{ color: theme.secondaryText }}>Todos</MenuItem>
+          {interests.map((int) => (
+            <MenuItem key={int.id} value={int.id} sx={{ color: isDark ? theme.primaryText : "#1a1200" }}>
+              {int.name}
+            </MenuItem>
+          ))}
+        </TextField>
+      )}
 
-      <IconButton
-        onClick={onReset}
-        sx={{
-          ...buttonBaseStyles,
-          background: accent,
-          color: isDark ? "#1a1200" : "#ffffff",
-          "&:hover": { background: theme.accentHover || accent, opacity: 0.9 },
-        }}
-      >
+      <IconButton onClick={onReset} sx={{ ...buttonBaseStyles, background: accent, color: isDark ? "#1a1200" : "#ffffff", "&:hover": { background: theme.accentHover || accent, opacity: 0.9 } }}>
         <RotateCcw size={18} />
       </IconButton>
 
       {showAdd && (
-        <IconButton
-          onClick={onAdd}
-          sx={{
-            ...buttonBaseStyles,
-            background: theme.primaryText,
-            color: theme.secondaryBack,
-            "&:hover": { opacity: 0.85 },
-          }}
-        >
+        <IconButton onClick={onAdd} sx={{ ...buttonBaseStyles, background: theme.primaryText, color: theme.secondaryBack, "&:hover": { opacity: 0.85 } }}>
           <AddIcon fontSize="small" />
         </IconButton>
       )}

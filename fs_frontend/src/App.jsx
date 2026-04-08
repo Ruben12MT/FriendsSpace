@@ -18,6 +18,8 @@ import { SocketProvider } from "./context/SocketProvider";
 import { AuthProvider } from "./components/AuthProvider";
 import ChatsPage from "./pages/ChatsPage";
 import BannedPage from "./pages/BannedPage";
+import AdminsPage from "./pages/AdminsPage";
+
 
 const router = createBrowserRouter([
   {
@@ -48,6 +50,7 @@ const router = createBrowserRouter([
     children: [
       { path: "searchnewfriends", element: <SearchNewFriendsPage /> },
       { path: "ads", element: <AdsPage /> },
+      { path: "admins", element: <AdminsPage /> },
       { path: "chats", element: <ChatsPage /> },
       { path: "requests", element: <RequestsPages /> },
       { path: ":id", element: <UserPage /> },
