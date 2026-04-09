@@ -36,7 +36,8 @@ export default function AdCard({ ad, onDelete, setOpenFormAd, onSelect }) {
   const hasBody = ad.body && ad.body.trim() !== "";
   const isLoggedUser = loggedUser && ad.user_id === loggedUser.id;
   const isAdmin = loggedUser?.role === "ADMIN" || loggedUser?.role === "DEVELOPER";
-  const puedeReportar = !isLoggedUser && !isAdmin;
+  const adOwnerIsAdminOrDev = ad.user?.role === "ADMIN" || ad.user?.role === "DEVELOPER";
+  const puedeReportar = !isLoggedUser && !isAdmin && !adOwnerIsAdminOrDev;
 
   const handleReport = async () => {
     if (!reportMotivo.trim()) return;
@@ -70,9 +71,7 @@ export default function AdCard({ ad, onDelete, setOpenFormAd, onSelect }) {
           background: theme.secondaryBack,
           borderRadius: "16px",
           border: `1px solid ${accent}25`,
-          boxShadow: isDark
-            ? "0 2px 12px rgba(0,0,0,0.25)"
-            : `0 2px 12px rgba(184,134,11,0.08)`,
+          boxShadow: isDark ? "0 2px 12px rgba(0,0,0,0.25)" : `0 2px 12px rgba(184,134,11,0.08)`,
           px: 3, pt: 2.5, pb: 2.5,
           display: "flex", flexDirection: "column",
           gap: hasBody ? 2 : 1.5,

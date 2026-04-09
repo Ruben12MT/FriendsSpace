@@ -17,6 +17,7 @@ router.get("/:id", userController.getUserById);
 
 router.put("/:id", validarToken, userController.updateUser);
 router.put("/:id/avatar", validarToken, uploadAvatar.single("avatar"), userController.updateAvatar);
+router.put("/:id/change-password", validarToken, userController.changePassword);
 
 router.get("/:id/interests", validarToken, userController.getMyInterests);
 router.post("/:id/interests", validarToken, userController.addInterests);

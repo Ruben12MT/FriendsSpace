@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
   Box,
   Container,
@@ -21,14 +21,19 @@ export default function SearchNewFriendsPage() {
   const theme = useAppTheme();
   const { loggedUser } = useUser();
 
-  const [allUsers, setAllUsers] = useState([]);
-  const [usersToShow, setUsersToShow] = useState([]);
+  const [users, setUsers] = useState([]);
   const [allInterests, setAllInterests] = useState([]);
   const [userInterests, setUserInterests] = useState([]);
   const [query, setQuery] = useState("");
   const [selectedInterests, setSelectedInterests] = useState([-1]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  const [page, setPage] = useState(1);
   const [viewMode, setViewMode] = useState("card");
+
+  const sentinelRef = useRef(null);
+  const searchTimeoutRef = useRef(null);
 
   const accent = theme.accent || theme.primaryBack;
   const textMain = theme.primaryText;
@@ -48,17 +53,39 @@ export default function SearchNewFriendsPage() {
     px: 1.25,
   };
 
-  const fetchAllUsers = async () => {
-    setIsLoading(true);
-    try {
-      const res = await api.get("/users");
-      if (res.data?.ok) setAllUsers(res.data.datos);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setTimeout(() => setIsLoading(false), 300);
-    }
-  };
+  const buildParams = useCallback(
+    (pageNum) => {
+      const params = { page: pageNum, limit: 20 };
+      if (query.trim()) params.search = query.trim();
+      const interestIds = selectedInterests.filter((i) => i > 0);
+      if (interestIds.length > 0) params.interests = interestIds.join(",");
+      return params;
+    },
+    [query, selectedInterests],
+  );
+
+  const fetchUsers = useCallback(
+    async (pageNum = 1, reset = false) => {
+      if (pageNum === 1) setIsLoading(true);
+      else setIsLoadingMore(true);
+
+      try {
+        const res = await api.get("/users", { params: buildParams(pageNum) });
+        if (res.data?.ok) {
+          const nuevos = res.data.datos.filter((u) => u.id !== loggedUser?.id);
+          setUsers((prev) => (reset ? nuevos : [...prev, ...nuevos]));
+          setHasMore(res.data.hasMore);
+          setPage(pageNum);
+        }
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setIsLoading(false);
+        setIsLoadingMore(false);
+      }
+    },
+    [buildParams, loggedUser],
+  );
 
   const fetchAllInterests = async () => {
     try {
@@ -76,33 +103,32 @@ export default function SearchNewFriendsPage() {
         .then((res) => setUserInterests(res.data.datos || []))
         .catch(console.error);
     }
-    fetchAllUsers();
     fetchAllInterests();
   }, [loggedUser]);
 
+  // Debounce búsqueda — resetea a página 1 cuando cambian filtros
   useEffect(() => {
-    const busqueda = query.toLowerCase().trim();
-    const filtrados = allUsers.filter((user) => {
-      if (loggedUser && user.id === loggedUser.id) return false;
-      const coincideTexto =
-        busqueda === "" ||
-        user.username?.toLowerCase().includes(busqueda) ||
-        user.name?.toLowerCase().includes(busqueda);
-      const coincideInteres =
-        selectedInterests.includes(-1) ||
-        user.interests?.some((uInt) => {
-          const idInt = uInt.id || uInt.interest_id;
-          if (selectedInterests.includes(0)) {
-            return userInterests.some(
-              (myInt) => (myInt.id || myInt.interest_id) === idInt,
-            );
-          }
-          return selectedInterests.includes(Number(idInt));
-        });
-      return coincideTexto && coincideInteres;
-    });
-    setUsersToShow(filtrados);
-  }, [allUsers, query, selectedInterests, loggedUser, userInterests]);
+    clearTimeout(searchTimeoutRef.current);
+    searchTimeoutRef.current = setTimeout(() => {
+      fetchUsers(1, true);
+    }, 400);
+    return () => clearTimeout(searchTimeoutRef.current);
+  }, [query, selectedInterests]);
+
+  // IntersectionObserver para scroll infinito
+  useEffect(() => {
+    if (!sentinelRef.current) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting && hasMore && !isLoadingMore && !isLoading) {
+          fetchUsers(page + 1);
+        }
+      },
+      { threshold: 0.1 },
+    );
+    observer.observe(sentinelRef.current);
+    return () => observer.disconnect();
+  }, [hasMore, isLoadingMore, isLoading, page, fetchUsers]);
 
   const handleSelectInterest = (e) => {
     const nuevosValores = e.target.value;
@@ -114,6 +140,11 @@ export default function SearchNewFriendsPage() {
     } else {
       setSelectedInterests(nuevosValores.filter((id) => id !== 0 && id !== -1));
     }
+  };
+
+  const handleReset = () => {
+    setQuery("");
+    setSelectedInterests([-1]);
   };
 
   return (
@@ -151,14 +182,16 @@ export default function SearchNewFriendsPage() {
             >
               {loggedUser?.role === "DEVELOPER" || loggedUser?.role === "ADMIN"
                 ? "Buscar usuarios"
-                : "Buscar amigos"}{" "}
+                : "Encuentra tu friend"}
             </Typography>
             <Typography
               sx={{ fontSize: "0.85rem", color: textMuted, mt: 0.25 }}
             >
-              {usersToShow.length > 0 && !isLoading
-                ? `${usersToShow.length} usuario${usersToShow.length !== 1 ? "s" : ""} encontrado${usersToShow.length !== 1 ? "s" : ""}`
-                : "Busca por nombre o intereses"}
+              {isLoading
+                ? "Buscando..."
+                : users.length > 0
+                  ? `${users.length} usuario${users.length !== 1 ? "s" : ""} cargados`
+                  : "Busca por nombre o intereses"}
             </Typography>
           </Box>
 
@@ -187,11 +220,7 @@ export default function SearchNewFriendsPage() {
           placeholder="Busca por nombre..."
           searchValue={query}
           onSearchChange={setQuery}
-          onReset={() => {
-            setQuery("");
-            setSelectedInterests([-1]);
-            fetchAllUsers();
-          }}
+          onReset={handleReset}
           showAdd={false}
           interests={allInterests}
           selectedInterests={selectedInterests}
@@ -228,7 +257,7 @@ export default function SearchNewFriendsPage() {
                 Cargando usuarios...
               </Typography>
             </Box>
-          ) : usersToShow.length === 0 ? (
+          ) : users.length === 0 ? (
             <Box
               sx={{
                 display: "flex",
@@ -245,20 +274,37 @@ export default function SearchNewFriendsPage() {
               </Typography>
             </Box>
           ) : (
-            <Grid container spacing={2}>
-              {usersToShow.map((user) => (
-                <Grid
-                  key={user.id}
-                  size={{
-                    xs: viewMode === "card" ? 6 : 12,
-                    md: viewMode === "card" ? 6 : 12,
-                    lg: viewMode === "card" ? 4 : 12,
-                  }}
-                >
-                  <UserCard user={user} variant={viewMode} />
-                </Grid>
-              ))}
-            </Grid>
+            <>
+              <Grid container spacing={2}>
+                {users.map((user) => (
+                  <Grid
+                    key={user.id}
+                    size={{
+                      xs: viewMode === "card" ? 6 : 12,
+                      md: viewMode === "card" ? 6 : 12,
+                      lg: viewMode === "card" ? 4 : 12,
+                    }}
+                  >
+                    <UserCard user={user} variant={viewMode} />
+                  </Grid>
+                ))}
+              </Grid>
+
+              <Box
+                ref={sentinelRef}
+                sx={{
+                  height: 40,
+                  display: "flex",
+                  justifyContent: "center",
+                  alignItems: "center",
+                  mt: 2,
+                }}
+              >
+                {isLoadingMore && (
+                  <CircularProgress size={24} sx={{ color: accent }} />
+                )}
+              </Box>
+            </>
           )}
         </Box>
       </Container>

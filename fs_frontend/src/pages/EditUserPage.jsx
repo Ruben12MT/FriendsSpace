@@ -6,7 +6,7 @@ import {
 import { useUser } from "../hooks/useUser";
 import { useNavigate } from "react-router-dom";
 import api from "../utils/api";
-import { Edit as EditIcon, Check as CheckIcon, Image as ImageIcon } from "@mui/icons-material";
+import { Edit as EditIcon, Check as CheckIcon, Image as ImageIcon, Lock as LockIcon } from "@mui/icons-material";
 import ErrorMessage from "../components/ErrorMessage";
 import InterestItem from "../components/InterestItem";
 import { useAppTheme } from "../hooks/useAppTheme";
@@ -166,90 +166,79 @@ export default function EditUserPage() {
   return (
     <Box sx={{ maxWidth: 960, mx: "auto", width: "100%", px: { xs: 2, md: 4, lg: 6 }, py: 4 }}>
 
-      <Box sx={{
-        borderRadius: "20px", overflow: "hidden",
-        background: theme.secondaryBack,
-        border: `1px solid ${accent}20`,
-        boxShadow: isDark ? "0 4px 24px rgba(0,0,0,0.3)" : `0 4px 24px ${accent}10`,
-        mb: 2,
-      }}>
-        <Box sx={{
-          height: 100,
-          background: isDark
-            ? `linear-gradient(135deg, ${accent}25, ${accent}08)`
-            : `linear-gradient(135deg, ${accent}20, ${accent}06)`,
-        }} />
+      <Box sx={{ borderRadius: "20px", overflow: "hidden", background: theme.secondaryBack, border: `1px solid ${accent}20`, boxShadow: isDark ? "0 4px 24px rgba(0,0,0,0.3)" : `0 4px 24px ${accent}10`, mb: 2 }}>
+        <Box sx={{ height: 100, background: isDark ? `linear-gradient(135deg, ${accent}25, ${accent}08)` : `linear-gradient(135deg, ${accent}20, ${accent}06)` }} />
 
         <Box sx={{ px: 3, pb: 3 }}>
-          <Box sx={{ display: "flex", alignItems: "flex-end", gap: 2, mt: "-45px", mb: 2 }}>
-            <Box
-              sx={{ position: "relative", cursor: "pointer", flexShrink: 0 }}
-              onClick={() => fileInputRef.current.click()}
-              onMouseEnter={() => setUi((prev) => ({ ...prev, avatarHovered: true }))}
-              onMouseLeave={() => setUi((prev) => ({ ...prev, avatarHovered: false }))}
-            >
-              <Avatar
-                src={avatar.preview || editedUser.url_image || "/no_user_avatar_image.png"}
-                sx={{
-                  width: 90, height: 90,
-                  border: `4px solid ${theme.secondaryBack}`,
-                  boxShadow: `0 4px 16px ${accent}30`,
-                }}
-              />
-              {ui.avatarHovered && (
-                <Box sx={{
-                  position: "absolute", inset: 0, borderRadius: "50%",
-                  background: "rgba(0,0,0,0.45)",
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                }}>
-                  <ImageIcon sx={{ color: "#fff", fontSize: 28 }} />
-                </Box>
-              )}
-              <input type="file" accept="image/*" ref={fileInputRef} style={{ display: "none" }}
-                onChange={(e) => {
-                  if (e.target.files[0]) {
-                    setAvatar({ file: e.target.files[0], preview: URL.createObjectURL(e.target.files[0]) });
-                    setEdited(true);
-                  }
-                }}
-              />
+          <Box sx={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 2, mt: "-45px", mb: 2 }}>
+            <Box sx={{ display: "flex", alignItems: "flex-end", gap: 2 }}>
+              <Box
+                sx={{ position: "relative", cursor: "pointer", flexShrink: 0 }}
+                onClick={() => fileInputRef.current.click()}
+                onMouseEnter={() => setUi((prev) => ({ ...prev, avatarHovered: true }))}
+                onMouseLeave={() => setUi((prev) => ({ ...prev, avatarHovered: false }))}
+              >
+                <Avatar
+                  src={avatar.preview || editedUser.url_image || "/no_user_avatar_image.png"}
+                  sx={{ width: 90, height: 90, border: `4px solid ${theme.secondaryBack}`, boxShadow: `0 4px 16px ${accent}30` }}
+                />
+                {ui.avatarHovered && (
+                  <Box sx={{ position: "absolute", inset: 0, borderRadius: "50%", background: "rgba(0,0,0,0.45)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <ImageIcon sx={{ color: "#fff", fontSize: 28 }} />
+                  </Box>
+                )}
+                <input type="file" accept="image/*" ref={fileInputRef} style={{ display: "none" }}
+                  onChange={(e) => {
+                    if (e.target.files[0]) {
+                      setAvatar({ file: e.target.files[0], preview: URL.createObjectURL(e.target.files[0]) });
+                      setEdited(true);
+                    }
+                  }}
+                />
+              </Box>
+
+              <Box>
+                {ui.editingName ? (
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                    <TextField name="name" value={editedUser.name} onChange={handleChange} size="small" placeholder="Nombre de usuario" sx={{ ...inputStyle, maxWidth: 260 }} />
+                    <IconButton onClick={handleUsernameExist} sx={{ background: accent, color: isDark ? "#1a1200" : "#fff", borderRadius: "10px", width: 36, height: 36, "&:hover": { opacity: 0.9 } }}>
+                      <CheckIcon fontSize="small" />
+                    </IconButton>
+                  </Box>
+                ) : (
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+                    <Typography sx={{ fontWeight: 800, fontSize: "1.3rem", color: theme.primaryText, letterSpacing: "-0.02em" }}>
+                      @{editedUser.name}
+                    </Typography>
+                    <IconButton onClick={() => setUi((prev) => ({ ...prev, editingName: true }))} size="small" sx={{ color: theme.mutedText, "&:hover": { color: accent } }}>
+                      <EditIcon fontSize="small" />
+                    </IconButton>
+                  </Box>
+                )}
+                <Typography sx={{ fontSize: "0.82rem", color: theme.mutedText, mt: 0.25 }}>
+                  {editedUser.email}
+                </Typography>
+              </Box>
             </Box>
 
-            <Box sx={{ flex: 1 }}>
-              {ui.editingName ? (
-                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                  <TextField
-                    name="name" value={editedUser.name} onChange={handleChange}
-                    size="small" placeholder="Nombre de usuario"
-                    sx={{ ...inputStyle, maxWidth: 260 }}
-                  />
-                  <IconButton onClick={handleUsernameExist}
-                    sx={{ background: accent, color: isDark ? "#1a1200" : "#fff", borderRadius: "10px", width: 36, height: 36, "&:hover": { opacity: 0.9 } }}>
-                    <CheckIcon fontSize="small" />
-                  </IconButton>
-                </Box>
-              ) : (
-                <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-                  <Typography sx={{ fontWeight: 800, fontSize: "1.3rem", color: theme.primaryText, letterSpacing: "-0.02em" }}>
-                    @{editedUser.name}
-                  </Typography>
-                  <IconButton onClick={() => setUi((prev) => ({ ...prev, editingName: true }))} size="small"
-                    sx={{ color: theme.mutedText, "&:hover": { color: accent } }}>
-                    <EditIcon fontSize="small" />
-                  </IconButton>
-                </Box>
-              )}
-              <Typography sx={{ fontSize: "0.82rem", color: theme.mutedText, mt: 0.25 }}>
-                {editedUser.email}
-              </Typography>
-            </Box>
+            {loggedUser.first_login !== 1 && (
+              <Button
+                variant="outlined"
+                startIcon={<LockIcon fontSize="small" />}
+                onClick={() => navigate("/app/user/changePassword")}
+                sx={{
+                  borderColor: `${accent}40`, color: accent,
+                  borderRadius: "10px", textTransform: "none", fontWeight: 600,
+                  fontSize: "0.82rem", px: 2, alignSelf: "flex-end", mb: 0.5,
+                  "&:hover": { borderColor: accent, background: `${accent}10` },
+                }}
+              >
+                Cambiar contraseña
+              </Button>
+            )}
           </Box>
 
-          <ErrorMessage
-            message={errorState.msg}
-            open={errorState.open}
-            setOpen={(isOpen) => setErrorState({ ...errorState, open: isOpen })}
-          />
+          <ErrorMessage message={errorState.msg} open={errorState.open} setOpen={(isOpen) => setErrorState({ ...errorState, open: isOpen })} />
         </Box>
       </Box>
 
@@ -258,7 +247,7 @@ export default function EditUserPage() {
           <Typography component="span" sx={labelSx}>Descripción</Typography>
           <Typography sx={counterSx}>{editedUser.bio?.length || 0}/{limites.bio}</Typography>
         </Box>
-        <TextField name="bio" fullWidth multiline rows={3} value={editedUser.bio || ""} onChange={handleChange} sx={inputStyle} />
+        <TextField name="bio" fullWidth multiline rows={3} placeholder="Cuéntanos algo sobre ti..." value={editedUser.bio || ""} onChange={handleChange} sx={inputStyle} />
       </Box>
 
       <Box sx={sectionSx}>
@@ -266,7 +255,7 @@ export default function EditUserPage() {
           <Typography component="span" sx={labelSx}>Frase pública</Typography>
           <Typography sx={counterSx}>{editedUser.short_sentece?.length || 0}/{limites.short_sentece}</Typography>
         </Box>
-        <TextField name="short_sentece" fullWidth value={editedUser.short_sentece || ""} onChange={handleChange} sx={inputStyle} />
+        <TextField name="short_sentece" fullWidth placeholder="Una frase que te defina..." value={editedUser.short_sentece || ""} onChange={handleChange} sx={inputStyle} />
       </Box>
 
       <Box sx={sectionSx}>
@@ -274,7 +263,7 @@ export default function EditUserPage() {
           <Typography component="span" sx={labelSx}>Objetivos personales</Typography>
           <Typography sx={counterSx}>{editedUser.goals?.length || 0}/{limites.goals}</Typography>
         </Box>
-        <TextField name="goals" fullWidth multiline rows={3} value={editedUser.goals || ""} onChange={handleChange} sx={inputStyle} />
+        <TextField name="goals" fullWidth multiline rows={3} placeholder="¿Qué quieres conseguir?" value={editedUser.goals || ""} onChange={handleChange} sx={inputStyle} />
       </Box>
 
       <Box sx={{ ...sectionSx, mb: 3 }}>
@@ -289,19 +278,13 @@ export default function EditUserPage() {
               setEdited(true);
             }
           }}
-          renderInput={(p) => (
-            <TextField {...p} placeholder="Buscar y añadir intereses..." sx={inputStyle} />
-          )}
+          renderInput={(p) => <TextField {...p} placeholder="Buscar y añadir intereses..." sx={inputStyle} />}
         />
         {editedUserInterests.length > 0 && (
           <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.75, mt: 1.5 }}>
             {editedUserInterests.map((i) => (
-              <InterestItem
-                key={i.id} title={i.name} color={i.color}
-                onDelete={() => {
-                  setEditedUserInterests(editedUserInterests.filter((x) => x.id !== i.id));
-                  setEdited(true);
-                }}
+              <InterestItem key={i.id} title={i.name} color={i.color}
+                onDelete={() => { setEditedUserInterests(editedUserInterests.filter((x) => x.id !== i.id)); setEdited(true); }}
               />
             ))}
           </Box>
@@ -310,27 +293,14 @@ export default function EditUserPage() {
 
       <Box sx={{ display: "flex", justifyContent: loggedUser.first_login === 1 ? "flex-end" : "space-between" }}>
         {loggedUser.first_login !== 1 && (
-          <Button
-            variant="outlined"
-            onClick={() => navigate("/app/" + loggedUser.id)}
-            sx={{ borderColor: `${accent}50`, color: accent, borderRadius: "10px", textTransform: "none", fontWeight: 600, px: 3, "&:hover": { borderColor: accent, background: `${accent}10` } }}
-          >
+          <Button variant="outlined" onClick={() => navigate("/app/" + loggedUser.id)}
+            sx={{ borderColor: `${accent}50`, color: accent, borderRadius: "10px", textTransform: "none", fontWeight: 600, px: 3, "&:hover": { borderColor: accent, background: `${accent}10` } }}>
             Volver
           </Button>
         )}
         <Button
-          disabled={ui.loading}
-          variant="contained"
-          onClick={editarUsuario}
-          sx={{
-            background: `linear-gradient(135deg, ${accent}, ${theme.variantBack || accent})`,
-            color: isDark ? "#1a1200" : "#fff",
-            borderRadius: "10px", textTransform: "none", fontWeight: 700,
-            px: 4, minWidth: 160,
-            boxShadow: `0 4px 12px ${accent}40`,
-            "&:hover": { opacity: 0.9 },
-            "&.Mui-disabled": { background: theme.tertiaryBack, color: theme.mutedText },
-          }}
+          disabled={ui.loading} variant="contained" onClick={editarUsuario}
+          sx={{ background: `linear-gradient(135deg, ${accent}, ${theme.variantBack || accent})`, color: isDark ? "#1a1200" : "#fff", borderRadius: "10px", textTransform: "none", fontWeight: 700, px: 4, minWidth: 160, boxShadow: `0 4px 12px ${accent}40`, "&:hover": { opacity: 0.9 }, "&.Mui-disabled": { background: theme.tertiaryBack, color: theme.mutedText } }}
         >
           {ui.loading ? <CircularProgress size={22} color="inherit" /> : loggedUser.first_login === 1 && !edited ? "Saltar" : "Aplicar cambios"}
         </Button>

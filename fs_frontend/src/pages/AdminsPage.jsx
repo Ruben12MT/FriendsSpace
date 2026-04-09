@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
   Box,
   Typography,
@@ -27,9 +27,14 @@ export default function AdminsPage() {
   const theme = useAppTheme();
   const accent = theme.accent || theme.primaryBack;
   const isDark = theme.name === "dark";
+  const { loggedUser } = useUser();
+  const isDeveloper = loggedUser?.role === "DEVELOPER";
 
   const [adminList, setAdminList] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  const [page, setPage] = useState(1);
   const [query, setQuery] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
   const [successDialog, setSuccessDialog] = useState(false);
@@ -42,28 +47,56 @@ export default function AdminsPage() {
     password: false,
   });
 
-  const { loggedUser } = useUser();
-  const isDeveloper = loggedUser?.role === "DEVELOPER";
+  const sentinelRef = useRef(null);
+  const searchTimeoutRef = useRef(null);
 
-  const fetchAdmins = async () => {
-    setIsLoading(true);
-    try {
-      const res = await api.get("/users/admins");
-      if (res.data.ok) setAdminList(res.data.datos);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const fetchAdmins = useCallback(
+    async (pageNum = 1, reset = false) => {
+      if (pageNum === 1) setIsLoading(true);
+      else setIsLoadingMore(true);
+      try {
+        const params = { page: pageNum, limit: 20 };
+        if (query.trim()) params.search = query.trim();
+        const res = await api.get("/users/admins", { params });
+        if (res.data.ok) {
+          setAdminList((prev) =>
+            reset ? res.data.datos : [...prev, ...res.data.datos],
+          );
+          setHasMore(res.data.hasMore);
+          setPage(pageNum);
+        }
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setIsLoading(false);
+        setIsLoadingMore(false);
+      }
+    },
+    [query],
+  );
 
   useEffect(() => {
-    fetchAdmins();
-  }, []);
+    clearTimeout(searchTimeoutRef.current);
+    searchTimeoutRef.current = setTimeout(() => {
+      fetchAdmins(1, true);
+    }, 400);
+    return () => clearTimeout(searchTimeoutRef.current);
+  }, [query]);
 
-  const filteredAdmins = adminList
-    .filter((a) => a.name?.toLowerCase().includes(query.toLowerCase().trim()))
-    .sort((a, b) => b.role.localeCompare(a.role));
+  // IntersectionObserver scroll infinito
+  useEffect(() => {
+    if (!sentinelRef.current) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting && hasMore && !isLoadingMore && !isLoading) {
+          fetchAdmins(page + 1);
+        }
+      },
+      { threshold: 0.1 },
+    );
+    observer.observe(sentinelRef.current);
+    return () => observer.disconnect();
+  }, [hasMore, isLoadingMore, isLoading, page, fetchAdmins]);
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -86,7 +119,7 @@ export default function AdminsPage() {
       setModalOpen(false);
       setForm({ name: "", email: "", password: "" });
       setSuccessDialog(true);
-      fetchAdmins();
+      fetchAdmins(1, true);
     } catch (err) {
       setErrorMsg(err.response?.data?.mensaje || "Error al crear el admin");
     } finally {
@@ -137,7 +170,6 @@ export default function AdminsPage() {
         maxWidth="lg"
         sx={{ height: "100%", display: "flex", flexDirection: "column", py: 3 }}
       >
-        {/* Header */}
         <Box
           sx={{
             display: "flex",
@@ -162,31 +194,29 @@ export default function AdminsPage() {
             >
               {isLoading
                 ? "Cargando..."
-                : `${filteredAdmins.length} miembro${filteredAdmins.length !== 1 ? "s" : ""} del equipo`}
+                : `${adminList.length} miembro${adminList.length !== 1 ? "s" : ""} del equipo`}
             </Typography>
           </Box>
           {isDeveloper && (
-
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={() => setModalOpen(true)}
-            sx={{
-              background: `linear-gradient(135deg, ${accent}, ${theme.variantBack || accent})`,
-              color: isDark ? "#1a1200" : "#fff",
-              borderRadius: "10px",
-              textTransform: "none",
-              fontWeight: 600,
-              boxShadow: `0 4px 12px ${accent}40`,
-              "&:hover": { opacity: 0.9 },
-            }}
-          >
-            Nuevo admin
-          </Button>
+            <Button
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={() => setModalOpen(true)}
+              sx={{
+                background: `linear-gradient(135deg, ${accent}, ${theme.variantBack || accent})`,
+                color: isDark ? "#1a1200" : "#fff",
+                borderRadius: "10px",
+                textTransform: "none",
+                fontWeight: 600,
+                boxShadow: `0 4px 12px ${accent}40`,
+                "&:hover": { opacity: 0.9 },
+              }}
+            >
+              Nuevo admin
+            </Button>
           )}
         </Box>
 
-        {/* Barra de búsqueda */}
         <MainSearchBar
           placeholder="Buscar administrador..."
           searchValue={query}
@@ -196,7 +226,6 @@ export default function AdminsPage() {
           variant="searchAdmins"
         />
 
-        {/* Listado con scroll */}
         <Box
           sx={{
             flexGrow: 1,
@@ -227,7 +256,7 @@ export default function AdminsPage() {
                 Cargando administradores...
               </Typography>
             </Box>
-          ) : filteredAdmins.length === 0 ? (
+          ) : adminList.length === 0 ? (
             <Box
               sx={{
                 display: "flex",
@@ -248,18 +277,34 @@ export default function AdminsPage() {
               </Typography>
             </Box>
           ) : (
-            <Grid container spacing={2}>
-              {filteredAdmins.map((admin) => (
-                <Grid item sx={{ width: "160px" }} key={admin.id}>
-                  <UserCard user={admin} variant="adminCard" />
-                </Grid>
-              ))}
-            </Grid>
+            <>
+              <Grid container spacing={2}>
+                {adminList.map((admin) => (
+                  <Grid item sx={{ width: "160px" }} key={admin.id}>
+                    <UserCard user={admin} variant="adminCard" />
+                  </Grid>
+                ))}
+              </Grid>
+
+              <Box
+                ref={sentinelRef}
+                sx={{
+                  height: 40,
+                  display: "flex",
+                  justifyContent: "center",
+                  alignItems: "center",
+                  mt: 2,
+                }}
+              >
+                {isLoadingMore && (
+                  <CircularProgress size={24} sx={{ color: accent }} />
+                )}
+              </Box>
+            </>
           )}
         </Box>
       </Container>
 
-      {/* Modal crear admin */}
       <Dialog
         open={modalOpen}
         onClose={closeModal}
@@ -374,7 +419,6 @@ export default function AdminsPage() {
         </DialogActions>
       </Dialog>
 
-      {/* Dialog éxito */}
       <Dialog
         open={successDialog}
         onClose={() => setSuccessDialog(false)}

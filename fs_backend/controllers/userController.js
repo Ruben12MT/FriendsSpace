@@ -5,31 +5,36 @@ const jwt = require("jsonwebtoken");
 const { SECRET_JWT_KEY } = require("../config/config");
 const logger = require("../utils/logger");
 
+const generarToken = (usuario) => jwt.sign(
+  { id: usuario.id, name: usuario.name, url_image: usuario.url_image, role: usuario.role, first_login: usuario.first_login, token_version: usuario.token_version || 0 },
+  SECRET_JWT_KEY,
+  { expiresIn: "1h" }
+);
+
+const cookieOpts = {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === "production",
+  sameSite: "strict",
+  maxAge: 1000 * 60 * 60,
+};
+
 class UserController {
   async login(req, res) {
     try {
       const { emailOrUsername, password } = req.body;
-      if (!emailOrUsername || !password) {
+      if (!emailOrUsername || !password)
         return res.status(400).json({ ok: false, mensaje: "Introduce tus datos" });
-      }
 
       const usuarioBuscado = await userService.getUserByEmailOrUsername(emailOrUsername.trim().toLowerCase());
 
-      if (!usuarioBuscado || !(await bcrypt.compare(password, usuarioBuscado.password))) {
+      if (!usuarioBuscado || !(await bcrypt.compare(password, usuarioBuscado.password)))
         return res.status(401).json({ ok: false, mensaje: "Credenciales incorrectas" });
-      }
 
-      if (usuarioBuscado.banned) {
+      if (usuarioBuscado.banned)
         return res.status(401).json({ ok: false, mensaje: "Cuenta suspendida" });
-      }
 
-      const token = jwt.sign(
-        { id: usuarioBuscado.id, name: usuarioBuscado.name, url_image: usuarioBuscado.url_image, role: usuarioBuscado.role, first_login: usuarioBuscado.first_login },
-        SECRET_JWT_KEY,
-        { expiresIn: "1h" },
-      );
-
-      res.cookie("access_token", token, { httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "strict", maxAge: 1000 * 60 * 60 });
+      const token = generarToken(usuarioBuscado);
+      res.cookie("access_token", token, cookieOpts);
 
       return res.status(200).json({
         ok: true,
@@ -45,16 +50,12 @@ class UserController {
   async createUser(req, res) {
     try {
       const { email, name, password } = req.body;
-
       const emailError = await userValidations.emailValidation(email);
       if (emailError) return res.status(400).json({ ok: false, mensaje: emailError });
-
       const nameError = await userValidations.userNameValidation(name);
       if (nameError) return res.status(400).json({ ok: false, mensaje: nameError });
-
       const passError = userValidations.passwordValidation(password);
       if (passError) return res.status(400).json({ ok: false, mensaje: passError });
-
       const newUser = await userService.createUser({ name, email, password });
       return res.status(201).json({ ok: true, datos: newUser });
     } catch (err) {
@@ -65,24 +66,19 @@ class UserController {
 
   async createAdmin(req, res) {
     try {
-      if (req.user.role !== "DEVELOPER") {
+      if (req.user.role !== "DEVELOPER")
         return res.status(403).json({ ok: false, mensaje: "Solo los developers pueden crear admins" });
-      }
 
       const { email, name, password } = req.body;
-
       const emailError = await userValidations.emailValidation(email);
       if (emailError) return res.status(400).json({ ok: false, mensaje: emailError });
-
       const nameError = await userValidations.userNameValidation(name);
       if (nameError) return res.status(400).json({ ok: false, mensaje: nameError });
-
       const passError = userValidations.passwordValidation(password);
       if (passError) return res.status(400).json({ ok: false, mensaje: passError });
 
       const newAdmin = await userService.createUser({ name, email, password, role: "ADMIN", first_login: 1 });
       await userService.createDevAdminConnection(req.user.id, newAdmin.id);
-
       return res.status(201).json({ ok: true, datos: newAdmin });
     } catch (err) {
       logger.error("Error en createAdmin: " + err.message);
@@ -92,11 +88,12 @@ class UserController {
 
   async getAllAdmins(req, res) {
     try {
-    if (req.user.role !== "DEVELOPER" && req.user.role !== "ADMIN") {
+      if (req.user.role !== "DEVELOPER" && req.user.role !== "ADMIN")
         return res.status(403).json({ ok: false, mensaje: "No tienes permiso" });
-      }
-      const admins = await userService.getAllAdmins(req.user.id);
-      res.status(200).json({ ok: true, datos: admins });
+      const page = parseInt(req.query.page) || 1;
+      const search = req.query.search || "";
+      const result = await userService.getAllAdmins({ myUserId: req.user.id, page, search });
+      res.status(200).json({ ok: true, ...result });
     } catch (err) {
       res.status(500).json({ ok: false, mensaje: "Error al consultar admins" });
     }
@@ -109,9 +106,7 @@ class UserController {
   async checkAuth(req, res) {
     try {
       const usuarioActual = await userService.getUserById(req.user.id);
-      if (!usuarioActual) {
-        return res.status(401).json({ ok: false, mensaje: "Usuario no encontrado" });
-      }
+      if (!usuarioActual) return res.status(401).json({ ok: false, mensaje: "Usuario no encontrado" });
       const { password, ...usuarioLimpio } = usuarioActual.toJSON();
       return res.status(200).json({ ok: true, usuario: usuarioLimpio });
     } catch (err) {
@@ -122,8 +117,11 @@ class UserController {
 
   async getAllUsers(req, res) {
     try {
-      const users = await userService.getAllUsers();
-      res.status(200).json({ ok: true, datos: users });
+      const page = parseInt(req.query.page) || 1;
+      const search = req.query.search || "";
+      const interests = req.query.interests ? req.query.interests.split(",").map(Number).filter(Boolean) : [];
+      const result = await userService.getAllUsers({ page, search, interests });
+      res.status(200).json({ ok: true, ...result });
     } catch (err) {
       res.status(500).json({ ok: false, mensaje: "Error al consultar usuarios" });
     }
@@ -153,31 +151,58 @@ class UserController {
 
   async updateUser(req, res) {
     try {
-      if (req.user.id != req.params.id) {
+      if (req.user.id != req.params.id)
         return res.status(403).json({ ok: false, mensaje: "No tienes permiso para realizar esta acción" });
-      }
 
-      await userService.updateUser(req.params.id, req.body);
+      const camposPermitidos = ["name", "bio", "short_sentece", "goals", "first_login"];
+      const datosLimpios = {};
+      camposPermitidos.forEach((campo) => {
+        if (req.body[campo] !== undefined) datosLimpios[campo] = req.body[campo];
+      });
+
+      await userService.updateUser(req.params.id, datosLimpios);
       const usuarioActualizado = await userService.getUserById(req.params.id);
-
-      const token = jwt.sign(
-        { id: usuarioActualizado.id, name: usuarioActualizado.name, url_image: usuarioActualizado.url_image, role: usuarioActualizado.role, first_login: usuarioActualizado.first_login },
-        SECRET_JWT_KEY,
-        { expiresIn: "1h" },
-      );
-
-      res.cookie("access_token", token, { httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "strict", maxAge: 1000 * 60 * 60 });
+      const token = generarToken(usuarioActualizado);
+      res.cookie("access_token", token, cookieOpts);
       res.status(200).json({ ok: true, mensaje: "Perfil actualizado", usuario: usuarioActualizado });
     } catch (err) {
       res.status(500).json({ ok: false, mensaje: "Error al actualizar perfil" });
     }
   }
 
+  async changePassword(req, res) {
+    try {
+      if (req.user.id != req.params.id)
+        return res.status(403).json({ ok: false, mensaje: "No tienes permiso" });
+
+      const { currentPassword, newPassword, confirmPassword } = req.body;
+
+      if (!currentPassword || !newPassword || !confirmPassword)
+        return res.status(400).json({ ok: false, mensaje: "Todos los campos son obligatorios" });
+
+      if (newPassword !== confirmPassword)
+        return res.status(400).json({ ok: false, mensaje: "Las contraseñas no coinciden" });
+
+      const passError = userValidations.passwordValidation(newPassword);
+      if (passError) return res.status(400).json({ ok: false, mensaje: passError });
+
+      const nuevaVersion = await userService.changePassword(req.params.id, currentPassword, newPassword);
+
+      // Cerrar sesión — el usuario debe volver a autenticarse
+      res.clearCookie("access_token");
+      return res.status(200).json({ ok: true, mensaje: "Contraseña actualizada. Por favor, inicia sesión de nuevo." });
+    } catch (err) {
+      logger.error("Error en changePassword: " + err.message);
+      if (err.message === "La contraseña actual no es correcta")
+        return res.status(400).json({ ok: false, mensaje: err.message });
+      return res.status(500).json({ ok: false, mensaje: "Error al cambiar la contraseña" });
+    }
+  }
+
   async deleteUser(req, res) {
     try {
-      if (req.user.id != req.params.id) {
+      if (req.user.id != req.params.id)
         return res.status(403).json({ ok: false, mensaje: "No tienes permiso para realizar esta acción" });
-      }
       await userService.deleteUser(req.params.id);
       res.status(200).json({ ok: true, mensaje: "Cuenta eliminada" });
     } catch (err) {
@@ -196,9 +221,8 @@ class UserController {
 
   async addInterests(req, res) {
     try {
-      if (req.user.id != req.params.id) {
+      if (req.user.id != req.params.id)
         return res.status(403).json({ ok: false, mensaje: "No tienes permiso para realizar esta acción" });
-      }
       await userService.addInterestsToUser(req.params.id, req.body.interestIds);
       res.status(200).json({ ok: true, mensaje: "Intereses guardados" });
     } catch (err) {
@@ -211,26 +235,19 @@ class UserController {
       const { id } = req.params;
       const requestingRole = req.user.role;
       const targetUser = await userService.getUserById(id);
-
       if (!targetUser) return res.status(404).json({ ok: false, mensaje: "Usuario no encontrado" });
 
       const targetRole = targetUser.role;
-
-      if (requestingRole === "ADMIN" && (targetRole === "ADMIN" || targetRole === "DEVELOPER")) {
+      if (requestingRole === "ADMIN" && (targetRole === "ADMIN" || targetRole === "DEVELOPER"))
         return res.status(403).json({ ok: false, mensaje: "No puedes banear a un admin o developer" });
-      }
-      if (requestingRole === "DEVELOPER" && targetRole === "DEVELOPER") {
+      if (requestingRole === "DEVELOPER" && targetRole === "DEVELOPER")
         return res.status(403).json({ ok: false, mensaje: "No puedes banear a otro developer" });
-      }
-      if (requestingRole === "USER") {
+      if (requestingRole === "USER")
         return res.status(403).json({ ok: false, mensaje: "No tienes permiso" });
-      }
 
       await userService.updateUser(id, { banned: true });
-
       const io = req.app.get("socketio");
       if (io) io.to(`user_${id}`).emit("usuario_baneado", { mensaje: "Tu cuenta ha sido suspendida" });
-
       return res.status(200).json({ ok: true, mensaje: "Usuario baneado" });
     } catch (err) {
       logger.error("Error en banUser: " + err.message);
@@ -242,17 +259,12 @@ class UserController {
     try {
       const { id } = req.params;
       const requestingRole = req.user.role;
-
       if (requestingRole === "USER") return res.status(403).json({ ok: false, mensaje: "No tienes permiso" });
-
       const targetUser = await userService.getUserById(id);
       if (!targetUser) return res.status(404).json({ ok: false, mensaje: "Usuario no encontrado" });
-
       await userService.updateUser(id, { banned: false });
-
       const io = req.app.get("socketio");
       if (io) io.to(`user_${id}`).emit("usuario_desbaneado", { mensaje: "Tu cuenta ha sido reactivada" });
-
       return res.status(200).json({ ok: true, mensaje: "Usuario desbaneado" });
     } catch (err) {
       logger.error("Error en unbanUser: " + err.message);
@@ -262,9 +274,8 @@ class UserController {
 
   async removeInterests(req, res) {
     try {
-      if (req.user.id != req.params.id) {
+      if (req.user.id != req.params.id)
         return res.status(403).json({ ok: false, mensaje: "No tienes permiso para realizar esta acción" });
-      }
       await userService.removeInterestsFromUser(req.params.id);
       res.status(200).json({ ok: true, mensaje: "Intereses quitados" });
     } catch (err) {
@@ -274,23 +285,15 @@ class UserController {
 
   async updateAvatar(req, res) {
     try {
-      if (req.user.id != req.params.id) {
+      if (req.user.id != req.params.id)
         return res.status(403).json({ ok: false, mensaje: "No tienes permiso para realizar esta acción" });
-      }
       if (!req.file) return res.status(400).json({ ok: false, mensaje: "Sube una imagen" });
 
       const nuevaUrl = req.file.path;
       await userService.updateUser(req.params.id, { url_image: nuevaUrl });
-
       const usuarioActualizado = await userService.getUserById(req.params.id);
-
-      const token = jwt.sign(
-        { id: usuarioActualizado.id, name: usuarioActualizado.name, url_image: usuarioActualizado.url_image, role: usuarioActualizado.role, first_login: usuarioActualizado.first_login },
-        SECRET_JWT_KEY,
-        { expiresIn: "1h" },
-      );
-
-      res.cookie("access_token", token, { httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "strict", maxAge: 1000 * 60 * 60 });
+      const token = generarToken(usuarioActualizado);
+      res.cookie("access_token", token, cookieOpts);
       res.status(200).json({ ok: true, url: nuevaUrl, usuario: usuarioActualizado });
     } catch (err) {
       res.status(500).json({ ok: false, mensaje: "Error al subir avatar" });

@@ -19,6 +19,7 @@ import { AuthProvider } from "./components/AuthProvider";
 import ChatsPage from "./pages/ChatsPage";
 import BannedPage from "./pages/BannedPage";
 import AdminsPage from "./pages/AdminsPage";
+import ChangePasswordPage from "./pages/ChangePasswordPage";
 
 
 const router = createBrowserRouter([
@@ -55,6 +56,8 @@ const router = createBrowserRouter([
       { path: "requests", element: <RequestsPages /> },
       { path: ":id", element: <UserPage /> },
       { path: "user/edit", element: <EditUserPage /> },
+            { path: "user/changePassword", element: <ChangePasswordPage /> },
+
     ],
   },
 ]);

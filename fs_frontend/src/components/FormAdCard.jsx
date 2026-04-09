@@ -1,15 +1,8 @@
 import * as React from "react";
 import { useState, useEffect } from "react";
 import {
-  Box,
-  Typography,
-  Modal,
-  IconButton,
-  TextField,
-  Tooltip,
-  Grid,
-  Zoom,
-  Fade,
+  Box, Typography, Dialog, DialogTitle, DialogContent, DialogActions,
+  IconButton, TextField, Button, Grid, Zoom, Fade,
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import RestartAltIcon from "@mui/icons-material/RestartAlt";
@@ -23,6 +16,9 @@ import ErrorMessage from "../components/ErrorMessage";
 
 export default function FormAdCard({ open, handleOpen, adId, handleFinish }) {
   const theme = useAppTheme();
+  const accent = theme.accent || theme.primaryBack;
+  const isDark = theme.name === "dark";
+
   const [ogAd, setOgAd] = useState({});
   const [allInterests, setAllInterests] = useState([]);
   const [editedAd, setEditedAd] = useState({ title: "", body: "", interests: [] });
@@ -76,270 +72,155 @@ export default function FormAdCard({ open, handleOpen, adId, handleFinish }) {
   const handleChange = (e) => {
     const { name, value } = e.target;
     const limit = name === "title" ? 100 : 500;
-    if (value.length <= limit) {
-      setEditedAd((prev) => ({ ...prev, [name]: value }));
-    }
+    if (value.length <= limit) setEditedAd((prev) => ({ ...prev, [name]: value }));
   };
 
-  const addInterest = (interest) => {
-    setEditedAd((prev) => ({
-      ...prev,
-      interests: [...prev.interests, interest],
-    }));
-  };
-
-  const removeInterest = (interest) => {
-    setEditedAd((prev) => ({
-      ...prev,
-      interests: prev.interests.filter(
-        (i) => (i.id || i.interest_id) !== (interest.id || interest.interest_id)
-      ),
-    }));
-  };
+  const addInterest = (interest) => setEditedAd((prev) => ({ ...prev, interests: [...prev.interests, interest] }));
+  const removeInterest = (interest) => setEditedAd((prev) => ({ ...prev, interests: prev.interests.filter((i) => (i.id || i.interest_id) !== (interest.id || interest.interest_id)) }));
 
   const handleSubmit = async () => {
-    if (!editedAd.title || !editedAd.interests || editedAd.interests.length === 0) {
-      setLocalError({ open: true, message: "El título y al menos un interés son obligatorios." });
+    if (!editedAd.title) {
+      setLocalError({ open: true, message: "El título es obligatorio." });
       return;
     }
-
-    const dataToSend = {
-      ...editedAd,
-      interests: editedAd.interests.map((i) => i.id || i.interest_id),
-    };
-
+    const dataToSend = { ...editedAd, interests: (editedAd.interests || []).map((i) => i.id || i.interest_id) };
     try {
-      if (adId) {
-        await api.put(`/ads/${adId}`, dataToSend);
-      } else {
-        await api.post("/ads", dataToSend);
-      }
+      if (adId) await api.put(`/ads/${adId}`, dataToSend);
+      else await api.post("/ads", dataToSend);
       handleFinish();
       handleClose();
     } catch (error) {
-      setLocalError({
-        open: true,
-        message: error.response?.data?.message || "Ocurrió un error al guardar el anuncio.",
-      });
+      setLocalError({ open: true, message: error.response?.data?.message || "Ocurrió un error al guardar el anuncio." });
     }
   };
 
   const inputStyle = {
-    background: theme.tertiaryBack,
-    border: `${theme.primaryText} 2px solid`,
-    borderRadius: 2,
-    "& .MuiOutlinedInput-notchedOutline": { border: "none" },
+    "& .MuiOutlinedInput-root": {
+      borderRadius: "12px", background: theme.tertiaryBack,
+      "& fieldset": { borderColor: `${accent}30`, borderWidth: 1.5 },
+      "&:hover fieldset": { borderColor: `${accent}60` },
+      "&.Mui-focused fieldset": { borderColor: accent, borderWidth: 2 },
+    },
     "& .MuiInputBase-input": {
       color: theme.fieldsText,
-      "&:-webkit-autofill": {
-        WebkitBoxShadow: `0 0 0 1000px ${theme.tertiaryBack} inset`,
-        WebkitTextFillColor: theme.fieldsText,
-      },
+      "&:-webkit-autofill": { WebkitBoxShadow: `0 0 0 1000px ${theme.tertiaryBack} inset`, WebkitTextFillColor: theme.fieldsText },
     },
   };
+
+  const labelSx = { fontWeight: 700, fontSize: "0.75rem", color: accent, letterSpacing: "0.08em", textTransform: "uppercase" };
+  const counterSx = { fontSize: "0.75rem", color: theme.mutedText };
 
   if (loading) return null;
 
   return (
-    <Modal open={open} onClose={handleClose}>
-      <Fade in={open}>
-        <Box
-          sx={{
-            height: "100%",
-            width: "100%",
-            outline: "none",
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
-          }}
-        >
-          <Box
-            sx={{
-              p: 3,
-              borderRadius: 4,
-              height: "825px",
-              width: "65%",
-              border: `${theme.primaryText} 2px solid`,
-              background: theme.secondaryBack,
-              display: "flex",
-              flexDirection: "column",
-              justifyContent: "space-between",
-            }}
-          >
-            <Box display="flex" justifyContent="space-between" alignItems="center" width="100%">
-              <Typography variant="h5" sx={{ color: theme.primaryText }}>
-                {adId ? "Editar Anuncio" : "Crear un nuevo anuncio"}
-              </Typography>
-              <IconButton onClick={handleClose}>
-                <CloseIcon sx={{ color: theme.primaryText }} />
-              </IconButton>
-            </Box>
-
-            <Box sx={{ flexGrow: 1, overflowY: "auto", pr: 1 }}>
-              <Grid item sx={{ width: "100%", mt: 3 }}>
-                <Grid container justifyContent="space-between">
-                  <Typography sx={{ fontWeight: "bold", mb: 0.5, color: theme.primaryText }}>
-                    Escribe un asunto
-                  </Typography>
-                  <Typography sx={{ fontWeight: "bold", mb: 0.5, color: theme.primaryText }}>
-                    {editedAd.title?.length || 0}/100
-                  </Typography>
-                </Grid>
-                <TextField
-                  name="title"
-                  placeholder="Escribe un asunto..."
-                  fullWidth
-                  value={editedAd.title || ""}
-                  onChange={handleChange}
-                  sx={inputStyle}
-                />
-              </Grid>
-
-              <Grid item sx={{ width: "100%", mt: 3 }}>
-                <Grid container justifyContent="space-between">
-                  <Typography sx={{ fontWeight: "bold", mb: 0.5, color: theme.primaryText }}>
-                    Selecciona los intereses del anuncio (Mínimo 1)
-                  </Typography>
-                  <Typography sx={{ fontWeight: "bold", mb: 0.5, color: theme.primaryText }}>
-                    {editedAd.interests?.length || 0}/{allInterests.length}
-                  </Typography>
-                </Grid>
-                <Grid container spacing={2} sx={{ height: "200px", py: 2 }}>
-                  {editedAd.interests?.length > 0 && (
-                    <Grid
-                      item
-                      xs={8}
-                      sx={{
-                        background: theme.tertiaryBack,
-                        border: `${theme.primaryText} 2px solid`,
-                        borderRadius: 4,
-                        height: "175px",
-                        p: 2,
-                        overflowY: "auto",
-                      }}
-                    >
-                      <TransitionGroup component={null}>
-                        {editedAd.interests.map((int) => (
-                          <Zoom key={int.id || int.interest_id}>
-                            <Box onClick={() => removeInterest(int)} sx={{ p: 0.5, cursor: "pointer" }}>
-                              <InterestItem title={int.name || int.nombre} variant="deselect" />
-                            </Box>
-                          </Zoom>
-                        ))}
-                      </TransitionGroup>
-                    </Grid>
-                  )}
-
-                  <Grid
-                    item
-                    xs={editedAd.interests?.length === 0 ? 12 : 4}
-                    sx={{
-                      background: theme.primaryBack,
-                      border: `${theme.primaryText} 2px solid`,
-                      borderRadius: 4,
-                      height: "175px",
-                      py: 1,
-                      overflowY: "auto",
-                      "&::-webkit-scrollbar": { width: "6px" },
-                      "&::-webkit-scrollbar-thumb": {
-                        borderRadius: "10px",
-                        background: theme.primaryText,
-                      },
-                    }}
-                  >
-                    <TransitionGroup component={null}>
-                      {restInterests.map((int) => (
-                        <Zoom key={int.id || int.interest_id}>
-                          <Box onClick={() => addInterest(int)} sx={{ p: 0.5, cursor: "pointer" }}>
-                            <InterestItem title={int.name || int.nombre} variant="select" />
-                          </Box>
-                        </Zoom>
-                      ))}
-                    </TransitionGroup>
-                  </Grid>
-                </Grid>
-              </Grid>
-
-              <Grid item sx={{ width: "100%", mt: 3 }}>
-                <Grid container justifyContent="space-between">
-                  <Typography sx={{ fontWeight: "bold", mb: 0.5, color: theme.primaryText }}>
-                    Añade un cuerpo (Opcional)
-                  </Typography>
-                  <Typography sx={{ fontWeight: "bold", mb: 0.5, color: theme.primaryText }}>
-                    {editedAd.body?.length || 0}/500
-                  </Typography>
-                </Grid>
-                <TextField
-                  placeholder="Añade un cuerpo a tu anuncio..."
-                  name="body"
-                  fullWidth
-                  multiline
-                  rows={6}
-                  value={editedAd.body || ""}
-                  onChange={handleChange}
-                  sx={inputStyle}
-                />
-              </Grid>
-
-              <ErrorMessage
-                message={localError.message}
-                open={localError.open}
-                setOpen={(val) => setLocalError((prev) => ({ ...prev, open: val }))}
-              />
-            </Box>
-
-            <Box
-              display="flex"
-              justifyContent="center"
-              alignItems="center"
-              gap={6}
-              sx={{ pt: 3, borderTop: `${theme.primaryText} solid 2px` }}
-            >
-              <Tooltip title="Restablecer cambios" arrow placement="top">
-                <IconButton
-                  onClick={() => adId ? setEditedAd(ogAd) : setEditedAd({ title: "", body: "", interests: [] })}
-                  sx={{
-                    backgroundColor: theme.primaryBack,
-                    width: 55,
-                    height: 55,
-                    transition: "all 0.3s ease",
-                    "&:hover": {
-                      backgroundColor: "#f44336",
-                      transform: "rotate(-45deg)",
-                      boxShadow: "0px 4px 15px rgba(244, 67, 54, 0.4)",
-                    },
-                  }}
-                >
-                  <RestartAltIcon sx={{ color: theme.primaryText, fontSize: 30 }} />
-                </IconButton>
-              </Tooltip>
-
-              <Tooltip title={adId ? "Aplicar Cambios" : "Publicar Anuncio"} arrow placement="top">
-                <IconButton
-                  onClick={handleSubmit}
-                  sx={{
-                    backgroundColor: theme.primaryText,
-                    width: 55,
-                    height: 55,
-                    transition: "all 0.3s ease",
-                    "&:hover": {
-                      backgroundColor: theme.secondaryText || "#4caf50",
-                      transform: "scale(1.1)",
-                      boxShadow: `0px 4px 15px ${theme.primaryText}66`,
-                    },
-                  }}
-                >
-                  {adId ? (
-                    <CheckIcon sx={{ color: theme.secondaryBack, fontSize: 32 }} />
-                  ) : (
-                    <PublishIcon sx={{ color: theme.secondaryBack, fontSize: 32 }} />
-                  )}
-                </IconButton>
-              </Tooltip>
-            </Box>
-          </Box>
+    <Dialog
+      open={open}
+      onClose={handleClose}
+      maxWidth="md"
+      fullWidth
+      PaperProps={{
+        sx: {
+          borderRadius: "20px",
+          background: theme.secondaryBack,
+          border: `1px solid ${accent}20`,
+          boxShadow: isDark ? "0 24px 60px rgba(0,0,0,0.6)" : "0 24px 60px rgba(0,0,0,0.12)",
+          height: { xs: "90vh", md: "80vh" },
+          maxHeight: "800px",
+        },
+      }}
+    >
+      <DialogTitle sx={{ pb: 1, pt: 2.5, px: 3, borderBottom: `1px solid ${accent}15` }}>
+        <Box display="flex" justifyContent="space-between" alignItems="center">
+          <Typography sx={{ fontWeight: 700, fontSize: "1.1rem", color: theme.primaryText }}>
+            {adId ? "Editar anuncio" : "Crear nuevo anuncio"}
+          </Typography>
+          <IconButton size="small" onClick={handleClose} sx={{ color: theme.mutedText, "&:hover": { color: theme.primaryText } }}>
+            <CloseIcon fontSize="small" />
+          </IconButton>
         </Box>
-      </Fade>
-    </Modal>
+      </DialogTitle>
+
+      <DialogContent sx={{ px: 3, py: 2.5, display: "flex", flexDirection: "column", gap: 3, overflowY: "auto" }}>
+
+        {/* Título */}
+        <Box>
+          <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
+            <Typography sx={labelSx}>Asunto</Typography>
+            <Typography sx={counterSx}>{editedAd.title?.length || 0}/100</Typography>
+          </Box>
+          <TextField name="title" placeholder="Escribe un asunto para tu anuncio..." fullWidth value={editedAd.title || ""} onChange={handleChange} sx={inputStyle} />
+        </Box>
+
+        {/* Intereses */}
+        <Box>
+          <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
+            <Typography sx={labelSx}>Intereses <span style={{ textTransform: "none", fontWeight: 400, color: theme.mutedText }}>(opcional)</span></Typography>
+            <Typography sx={counterSx}>{editedAd.interests?.length || 0}/{allInterests.length}</Typography>
+          </Box>
+          <Grid container spacing={1.5} sx={{ minHeight: 150 }}>
+            {editedAd.interests?.length > 0 && (
+              <Grid item xs={12} sm={7}>
+                <Box sx={{ background: theme.tertiaryBack, border: `1px solid ${accent}25`, borderRadius: "12px", p: 1.5, minHeight: 130, maxHeight: 160, overflowY: "auto", "&::-webkit-scrollbar": { width: "3px" }, "&::-webkit-scrollbar-thumb": { background: `${accent}40`, borderRadius: "10px" } }}>
+                  <Typography sx={{ fontSize: "0.7rem", color: theme.mutedText, mb: 1 }}>Seleccionados — pulsa para quitar</Typography>
+                  <TransitionGroup component={null}>
+                    {editedAd.interests.map((int) => (
+                      <Zoom key={int.id || int.interest_id}>
+                        <Box onClick={() => removeInterest(int)} sx={{ p: 0.4, cursor: "pointer", display: "inline-block" }}>
+                          <InterestItem title={int.name || int.nombre} variant="deselect" />
+                        </Box>
+                      </Zoom>
+                    ))}
+                  </TransitionGroup>
+                </Box>
+              </Grid>
+            )}
+            <Grid item xs={12} sm={editedAd.interests?.length === 0 ? 12 : 5}>
+              <Box sx={{ background: theme.primaryBack, border: `1px solid ${accent}20`, borderRadius: "12px", p: 1.5, minHeight: 130, maxHeight: 160, overflowY: "auto", "&::-webkit-scrollbar": { width: "3px" }, "&::-webkit-scrollbar-thumb": { background: `${accent}40`, borderRadius: "10px" } }}>
+                <Typography sx={{ fontSize: "0.7rem", color: theme.mutedText, mb: 1 }}>Disponibles — pulsa para añadir</Typography>
+                <TransitionGroup component={null}>
+                  {restInterests.map((int) => (
+                    <Zoom key={int.id || int.interest_id}>
+                      <Box onClick={() => addInterest(int)} sx={{ p: 0.4, cursor: "pointer", display: "inline-block" }}>
+                        <InterestItem title={int.name || int.nombre} variant="select" />
+                      </Box>
+                    </Zoom>
+                  ))}
+                </TransitionGroup>
+              </Box>
+            </Grid>
+          </Grid>
+        </Box>
+
+        {/* Cuerpo */}
+        <Box>
+          <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
+            <Typography sx={labelSx}>Cuerpo <span style={{ textTransform: "none", fontWeight: 400, color: theme.mutedText }}>(opcional)</span></Typography>
+            <Typography sx={counterSx}>{editedAd.body?.length || 0}/500</Typography>
+          </Box>
+          <TextField placeholder="Añade más detalles a tu anuncio..." name="body" fullWidth multiline rows={5} value={editedAd.body || ""} onChange={handleChange} sx={inputStyle} />
+        </Box>
+
+        <ErrorMessage message={localError.message} open={localError.open} setOpen={(val) => setLocalError((prev) => ({ ...prev, open: val }))} />
+      </DialogContent>
+
+      <DialogActions sx={{ px: 3, pb: 3, pt: 1.5, borderTop: `1px solid ${accent}15`, gap: 1.5 }}>
+        <Button
+          variant="outlined"
+          startIcon={<RestartAltIcon />}
+          onClick={() => adId ? setEditedAd(ogAd) : setEditedAd({ title: "", body: "", interests: [] })}
+          sx={{ borderColor: `${accent}40`, color: theme.mutedText, borderRadius: "10px", textTransform: "none", fontWeight: 600, "&:hover": { borderColor: "#f44336", color: "#f44336", background: "rgba(244,67,54,0.06)" } }}
+        >
+          Restablecer
+        </Button>
+        <Button
+          variant="contained"
+          startIcon={adId ? <CheckIcon /> : <PublishIcon />}
+          onClick={handleSubmit}
+          sx={{ background: `linear-gradient(135deg, ${accent}, ${theme.variantBack || accent})`, color: isDark ? "#1a1200" : "#fff", borderRadius: "10px", textTransform: "none", fontWeight: 700, px: 3, flex: 1, "&:hover": { opacity: 0.9 } }}
+        >
+          {adId ? "Aplicar cambios" : "Publicar anuncio"}
+        </Button>
+      </DialogActions>
+    </Dialog>
   );
 }

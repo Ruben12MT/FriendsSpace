@@ -9,28 +9,11 @@ module.exports = function (sequelize, DataTypes) {
         allowNull: false,
         primaryKey: true,
       },
-      name: {
-        type: DataTypes.STRING(50),
-        allowNull: false,
-        unique: "name",
-      },
-      email: {
-        type: DataTypes.STRING(100),
-        allowNull: false,
-        unique: "email",
-      },
-      password: {
-        type: DataTypes.STRING(255),
-        allowNull: false,
-      },
-      url_image: {
-        type: DataTypes.STRING(500),
-        allowNull: true,
-      },
-      bio: {
-        type: DataTypes.TEXT,
-        allowNull: true,
-      },
+      name: { type: DataTypes.STRING(50), allowNull: false, unique: "name" },
+      email: { type: DataTypes.STRING(100), allowNull: false, unique: "email" },
+      password: { type: DataTypes.STRING(255), allowNull: false },
+      url_image: { type: DataTypes.STRING(500), allowNull: true },
+      bio: { type: DataTypes.TEXT, allowNull: true },
       role: {
         type: DataTypes.ENUM("USER", "ADMIN", "DEVELOPER"),
         allowNull: true,
@@ -41,14 +24,8 @@ module.exports = function (sequelize, DataTypes) {
         allowNull: false,
         defaultValue: false,
       },
-      goals: {
-        type: DataTypes.TEXT,
-        allowNull: true,
-      },
-      short_sentece: {
-        type: DataTypes.STRING(50),
-        allowNull: true,
-      },
+      goals: { type: DataTypes.TEXT, allowNull: true },
+      short_sentece: { type: DataTypes.STRING(50), allowNull: true },
       created_at: {
         type: DataTypes.DATE,
         allowNull: false,
@@ -58,6 +35,11 @@ module.exports = function (sequelize, DataTypes) {
         type: DataTypes.TINYINT,
         allowNull: false,
         defaultValue: 1,
+      },
+      token_version: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        defaultValue: 0,
       },
     },
     {

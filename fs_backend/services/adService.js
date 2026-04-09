@@ -3,46 +3,52 @@ const { initModels } = require("../src/models/init-models.js");
 const models = initModels(sequelize);
 const { Op } = require("sequelize");
 
+const LIMIT = 20;
+
 class AdService {
-  // Define que incluir: el dueño (con su foto) y los intereses
   static includeData = [
-    {
-      model: models.user,
-      as: "user",
-      attributes: ["name", "url_image", "role"],
-    },
-    {
-      model: models.interest,
-      as: "interests",
-      attributes: ["id", "name"],
-      through: { attributes: [] },
-    },
+    { model: models.user, as: "user", attributes: ["name", "url_image", "role"] },
+    { model: models.interest, as: "interests", attributes: ["id", "name"], through: { attributes: [] } },
   ];
 
-  // Obtiene todos los anuncios ordenados por id descendente
-  async getAllAds() {
-    return await models.ad.findAll({
+  async getAllAds({ page = 1, search = "" } = {}) {
+    const offset = (page - 1) * LIMIT;
+
+    const whereClause = {};
+    if (search) {
+      whereClause[Op.or] = [
+        { title: { [Op.substring]: search } },
+        { body: { [Op.substring]: search } },
+      ];
+    }
+
+    const { count, rows } = await models.ad.findAndCountAll({
+      where: whereClause,
       include: AdService.includeData,
       order: [["id", "DESC"]],
+      limit: LIMIT,
+      offset,
+      distinct: true,
     });
+
+    return {
+      datos: rows,
+      total: count,
+      hasMore: offset + rows.length < count,
+    };
   }
 
-  // Busca un anuncio por su id
   async getAdById(id) {
     return await models.ad.findByPk(id, { include: AdService.includeData });
   }
 
-  // Crea un anuncio y sus intereses asociados
   async createAd(data, interests) {
     const transaction = await sequelize.transaction();
     try {
       const newAd = await models.ad.create(data, { transaction });
 
       if (interests && interests.length > 0) {
-        const relations = interests.map((id) => ({
-          ad_id: newAd.id,
-          interest_id: id,
-        }));
+        const relations = interests.map((id) => ({ ad_id: newAd.id, interest_id: id }));
         await models.ad_interest.bulkCreate(relations, { transaction });
       }
 
@@ -54,19 +60,17 @@ class AdService {
     }
   }
 
-  // Actualiza datos del anuncio y refresca sus intereses
   async updateAd(id, data, interestIds) {
     const transaction = await sequelize.transaction();
     try {
       await models.ad.update(data, { where: { id }, transaction });
 
-      if (interestIds) {
+      if (interestIds !== undefined) {
         await models.ad_interest.destroy({ where: { ad_id: id }, transaction });
-        const relations = interestIds.map((intId) => ({
-          ad_id: id,
-          interest_id: intId,
-        }));
-        await models.ad_interest.bulkCreate(relations, { transaction });
+        if (interestIds.length > 0) {
+          const relations = interestIds.map((intId) => ({ ad_id: id, interest_id: intId }));
+          await models.ad_interest.bulkCreate(relations, { transaction });
+        }
       }
 
       await transaction.commit();
@@ -77,26 +81,15 @@ class AdService {
     }
   }
 
-  // Elimina un anuncio por su id
   async deleteAd(id) {
     return await models.ad.destroy({ where: { id } });
   }
 
-  // Busca anuncios por palabra clave en titulo o cuerpo
   async getAdsByWord(word) {
     return await models.ad.findAll({
-      where: {
-        [Op.or]: [
-          { title: { [Op.substring]: word } },
-          { body: { [Op.substring]: word } },
-        ],
-      },
+      where: { [Op.or]: [{ title: { [Op.substring]: word } }, { body: { [Op.substring]: word } }] },
       include: AdService.includeData,
     });
-  }
-  // Busca anuncios por id
-  async getAdById(id) {
-    return await models.ad.findByPk(id, { include: AdService.includeData });
   }
 }
 
