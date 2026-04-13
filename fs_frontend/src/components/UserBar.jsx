@@ -2,7 +2,7 @@ import React, { useEffect, useState, useContext } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
   Box, Avatar, Typography, IconButton, Tooltip,
-  Badge, Menu, MenuItem, Divider,
+  Badge, Menu, MenuItem, Divider, useMediaQuery, useTheme as useMuiTheme,
 } from "@mui/material";
 import NotificationsIcon from "@mui/icons-material/Notifications";
 import PersonSearchIcon from "@mui/icons-material/PersonSearch";
@@ -21,12 +21,15 @@ import api from "../utils/api";
 
 const SIDEBAR_W = 68;
 const TOPBAR_H = 52;
+const BOTTOM_NAV_H = 56;
 
 export default function UserBar() {
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const { loggedUser } = useUser();
   const theme = useAppTheme();
+  const muiTheme = useMuiTheme();
+  const isMobile = useMediaQuery(muiTheme.breakpoints.down("sm"));
   const { socket } = useContext(SocketContext);
 
   const unreadCount     = useAuthStore((s) => s.unreadCount);
@@ -39,9 +42,10 @@ export default function UserBar() {
   useFirstLogin();
 
   const estaEnRequests = pathname === "/app/requests";
-const isAdminOrDev = loggedUser?.role === "DEVELOPER" || loggedUser?.role === "ADMIN";
+  const isAdminOrDev = loggedUser?.role === "DEVELOPER" || loggedUser?.role === "ADMIN";
+
   const navItems = [
-    { path: "/app/searchnewfriends", icon: <PersonSearchIcon />, label: loggedUser?.role === "DEVELOPER" || loggedUser?.role === "ADMIN" ? "Buscar usuarios" : "Buscar amigos" },
+    { path: "/app/searchnewfriends", icon: <PersonSearchIcon />, label: isAdminOrDev ? "Buscar usuarios" : "Buscar amigos" },
     { path: "/app/ads",              icon: <CampaignIcon />,      label: "Anuncios" },
     { path: "/app/chats",            icon: <ChatBubbleOutlineIcon />, label: "Chats" },
     ...(isAdminOrDev ? [{ path: "/app/admins", icon: <AdminPanelSettingsIcon />, label: "Gestión de admins" }] : []),
@@ -87,7 +91,7 @@ const isAdminOrDev = loggedUser?.role === "DEVELOPER" || loggedUser?.role === "A
 
   const isActive = (path) => pathname.startsWith(path);
 
-  const NavBtn = ({ path, icon, label }) => {
+  const SideNavBtn = ({ path, icon, label }) => {
     const active = isActive(path);
     return (
       <Tooltip title={label} placement="right">
@@ -106,16 +110,41 @@ const isAdminOrDev = loggedUser?.role === "DEVELOPER" || loggedUser?.role === "A
     );
   };
 
+  const BottomNavBtn = ({ path, icon, label }) => {
+    const active = isActive(path);
+    return (
+      <Box
+        onClick={() => navigate(path)}
+        sx={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 0.25, cursor: "pointer", py: 0.5, color: active ? accent : fg, transition: "color 0.15s", "&:hover": { color: accent } }}
+      >
+        <Box sx={{ position: "relative", width: 36, height: 36, display: "flex", alignItems: "center", justifyContent: "center", borderRadius: "10px", background: active ? activeBg : "transparent" }}>
+          {React.cloneElement(icon, { sx: { fontSize: 22 } })}
+        </Box>
+        <Typography sx={{ fontSize: "0.6rem", fontWeight: active ? 700 : 400, lineHeight: 1 }}>{label}</Typography>
+      </Box>
+    );
+  };
+
   return (
     <Box sx={{ display: "flex", minHeight: "100vh" }}>
-      <Box sx={{ position: "fixed", top: 0, left: 0, right: 0, height: TOPBAR_H, zIndex: 1200, background: bg, borderBottom: `1px solid ${border}`, display: "flex", alignItems: "center", pl: `${SIDEBAR_W}px`, pr: 2, gap: 1 }}>
-        <Box onClick={() => navigate("/")} sx={{ position: "absolute", left: 0, top: 0, width: SIDEBAR_W, height: TOPBAR_H, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", transition: "opacity 0.15s", "&:hover": { opacity: 0.75 } }}>
-          <Avatar src="/logo.png" sx={{ width: 30, height: 30 }} />
-        </Box>
-
-        <Typography onClick={() => navigate("/")} sx={{ fontFamily: "monospace", fontWeight: 700, fontSize: "0.95rem", color: fg, letterSpacing: "0.06em", cursor: "pointer", userSelect: "none", transition: "color 0.15s", "&:hover": { color: accent } }}>
-          Friends Space
-        </Typography>
+      <Box sx={{ position: "fixed", top: 0, left: 0, right: 0, height: TOPBAR_H, zIndex: 1200, background: bg, borderBottom: `1px solid ${border}`, display: "flex", alignItems: "center", pl: isMobile ? 2 : `${SIDEBAR_W}px`, pr: 2, gap: 1 }}>
+        {isMobile ? (
+          <Box onClick={() => navigate("/")} sx={{ display: "flex", alignItems: "center", gap: 1, cursor: "pointer", "&:hover": { opacity: 0.75 } }}>
+            <Avatar src="/logo.png" sx={{ width: 28, height: 28 }} />
+            <Typography sx={{ fontFamily: "monospace", fontWeight: 700, fontSize: "0.9rem", color: fg, letterSpacing: "0.06em" }}>
+              Friends Space
+            </Typography>
+          </Box>
+        ) : (
+          <>
+            <Box onClick={() => navigate("/")} sx={{ position: "absolute", left: 0, top: 0, width: SIDEBAR_W, height: TOPBAR_H, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", transition: "opacity 0.15s", "&:hover": { opacity: 0.75 } }}>
+              <Avatar src="/logo.png" sx={{ width: 30, height: 30 }} />
+            </Box>
+            <Typography onClick={() => navigate("/")} sx={{ fontFamily: "monospace", fontWeight: 700, fontSize: "0.95rem", color: fg, letterSpacing: "0.06em", cursor: "pointer", userSelect: "none", "&:hover": { color: accent } }}>
+              Friends Space
+            </Typography>
+          </>
+        )}
 
         <Box sx={{ flex: 1 }} />
 
@@ -127,28 +156,41 @@ const isAdminOrDev = loggedUser?.role === "DEVELOPER" || loggedUser?.role === "A
           </IconButton>
         </Tooltip>
 
+        {isMobile && (
+          <IconButton onClick={(e) => setAnchorElUser(e.currentTarget)} sx={{ width: 36, height: 36, borderRadius: "10px", p: "4px", border: anchorElUser ? `2px solid ${accent}` : `2px solid transparent`, "&:hover": { border: `2px solid ${accent}70` } }}>
+            <Avatar src={loggedUser?.url_image || "/no_user_avatar_image.png"} sx={{ width: 26, height: 26 }} />
+          </IconButton>
+        )}
+
         <ThemeToggler block={true} />
       </Box>
 
-      <Box sx={{ position: "fixed", top: 0, left: 0, width: SIDEBAR_W, height: "100vh", zIndex: 1100, background: bg, borderRight: `1px solid ${border}`, display: "flex", flexDirection: "column", alignItems: "center", pt: `${TOPBAR_H}px`, pb: 2, boxSizing: "border-box" }}>
-        <Box sx={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 0.5, pt: 2, width: "100%", px: "10px" }}>
-          {navItems.map((item) => <NavBtn key={item.path} {...item} />)}
-        </Box>
-
-        <Box sx={{ width: "100%", px: "10px" }}>
-          <Divider sx={{ mb: 1.5, borderColor: border }} />
-          <Box sx={{ display: "flex", justifyContent: "center" }}>
-            <Tooltip title={loggedUser?.name || "Mi perfil"} placement="right">
-              <IconButton onClick={(e) => setAnchorElUser(e.currentTarget)} sx={{ width: 44, height: 44, borderRadius: "12px", p: "4px", border: anchorElUser ? `2px solid ${accent}` : `2px solid transparent`, transition: "border 0.15s", "&:hover": { border: `2px solid ${accent}70` } }}>
-                <Avatar src={loggedUser?.url_image || "/no_user_avatar_image.png"} sx={{ width: 32, height: 32 }} />
-              </IconButton>
-            </Tooltip>
+      {!isMobile && (
+        <Box sx={{ position: "fixed", top: 0, left: 0, width: SIDEBAR_W, height: "100vh", zIndex: 1100, background: bg, borderRight: `1px solid ${border}`, display: "flex", flexDirection: "column", alignItems: "center", pt: `${TOPBAR_H}px`, pb: 2, boxSizing: "border-box" }}>
+          <Box sx={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 0.5, pt: 2, width: "100%", px: "10px" }}>
+            {navItems.map((item) => <SideNavBtn key={item.path} {...item} />)}
+          </Box>
+          <Box sx={{ width: "100%", px: "10px" }}>
+            <Divider sx={{ mb: 1.5, borderColor: border }} />
+            <Box sx={{ display: "flex", justifyContent: "center" }}>
+              <Tooltip title={loggedUser?.name || "Mi perfil"} placement="right">
+                <IconButton onClick={(e) => setAnchorElUser(e.currentTarget)} sx={{ width: 44, height: 44, borderRadius: "12px", p: "4px", border: anchorElUser ? `2px solid ${accent}` : `2px solid transparent`, transition: "border 0.15s", "&:hover": { border: `2px solid ${accent}70` } }}>
+                  <Avatar src={loggedUser?.url_image || "/no_user_avatar_image.png"} sx={{ width: 32, height: 32 }} />
+                </IconButton>
+              </Tooltip>
+            </Box>
           </Box>
         </Box>
-      </Box>
+      )}
 
-      <Menu anchorEl={anchorElUser} open={Boolean(anchorElUser)} onClose={() => setAnchorElUser(null)} anchorOrigin={{ vertical: "bottom", horizontal: "right" }} transformOrigin={{ vertical: "bottom", horizontal: "left" }}
-        PaperProps={{ sx: { ml: "8px", borderRadius: "14px", background: bg, border: `1px solid ${border}`, boxShadow: isDark ? "0 8px 32px rgba(0,0,0,0.6)" : "0 8px 32px rgba(0,0,0,0.14)", minWidth: 190, overflow: "hidden" } }}>
+      {isMobile && (
+        <Box sx={{ position: "fixed", bottom: 0, left: 0, right: 0, height: BOTTOM_NAV_H, zIndex: 1200, background: bg, borderTop: `1px solid ${border}`, display: "flex", alignItems: "stretch", px: 1 }}>
+          {navItems.map((item) => <BottomNavBtn key={item.path} {...item} />)}
+        </Box>
+      )}
+
+      <Menu anchorEl={anchorElUser} open={Boolean(anchorElUser)} onClose={() => setAnchorElUser(null)} anchorOrigin={{ vertical: "bottom", horizontal: "right" }} transformOrigin={{ vertical: isMobile ? "bottom" : "bottom", horizontal: isMobile ? "right" : "left" }}
+        PaperProps={{ sx: { ml: isMobile ? 0 : "8px", borderRadius: "14px", background: bg, border: `1px solid ${border}`, boxShadow: isDark ? "0 8px 32px rgba(0,0,0,0.6)" : "0 8px 32px rgba(0,0,0,0.14)", minWidth: 190, overflow: "hidden" } }}>
         <Box sx={{ px: 2, py: 1.5, borderBottom: `1px solid ${border}` }}>
           <Typography sx={{ fontWeight: 700, color: fg, fontSize: "0.875rem", lineHeight: 1.3 }}>{loggedUser?.name}</Typography>
           <Typography sx={{ color: theme.mutedText || theme.secondaryText, fontSize: "0.72rem", mt: 0.25 }}>{loggedUser?.email || ""}</Typography>
@@ -164,7 +206,14 @@ const isAdminOrDev = loggedUser?.role === "DEVELOPER" || loggedUser?.role === "A
         </MenuItem>
       </Menu>
 
-      <Box component="main" sx={{ flex: 1, ml: `${SIDEBAR_W}px`, mt: `${TOPBAR_H}px`, minHeight: `calc(100vh - ${TOPBAR_H}px)`, display: "flex", flexDirection: "column", boxSizing: "border-box" }}>
+      <Box component="main" sx={{
+        flex: 1,
+        ml: isMobile ? 0 : `${SIDEBAR_W}px`,
+        mt: `${TOPBAR_H}px`,
+        mb: isMobile ? `${BOTTOM_NAV_H}px` : 0,
+        minHeight: `calc(100vh - ${TOPBAR_H}px${isMobile ? ` - ${BOTTOM_NAV_H}px` : ""})`,
+        display: "flex", flexDirection: "column", boxSizing: "border-box",
+      }}>
         <Outlet />
       </Box>
     </Box>

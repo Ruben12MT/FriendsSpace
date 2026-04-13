@@ -1,17 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
-  Box,
-  Typography,
-  CircularProgress,
-  Container,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Button,
-  TextField,
-  IconButton,
-  Grid,
+  Box, Typography, CircularProgress, Container, Dialog, DialogTitle,
+  DialogContent, DialogActions, Button, TextField, IconButton, Grid,
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
@@ -41,59 +31,38 @@ export default function AdminsPage() {
   const [errorMsg, setErrorMsg] = useState("");
   const [isSending, setIsSending] = useState(false);
   const [form, setForm] = useState({ name: "", email: "", password: "" });
-  const [formErrors, setFormErrors] = useState({
-    name: false,
-    email: false,
-    password: false,
-  });
+  const [formErrors, setFormErrors] = useState({ name: false, email: false, password: false });
 
   const sentinelRef = useRef(null);
   const searchTimeoutRef = useRef(null);
 
-  const fetchAdmins = useCallback(
-    async (pageNum = 1, reset = false) => {
-      if (pageNum === 1) setIsLoading(true);
-      else setIsLoadingMore(true);
-      try {
-        const params = { page: pageNum, limit: 20 };
-        if (query.trim()) params.search = query.trim();
-        const res = await api.get("/users/admins", { params });
-        if (res.data.ok) {
-          setAdminList((prev) =>
-            reset ? res.data.datos : [...prev, ...res.data.datos],
-          );
-          setHasMore(res.data.hasMore);
-          setPage(pageNum);
-        }
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setIsLoading(false);
-        setIsLoadingMore(false);
+  const fetchAdmins = useCallback(async (pageNum = 1, reset = false) => {
+    if (pageNum === 1) setIsLoading(true);
+    else setIsLoadingMore(true);
+    try {
+      const params = { page: pageNum, limit: 20 };
+      if (query.trim()) params.search = query.trim();
+      const res = await api.get("/users/admins", { params });
+      if (res.data.ok) {
+        setAdminList((prev) => reset ? res.data.datos : [...prev, ...res.data.datos]);
+        setHasMore(res.data.hasMore);
+        setPage(pageNum);
       }
-    },
-    [query],
-  );
+    } catch (err) { console.error(err); }
+    finally { setIsLoading(false); setIsLoadingMore(false); }
+  }, [query]);
 
   useEffect(() => {
     clearTimeout(searchTimeoutRef.current);
-    searchTimeoutRef.current = setTimeout(() => {
-      fetchAdmins(1, true);
-    }, 400);
+    searchTimeoutRef.current = setTimeout(() => { fetchAdmins(1, true); }, 400);
     return () => clearTimeout(searchTimeoutRef.current);
   }, [query]);
 
-  // IntersectionObserver scroll infinito
   useEffect(() => {
     if (!sentinelRef.current) return;
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting && hasMore && !isLoadingMore && !isLoading) {
-          fetchAdmins(page + 1);
-        }
-      },
-      { threshold: 0.1 },
-    );
+    const observer = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting && hasMore && !isLoadingMore && !isLoading) fetchAdmins(page + 1);
+    }, { threshold: 0.1 });
     observer.observe(sentinelRef.current);
     return () => observer.disconnect();
   }, [hasMore, isLoadingMore, isLoading, page, fetchAdmins]);
@@ -105,11 +74,7 @@ export default function AdminsPage() {
   };
 
   const handleCreateAdmin = async () => {
-    const errors = {
-      name: !form.name.trim(),
-      email: !form.email.trim(),
-      password: !form.password.trim(),
-    };
+    const errors = { name: !form.name.trim(), email: !form.email.trim(), password: !form.password.trim() };
     setFormErrors(errors);
     if (Object.values(errors).some(Boolean)) return;
     setIsSending(true);
@@ -122,352 +87,107 @@ export default function AdminsPage() {
       fetchAdmins(1, true);
     } catch (err) {
       setErrorMsg(err.response?.data?.mensaje || "Error al crear el admin");
-    } finally {
-      setIsSending(false);
-    }
+    } finally { setIsSending(false); }
   };
 
-  const closeModal = () => {
-    setModalOpen(false);
-    setErrorMsg("");
-    setForm({ name: "", email: "", password: "" });
-  };
+  const closeModal = () => { setModalOpen(false); setErrorMsg(""); setForm({ name: "", email: "", password: "" }); };
 
   const inputSx = (hasError) => ({
     "& .MuiOutlinedInput-root": {
-      borderRadius: "12px",
-      background: theme.tertiaryBack,
-      "& fieldset": {
-        borderColor: hasError ? "#e53935" : `${accent}35`,
-        borderWidth: 1.5,
-      },
+      borderRadius: "12px", background: theme.tertiaryBack,
+      "& fieldset": { borderColor: hasError ? "#e53935" : `${accent}35`, borderWidth: 1.5 },
       "&:hover fieldset": { borderColor: hasError ? "#e53935" : `${accent}70` },
-      "&.Mui-focused fieldset": {
-        borderColor: hasError ? "#e53935" : accent,
-        borderWidth: 2,
-      },
+      "&.Mui-focused fieldset": { borderColor: hasError ? "#e53935" : accent, borderWidth: 2 },
     },
     "& .MuiInputBase-input": { color: theme.primaryText },
     "& .MuiInputLabel-root": { color: theme.mutedText },
-    "& .MuiInputLabel-root.Mui-focused": {
-      color: hasError ? "#e53935" : accent,
-    },
+    "& .MuiInputLabel-root.Mui-focused": { color: hasError ? "#e53935" : accent },
   });
 
   return (
-    <Box
-      sx={{
-        position: "fixed",
-        top: "52px",
-        left: "68px",
-        right: 0,
-        bottom: 0,
-        display: "flex",
-        overflow: "hidden",
-      }}
-    >
-      <Container
-        maxWidth="lg"
-        sx={{ height: "100%", display: "flex", flexDirection: "column", py: 3 }}
-      >
-        <Box
-          sx={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            mb: 2.5,
-          }}
-        >
+    <Box sx={{ position: "fixed", top: "52px", left: { xs: 0, sm: "68px" }, right: 0, bottom: { xs: "56px", sm: 0 }, display: "flex", overflow: "hidden" }}>
+      <Container maxWidth="lg" sx={{ height: "100%", display: "flex", flexDirection: "column", py: { xs: 2, md: 3 } }}>
+        <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2.5 }}>
           <Box>
-            <Typography
-              sx={{
-                fontWeight: 700,
-                fontSize: "1.5rem",
-                color: theme.primaryText,
-                lineHeight: 1.2,
-              }}
-            >
+            <Typography sx={{ fontWeight: 700, fontSize: { xs: "1.2rem", md: "1.5rem" }, color: theme.primaryText, lineHeight: 1.2 }}>
               Gestión de administradores
             </Typography>
-            <Typography
-              sx={{ fontSize: "0.85rem", color: theme.mutedText, mt: 0.25 }}
-            >
-              {isLoading
-                ? "Cargando..."
-                : `${adminList.length} miembro${adminList.length !== 1 ? "s" : ""} del equipo`}
+            <Typography sx={{ fontSize: "0.85rem", color: theme.mutedText, mt: 0.25 }}>
+              {isLoading ? "Cargando..." : `${adminList.length} miembro${adminList.length !== 1 ? "s" : ""} del equipo`}
             </Typography>
           </Box>
           {isDeveloper && (
-            <Button
-              variant="contained"
-              startIcon={<AddIcon />}
-              onClick={() => setModalOpen(true)}
-              sx={{
-                background: `linear-gradient(135deg, ${accent}, ${theme.variantBack || accent})`,
-                color: isDark ? "#1a1200" : "#fff",
-                borderRadius: "10px",
-                textTransform: "none",
-                fontWeight: 600,
-                boxShadow: `0 4px 12px ${accent}40`,
-                "&:hover": { opacity: 0.9 },
-              }}
-            >
+            <Button variant="contained" startIcon={<AddIcon />} onClick={() => setModalOpen(true)}
+              sx={{ background: `linear-gradient(135deg, ${accent}, ${theme.variantBack || accent})`, color: isDark ? "#1a1200" : "#fff", borderRadius: "10px", textTransform: "none", fontWeight: 600, boxShadow: `0 4px 12px ${accent}40`, "&:hover": { opacity: 0.9 }, fontSize: { xs: "0.75rem", md: "0.875rem" }, px: { xs: 1.5, md: 2 } }}>
               Nuevo admin
             </Button>
           )}
         </Box>
 
-        <MainSearchBar
-          placeholder="Buscar administrador..."
-          searchValue={query}
-          onSearchChange={setQuery}
-          onReset={() => setQuery("")}
-          showAdd={false}
-          variant="searchAdmins"
-        />
+        <MainSearchBar placeholder="Buscar administrador..." searchValue={query} onSearchChange={setQuery} onReset={() => setQuery("")} showAdd={false} variant="searchAdmins" />
 
-        <Box
-          sx={{
-            flexGrow: 1,
-            overflowY: "auto",
-            mt: 3,
-            pr: 0.5,
-            pt: 0.5,
-            "&::-webkit-scrollbar": { width: "4px" },
-            "&::-webkit-scrollbar-thumb": {
-              background: `${accent}40`,
-              borderRadius: "10px",
-            },
-            "&::-webkit-scrollbar-track": { background: "transparent" },
-          }}
-        >
+        <Box sx={{ flexGrow: 1, overflowY: "auto", mt: 3, pr: 0.5, pt: 0.5, "&::-webkit-scrollbar": { width: "4px" }, "&::-webkit-scrollbar-thumb": { background: `${accent}40`, borderRadius: "10px" }, "&::-webkit-scrollbar-track": { background: "transparent" } }}>
           {isLoading ? (
-            <Box
-              sx={{
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                mt: 12,
-                gap: 2,
-              }}
-            >
+            <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", mt: 12, gap: 2 }}>
               <CircularProgress sx={{ color: accent }} size={36} />
-              <Typography sx={{ color: theme.mutedText, fontSize: "0.875rem" }}>
-                Cargando administradores...
-              </Typography>
+              <Typography sx={{ color: theme.mutedText, fontSize: "0.875rem" }}>Cargando administradores...</Typography>
             </Box>
           ) : adminList.length === 0 ? (
-            <Box
-              sx={{
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                mt: 12,
-                gap: 2,
-                opacity: 0.5,
-              }}
-            >
-              <AdminPanelSettingsIcon
-                sx={{ fontSize: 52, color: theme.mutedText }}
-              />
+            <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", mt: 12, gap: 2, opacity: 0.5 }}>
+              <AdminPanelSettingsIcon sx={{ fontSize: 52, color: theme.mutedText }} />
               <Typography sx={{ color: theme.mutedText, fontSize: "0.9rem" }}>
-                {query
-                  ? "No se encontraron administradores"
-                  : "No hay administradores todavía"}
+                {query ? "No se encontraron administradores" : "No hay administradores todavía"}
               </Typography>
             </Box>
           ) : (
             <>
               <Grid container spacing={2}>
                 {adminList.map((admin) => (
-                  <Grid item sx={{ width: "160px" }} key={admin.id}>
+                  <Grid item sx={{ width: { xs: "140px", md: "160px" } }} key={admin.id}>
                     <UserCard user={admin} variant="adminCard" />
                   </Grid>
                 ))}
               </Grid>
-
-              <Box
-                ref={sentinelRef}
-                sx={{
-                  height: 40,
-                  display: "flex",
-                  justifyContent: "center",
-                  alignItems: "center",
-                  mt: 2,
-                }}
-              >
-                {isLoadingMore && (
-                  <CircularProgress size={24} sx={{ color: accent }} />
-                )}
+              <Box ref={sentinelRef} sx={{ height: 40, display: "flex", justifyContent: "center", alignItems: "center", mt: 2 }}>
+                {isLoadingMore && <CircularProgress size={24} sx={{ color: accent }} />}
               </Box>
             </>
           )}
         </Box>
       </Container>
 
-      <Dialog
-        open={modalOpen}
-        onClose={closeModal}
-        PaperProps={{
-          sx: {
-            borderRadius: "20px",
-            background: theme.secondaryBack,
-            minWidth: 400,
-            border: `1px solid ${accent}20`,
-          },
-        }}
-      >
+      <Dialog open={modalOpen} onClose={closeModal} PaperProps={{ sx: { borderRadius: "20px", background: theme.secondaryBack, minWidth: { xs: "90vw", sm: 400 }, border: `1px solid ${accent}20` } }}>
         <DialogTitle sx={{ color: theme.primaryText, fontWeight: 700, pb: 1 }}>
-          <Box
-            display="flex"
-            justifyContent="space-between"
-            alignItems="center"
-          >
+          <Box display="flex" justifyContent="space-between" alignItems="center">
             Crear nuevo administrador
-            <IconButton
-              size="small"
-              onClick={closeModal}
-              sx={{ color: theme.mutedText }}
-            >
-              <CloseIcon fontSize="small" />
-            </IconButton>
+            <IconButton size="small" onClick={closeModal} sx={{ color: theme.mutedText }}><CloseIcon fontSize="small" /></IconButton>
           </Box>
         </DialogTitle>
-        <DialogContent
-          sx={{
-            display: "flex",
-            flexDirection: "column",
-            gap: 2,
-            pt: "12px !important",
-          }}
-        >
-          <Typography sx={{ fontSize: "0.82rem", color: theme.mutedText }}>
-            El nuevo admin deberá completar su perfil al iniciar sesión por
-            primera vez.
-          </Typography>
-          <TextField
-            name="name"
-            label="Nombre de usuario"
-            fullWidth
-            value={form.name}
-            onChange={handleChange}
-            error={formErrors.name}
-            sx={inputSx(formErrors.name)}
-          />
-          <TextField
-            name="email"
-            label="Correo electrónico"
-            fullWidth
-            value={form.email}
-            onChange={handleChange}
-            error={formErrors.email}
-            sx={inputSx(formErrors.email)}
-          />
-          <TextField
-            name="password"
-            label="Contraseña inicial"
-            type="password"
-            fullWidth
-            value={form.password}
-            onChange={handleChange}
-            error={formErrors.password}
-            sx={inputSx(formErrors.password)}
-          />
-          {errorMsg && (
-            <Typography
-              sx={{
-                fontSize: "0.82rem",
-                color: "#f44336",
-                textAlign: "center",
-              }}
-            >
-              {errorMsg}
-            </Typography>
-          )}
+        <DialogContent sx={{ display: "flex", flexDirection: "column", gap: 2, pt: "12px !important" }}>
+          <Typography sx={{ fontSize: "0.82rem", color: theme.mutedText }}>El nuevo admin deberá completar su perfil al iniciar sesión por primera vez.</Typography>
+          <TextField name="name" label="Nombre de usuario" fullWidth value={form.name} onChange={handleChange} error={formErrors.name} sx={inputSx(formErrors.name)} />
+          <TextField name="email" label="Correo electrónico" fullWidth value={form.email} onChange={handleChange} error={formErrors.email} sx={inputSx(formErrors.email)} />
+          <TextField name="password" label="Contraseña inicial" type="password" fullWidth value={form.password} onChange={handleChange} error={formErrors.password} sx={inputSx(formErrors.password)} />
+          {errorMsg && <Typography sx={{ fontSize: "0.82rem", color: "#f44336", textAlign: "center" }}>{errorMsg}</Typography>}
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 3, gap: 1 }}>
-          <Button
-            onClick={closeModal}
-            sx={{
-              color: theme.mutedText,
-              textTransform: "none",
-              borderRadius: "8px",
-            }}
-          >
-            Cancelar
-          </Button>
-          <Button
-            onClick={handleCreateAdmin}
-            disabled={isSending}
-            variant="contained"
-            sx={{
-              background: `linear-gradient(135deg, ${accent}, ${theme.variantBack || accent})`,
-              color: isDark ? "#1a1200" : "#fff",
-              textTransform: "none",
-              borderRadius: "8px",
-              fontWeight: 600,
-              px: 3,
-              "&:hover": { opacity: 0.9 },
-            }}
-          >
-            {isSending ? (
-              <CircularProgress size={18} color="inherit" />
-            ) : (
-              "Crear administrador"
-            )}
+          <Button onClick={closeModal} sx={{ color: theme.mutedText, textTransform: "none", borderRadius: "8px" }}>Cancelar</Button>
+          <Button onClick={handleCreateAdmin} disabled={isSending} variant="contained"
+            sx={{ background: `linear-gradient(135deg, ${accent}, ${theme.variantBack || accent})`, color: isDark ? "#1a1200" : "#fff", textTransform: "none", borderRadius: "8px", fontWeight: 600, px: 3, "&:hover": { opacity: 0.9 } }}>
+            {isSending ? <CircularProgress size={18} color="inherit" /> : "Crear administrador"}
           </Button>
         </DialogActions>
       </Dialog>
 
-      <Dialog
-        open={successDialog}
-        onClose={() => setSuccessDialog(false)}
-        PaperProps={{
-          sx: {
-            borderRadius: "20px",
-            background: theme.secondaryBack,
-            minWidth: 340,
-            textAlign: "center",
-            border: `1px solid ${accent}20`,
-          },
-        }}
-      >
+      <Dialog open={successDialog} onClose={() => setSuccessDialog(false)} PaperProps={{ sx: { borderRadius: "20px", background: theme.secondaryBack, minWidth: { xs: "90vw", sm: 340 }, textAlign: "center", border: `1px solid ${accent}20` } }}>
         <DialogContent sx={{ pt: 4, pb: 2 }}>
           <CheckCircleIcon sx={{ fontSize: 52, color: "#2e7d32", mb: 1.5 }} />
-          <Typography
-            sx={{
-              fontWeight: 700,
-              fontSize: "1.1rem",
-              color: theme.primaryText,
-              mb: 0.5,
-            }}
-          >
-            Admin creado correctamente
-          </Typography>
-          <Typography
-            sx={{
-              fontSize: "0.85rem",
-              color: theme.mutedText,
-              lineHeight: 1.6,
-            }}
-          >
-            El nuevo administrador ya puede iniciar sesión y completar su
-            perfil.
-          </Typography>
+          <Typography sx={{ fontWeight: 700, fontSize: "1.1rem", color: theme.primaryText, mb: 0.5 }}>Admin creado correctamente</Typography>
+          <Typography sx={{ fontSize: "0.85rem", color: theme.mutedText, lineHeight: 1.6 }}>El nuevo administrador ya puede iniciar sesión y completar su perfil.</Typography>
         </DialogContent>
         <DialogActions sx={{ justifyContent: "center", pb: 3 }}>
-          <Button
-            onClick={() => setSuccessDialog(false)}
-            variant="contained"
-            sx={{
-              background: `linear-gradient(135deg, ${accent}, ${theme.variantBack || accent})`,
-              color: isDark ? "#1a1200" : "#fff",
-              textTransform: "none",
-              borderRadius: "8px",
-              fontWeight: 600,
-              px: 4,
-            }}
-          >
+          <Button onClick={() => setSuccessDialog(false)} variant="contained"
+            sx={{ background: `linear-gradient(135deg, ${accent}, ${theme.variantBack || accent})`, color: isDark ? "#1a1200" : "#fff", textTransform: "none", borderRadius: "8px", fontWeight: 600, px: 4 }}>
             Entendido
           </Button>
         </DialogActions>
