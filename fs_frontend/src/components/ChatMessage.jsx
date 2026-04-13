@@ -2,9 +2,10 @@ import React from "react";
 import { Box, Avatar, Typography } from "@mui/material";
 import InsertDriveFileIcon from "@mui/icons-material/InsertDriveFile";
 import DownloadIcon from "@mui/icons-material/Download";
+import VideoFileIcon from "@mui/icons-material/VideoFile";
 import { useAppTheme } from "../hooks/useAppTheme";
 
-export default function ChatMessage({ message, isMine, friendAvatarUrl, onContextMenu }) {
+export default function ChatMessage({ message, isMine, friendAvatarUrl, onContextMenu, onReplyClick }) {
   const theme = useAppTheme();
   const accent = theme.accent || theme.primaryBack;
   const isDark = theme.name === "dark";
@@ -55,7 +56,26 @@ export default function ChatMessage({ message, isMine, friendAvatarUrl, onContex
           />
         );
       case "VIDEO":
-        return <Box component="video" src={message.url} controls sx={{ maxWidth: 220, borderRadius: "10px", display: "block" }} />;
+        return (
+          <Box
+            display="flex" alignItems="center" gap={1.5}
+            onClick={() => handleDownload(message.id, message.body)}
+            sx={{ cursor: "pointer", p: 0.5, borderRadius: "8px", transition: "opacity 0.15s", "&:hover": { opacity: 0.75 } }}
+          >
+            <Box sx={{ width: 36, height: 36, borderRadius: "8px", background: isMine ? "rgba(255,255,255,0.2)" : `${accent}25`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+              <VideoFileIcon sx={{ color: isMine ? myBubbleText : accent, fontSize: 20 }} />
+            </Box>
+            <Box sx={{ minWidth: 0 }}>
+              <Typography sx={{ fontSize: "0.82rem", color: isMine ? myBubbleText : textColor, fontWeight: 600, lineHeight: 1.3 }} noWrap>
+                {message.body || "Vídeo"}
+              </Typography>
+              <Box display="flex" alignItems="center" gap={0.5}>
+                <DownloadIcon sx={{ fontSize: 11, color: isMine ? `${myBubbleText}99` : subtleColor }} />
+                <Typography sx={{ fontSize: "0.7rem", color: isMine ? `${myBubbleText}99` : subtleColor }}>Descargar vídeo</Typography>
+              </Box>
+            </Box>
+          </Box>
+        );
       case "AUDIO":
         return <Box component="audio" src={message.url} controls sx={{ width: 200, display: "block" }} />;
       case "FILE":
@@ -95,6 +115,7 @@ export default function ChatMessage({ message, isMine, friendAvatarUrl, onContex
 
   return (
     <Box
+      id={`msg-${message.id}`}
       sx={{ display: "flex", justifyContent: isMine ? "flex-end" : "flex-start", mb: 0.25 }}
     >
       {!isMine && (
@@ -110,7 +131,10 @@ export default function ChatMessage({ message, isMine, friendAvatarUrl, onContex
         }}
       >
         {hasReply && (
-          <Box sx={{ mb: 0.5, px: 1.5, py: 0.75, borderLeft: `3px solid ${accent}`, borderRadius: "8px 8px 0 0", background: `${accent}18` }}>
+          <Box
+            onClick={() => onReplyClick?.(message.parent_message.id)}
+            sx={{ mb: 0.5, px: 1.5, py: 0.75, borderLeft: `3px solid ${accent}`, borderRadius: "8px 8px 0 0", background: `${accent}18`, cursor: "pointer", transition: "opacity 0.15s", "&:hover": { opacity: 0.75 } }}
+          >
             <Typography sx={{ fontSize: "0.72rem", fontWeight: 700, color: accent, mb: 0.25 }}>
               {message.parent_message.author?.name}
             </Typography>

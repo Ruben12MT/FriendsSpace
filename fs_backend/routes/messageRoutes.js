@@ -3,27 +3,28 @@ const router = express.Router();
 const messageController = require("../controllers/messageController");
 const { validarToken } = require("../middlewares/validarToken");
 const { uploadChat } = require("../config/cloudinary");
+const multer = require("multer");
 
-// Obtener historial de mensajes de una conexión (paginado)
-// GET /api/messages/:connectionId?limit=30&beforeId=150
 router.get("/:connectionId", validarToken, messageController.getMessages);
-
-// Enviar mensaje de texto
 router.post("/:connectionId/text", validarToken, messageController.sendTextMessage);
-
 router.get("/:messageId/download", validarToken, messageController.downloadFile);
-// Enviar mensaje con archivo multimedia (imagen, vídeo, audio, archivo)
+
 router.post(
   "/:connectionId/media",
   validarToken,
-  uploadChat.single("file"),
+  (req, res, next) => {
+    uploadChat.single("file")(req, res, (err) => {
+      if (err instanceof multer.MulterError && err.code === "LIMIT_FILE_SIZE") {
+        return res.status(400).json({ ok: false, mensaje: "El archivo es demasiado grande. Máximo 200MB." });
+      }
+      if (err) return res.status(500).json({ ok: false, mensaje: "Error al procesar el archivo." });
+      next();
+    });
+  },
   messageController.sendMediaMessage,
 );
 
-// Borrar mensaje (borrado lógico, solo el autor)
 router.delete("/:messageId", validarToken, messageController.deleteMessage);
-
-// Editar mensaje de texto (solo el autor)
 router.put("/:messageId", validarToken, messageController.editMessage);
 
 module.exports = router;

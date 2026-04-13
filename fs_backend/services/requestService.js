@@ -143,7 +143,7 @@ class RequestService {
 
   async findAdminWithLeastWorkload() {
     const admins = await user.findAll({
-      where: { role: { [Op.in]: ["ADMIN", "DEVELOPER"] }, banned: false },
+      where: { role: "ADMIN", banned: false },
       attributes: ["id", "name"],
     });
 

@@ -939,6 +939,17 @@ export default function ChatsPage() {
                   isMine={messageIsFromMe(message)}
                   friendAvatarUrl={openedConversation.friendUser?.url_image}
                   onContextMenu={openRightClickMenu}
+                  onReplyClick={(parentId) => {
+                    const el = document.getElementById(`msg-${parentId}`);
+                    if (el) {
+                      el.scrollIntoView({ behavior: "smooth", block: "center" });
+                      el.style.transition = "background 0.4s";
+                      el.style.background = `${accentColor}30`;
+                      setTimeout(() => { el.style.background = ""; }, 1000);
+                    }else{
+                      alert("No se pudo encontrar el mensaje al que estás respondiendo. Prueba a cargar más mensajes.");
+                    }
+                  }}
                 />
               ))}
               <Box ref={bottomOfMessagesRef} />

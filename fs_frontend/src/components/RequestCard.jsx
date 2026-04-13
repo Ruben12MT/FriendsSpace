@@ -71,7 +71,9 @@ export default function RequestCard({ request, onAccept, onReject, onDelete }) {
   if (esReporte && request.info_report) {
     try {
       infoReport = JSON.parse(request.info_report);
-    } catch (e) {}
+    } catch (e) {
+      console.error("Error al parsear info_report:", e);
+    }
   }
 
   const irAlChat = () => {
@@ -261,7 +263,7 @@ export default function RequestCard({ request, onAccept, onReject, onDelete }) {
                 variant="body2"
                 sx={{ color: theme.fieldsText, fontSize: "0.8rem" }}
               >
-                Usuario: @{infoReport.user_name}
+                Usuario: @{"ID "+infoReport.user_id + " - " + infoReport.user_name}
               </Typography>
             )}
             {infoReport.type === "AD" && (
@@ -282,7 +284,7 @@ export default function RequestCard({ request, onAccept, onReject, onDelete }) {
                       fontStyle: "italic",
                     }}
                   >
-                    "{infoReport.ad_body}"
+                    "{"ID "+infoReport.ad_id + " - " + infoReport.ad_body}"
                   </Typography>
                 )}
               </>
@@ -292,7 +294,7 @@ export default function RequestCard({ request, onAccept, onReject, onDelete }) {
                 variant="body2"
                 sx={{ color: theme.fieldsText, fontSize: "0.8rem" }}
               >
-                Solicitud de @{infoReport.sender_name}: "
+                Solicitud de @{"ID "+infoReport.request_id + " - " + infoReport.sender_name}: "
                 {infoReport.request_body}"
               </Typography>
             )}

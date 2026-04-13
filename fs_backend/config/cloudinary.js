@@ -2,16 +2,12 @@ const cloudinary = require("cloudinary").v2;
 const { CloudinaryStorage } = require("multer-storage-cloudinary");
 const multer = require("multer");
 
-console.log("CLOUDINARY_CLOUD_NAME:", process.env.CLOUDINARY_CLOUD_NAME);
-console.log("CLOUDINARY_API_KEY:", process.env.CLOUDINARY_API_KEY);
-
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
   api_key: process.env.CLOUDINARY_API_KEY,
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-// Storage para avatares, solo imágenes, recortadas a 300x300
 const avatarStorage = new CloudinaryStorage({
   cloudinary,
   params: {
@@ -21,24 +17,28 @@ const avatarStorage = new CloudinaryStorage({
   },
 });
 
-// Storage para chats, cualquier tipo de archivo
 const chatStorage = new CloudinaryStorage({
   cloudinary,
   params: async (req, file) => {
     const mime = file.mimetype || "";
-    const esImagen = mime.startsWith("image/");
     const esVideo = mime.startsWith("video/");
     const esAudio = mime.startsWith("audio/");
-    const esMultimedia = esImagen || esVideo || esAudio;
+    const esImagen = mime.startsWith("image/");
 
     return {
       folder: "friendsspace/chats",
-      resource_type: esMultimedia ? "auto" : "raw",
+      resource_type: esVideo ? "video" : esAudio ? "video" : esImagen ? "image" : "raw",
+      ...(esVideo && {
+        transformation: [{ quality: "auto:low", fetch_format: "mp4" }],
+      }),
     };
   },
 });
 
 const uploadAvatar = multer({ storage: avatarStorage });
-const uploadChat = multer({ storage: chatStorage });
+const uploadChat = multer({
+  storage: chatStorage,
+  limits: { fileSize: 50 * 1024 * 1024 },
+});
 
 module.exports = { uploadAvatar, uploadChat, cloudinary };
