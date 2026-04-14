@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useContext, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import PersonOffIcon from "@mui/icons-material/PersonOff";
 import {
   Avatar,
   Button,
@@ -45,12 +46,15 @@ export default function UserPage() {
   const accent = theme.accent || theme.primaryBack;
   const isDark = theme.name === "dark";
 
+  const [userNotFound, setUserNotFound] = useState(false);
+
   const [visitedUser, setVisitedUser] = useState({});
   const [userInterests, setUserInterests] = useState([]);
   const [activeConnectionId, setActiveConnectionId] = useState(null);
   const [pendingRequestData, setPendingRequestData] = useState(null);
   const [isButtonLoading, setIsButtonLoading] = useState(false);
   const [isFriend, setIsFriend] = useState(false);
+  const [iBlockedThem, setIBlockedThem] = useState(false);
   const [isBanned, setIsBanned] = useState(false);
   const [isAvatarZoomed, setIsAvatarZoomed] = useState(false);
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
@@ -66,11 +70,30 @@ export default function UserPage() {
   const [reportConnectionId, setReportConnectionId] = useState(null);
 
   const isMoreOptionsOpen = Boolean(moreOptionsAnchor);
-  const visitedUserIsAdminOrDev =
-    visitedUser?.role === "ADMIN" || visitedUser?.role === "DEVELOPER";
-  const currentUserIsAdminOrDev =
-    loggedUser?.role === "ADMIN" || loggedUser?.role === "DEVELOPER";
-  const loggedUserIsNormalUser = loggedUser?.role === "USER";
+
+  const myRole   = loggedUser?.role;
+  const theirRole = visitedUser?.role;
+
+  const visitedUserIsAdminOrDev = theirRole === "ADMIN" || theirRole === "DEVELOPER";
+  const currentUserIsAdminOrDev = myRole === "ADMIN" || myRole === "DEVELOPER";
+  const loggedUserIsNormalUser  = myRole === "USER";
+
+  const iAmUser  = myRole === "USER";
+  const iAmAdmin = myRole === "ADMIN";
+  const iAmDev   = myRole === "DEVELOPER";
+  const theyAreUser  = theirRole === "USER";
+  const theyAreAdmin = theirRole === "ADMIN";
+  const theyAreDev   = theirRole === "DEVELOPER";
+
+  // Acciones permitidas según tabla de reglas
+  const canSendRequest    = (iAmUser && theyAreUser) || (iAmAdmin && theyAreAdmin);
+  const canDeleteFriend   = (iAmUser && theyAreUser) || (iAmAdmin && theyAreAdmin);
+  const canBlock          = (iAmUser && theyAreUser) || (iAmAdmin && theyAreAdmin);
+  const canBlockAndReport = iAmUser && theyAreUser;
+  const canReport         = iAmUser && theyAreUser;
+  const canBan            = (iAmAdmin && theyAreUser) || (iAmDev && (theyAreUser || theyAreAdmin));
+  // DEV visitando ADMIN: conexión permanente, sin botón primario ni menú de amistad
+  const isDevVisitingAdmin = iAmDev && theyAreAdmin;
 
   const [blockReportDialog, setBlockReportDialog] = useState(false);
   const [blockReportMotivo, setBlockReportMotivo] = useState("");
@@ -107,6 +130,7 @@ export default function UserPage() {
         if (friendship.status === "BLOCKED") {
           const blockedByMe = friendship.blocked_by === loggedUser.id;
           setIsFriend(false);
+          setIBlockedThem(blockedByMe);
           setPrimaryButton(
             blockedByMe
               ? { text: "Desbloquear usuario", type: "UNBLOCK" }
@@ -114,6 +138,7 @@ export default function UserPage() {
           );
         } else {
           setIsFriend(true);
+          setIBlockedThem(false);
           setPrimaryButton({ text: "Enviar mensaje", type: "MESSAGE" });
         }
       } else {
@@ -147,6 +172,10 @@ export default function UserPage() {
     const loadUser = async () => {
       try {
         const { data } = await api.get(`/users/${visitedUserId}`);
+        if (!data.usuario && !data.ok) {
+          setUserNotFound(true);
+          return;
+        }
         const user = data.usuario || data;
         setVisitedUser(user);
         setIsBanned(!!user.banned);
@@ -155,7 +184,9 @@ export default function UserPage() {
         );
         setUserInterests(ints.datos || []);
         refreshButtonState();
-      } catch (e) {}
+      } catch (e) {
+        setUserNotFound(true);
+      }
     };
     loadUser();
     if (socket) {
@@ -173,13 +204,26 @@ export default function UserPage() {
       const handleConexionActivada = ({ connectionId }) => {
         refreshButtonState();
       };
+
+      const handleSolicitudRespondida = (payload) => {
+        const data = payload.data || payload;
+        if (
+          String(data.sender_id) === String(loggedUser?.id) ||
+          String(data.receiver_id) === String(loggedUser?.id)
+        ) {
+          refreshButtonState();
+        }
+      };
       socket.on("nueva_solicitud", handleNuevaSolicitud);
       socket.on("conexion_bloqueada", handleConexionBloqueada);
       socket.on("conexion_activada", handleConexionActivada);
+      socket.on("solicitud_respondida", handleSolicitudRespondida);
+
       return () => {
         socket.off("nueva_solicitud", handleNuevaSolicitud);
         socket.off("conexion_bloqueada", handleConexionBloqueada);
         socket.off("conexion_activada", handleConexionActivada);
+        socket.off("solicitud_respondida", handleSolicitudRespondida);
       };
     }
   }, [visitedUserId, socket, refreshButtonState]);
@@ -346,7 +390,59 @@ export default function UserPage() {
       )}
     </Box>
   );
+  if (userNotFound) {
+    return (
+      <Box
+        sx={{
+          maxWidth: 960,
+          mx: "auto",
+          width: "100%",
+          px: { xs: 2, md: 4 },
+          py: { xs: 4, md: 8 },
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          gap: 3,
+          textAlign: "center",
+        }}
+      >
 
+<PersonOffIcon sx={{ fontSize: { xs: 64, md: 96 }, color: theme.mutedText, opacity: 0.4 }} />        <Typography
+          sx={{
+            fontWeight: 800,
+            fontSize: { xs: "1.5rem", md: "2rem" },
+            color: theme.primaryText,
+          }}
+        >
+          Usuario no encontrado
+        </Typography>
+        <Typography
+          sx={{
+            color: theme.mutedText,
+            fontSize: { xs: "0.9rem", md: "1rem" },
+            maxWidth: 400,
+          }}
+        >
+          El perfil que buscas no existe o ha sido eliminado.
+        </Typography>
+        <Button
+          variant="contained"
+          onClick={() => navigate("/app/searchnewfriends")}
+          sx={{
+            background: accent,
+            color: isDark ? "#1a1200" : "#fff",
+            borderRadius: "10px",
+            textTransform: "none",
+            fontWeight: 600,
+            px: 4,
+            "&:hover": { opacity: 0.9 },
+          }}
+        >
+          Buscar usuarios
+        </Button>
+      </Box>
+    );
+  }
   return (
     <Box
       sx={{
@@ -427,59 +523,66 @@ export default function UserPage() {
                     )
                   ) : (
                     <>
+                      {/* Botón primario — solo si canSendRequest o hay estado de conexión relevante */}
                       {!isBanned && (
-                        <Button
-                          variant="contained"
-                          disabled={
-                            isButtonLoading || primaryButton.type === "NONE"
-                          }
-                          onClick={() => {
-                            if (primaryButton.type === "MESSAGE")
-                              navigate("/app/chats", {
-                                state: { openConnectionId: activeConnectionId },
-                              });
-                            else {
-                              setConfirmModalMode(primaryButton.type);
-                              setIsConfirmModalOpen(true);
-                            }
-                          }}
-                          sx={{
-                            background: `linear-gradient(135deg, ${accent}, ${theme.variantBack || accent})`,
-                            color: isDark ? "#1a1200" : "#ffffff",
-                            borderRadius: "10px",
-                            textTransform: "none",
-                            fontWeight: 600,
-                            boxShadow: `0 4px 12px ${accent}40`,
-                            "&:hover": { opacity: 0.9 },
-                            "&.Mui-disabled": {
-                              background: theme.tertiaryBack,
-                              color: theme.mutedText,
-                            },
-                            fontSize: { xs: "0.78rem", md: "0.875rem" },
-                          }}
-                        >
-                          {isButtonLoading ? (
-                            <CircularProgress
-                              size={20}
-                              sx={{ color: "inherit" }}
-                            />
-                          ) : (
-                            primaryButton.text
+                        <>
+                          {/* Enviar mensaje: siempre visible si hay conexión activa */}
+                          {primaryButton.type === "MESSAGE" && (
+                            <Button
+                              variant="contained"
+                              disabled={isButtonLoading}
+                              onClick={() => navigate("/app/chats", { state: { openConnectionId: activeConnectionId } })}
+                              sx={{
+                                background: `linear-gradient(135deg, ${accent}, ${theme.variantBack || accent})`,
+                                color: isDark ? "#1a1200" : "#ffffff",
+                                borderRadius: "10px",
+                                textTransform: "none",
+                                fontWeight: 600,
+                                boxShadow: `0 4px 12px ${accent}40`,
+                                "&:hover": { opacity: 0.9 },
+                                fontSize: { xs: "0.78rem", md: "0.875rem" },
+                              }}
+                            >
+                              {isButtonLoading ? <CircularProgress size={20} sx={{ color: "inherit" }} /> : "Enviar mensaje"}
+                            </Button>
                           )}
-                        </Button>
+                          {/* Resto de acciones: solo si no es DEV visitando ADMIN y el rol lo permite */}
+                          {!isDevVisitingAdmin && primaryButton.type !== "MESSAGE" && (
+                            (primaryButton.type === "UNBLOCK" ||
+                              (primaryButton.type === "NONE" && (canSendRequest || isFriend)) ||
+                              (primaryButton.type === "SEND" && canSendRequest) ||
+                              (primaryButton.type === "ACCEPT" && canSendRequest)) && (
+                              <Button
+                                variant="contained"
+                                disabled={isButtonLoading || primaryButton.type === "NONE"}
+                                onClick={() => {
+                                  setConfirmModalMode(primaryButton.type);
+                                  setIsConfirmModalOpen(true);
+                                }}
+                                sx={{
+                                  background: `linear-gradient(135deg, ${accent}, ${theme.variantBack || accent})`,
+                                  color: isDark ? "#1a1200" : "#ffffff",
+                                  borderRadius: "10px",
+                                  textTransform: "none",
+                                  fontWeight: 600,
+                                  boxShadow: `0 4px 12px ${accent}40`,
+                                  "&:hover": { opacity: 0.9 },
+                                  "&.Mui-disabled": { background: theme.tertiaryBack, color: theme.mutedText },
+                                  fontSize: { xs: "0.78rem", md: "0.875rem" },
+                                }}
+                              >
+                                {isButtonLoading ? <CircularProgress size={20} sx={{ color: "inherit" }} /> : primaryButton.text}
+                              </Button>
+                            )
+                          )}
+                        </>
                       )}
-                      {(isFriend || puedeGestionar()) && (
+                      {/* Menú de tres puntos */}
+                      {(isFriend || iBlockedThem || canBan) && (
                         <>
                           <IconButton
-                            onClick={(e) =>
-                              setMoreOptionsAnchor(e.currentTarget)
-                            }
-                            sx={{
-                              border: `1px solid ${accent}25`,
-                              borderRadius: "8px",
-                              color: theme.mutedText,
-                              "&:hover": { color: accent },
-                            }}
+                            onClick={(e) => setMoreOptionsAnchor(e.currentTarget)}
+                            sx={{ border: `1px solid ${accent}25`, borderRadius: "8px", color: theme.mutedText, "&:hover": { color: accent } }}
                           >
                             <MoreVertIcon />
                           </IconButton>
@@ -487,88 +590,50 @@ export default function UserPage() {
                             anchorEl={moreOptionsAnchor}
                             open={isMoreOptionsOpen}
                             onClose={() => setMoreOptionsAnchor(null)}
-                            PaperProps={{
-                              sx: {
-                                minWidth: 180,
-                                borderRadius: "12px",
-                                background: theme.secondaryBack,
-                                border: `1px solid ${accent}20`,
-                              },
-                            }}
+                            PaperProps={{ sx: { minWidth: 180, borderRadius: "12px", background: theme.secondaryBack, border: `1px solid ${accent}20` } }}
                           >
-                            {isFriend &&
-                              !isBanned &&
-                              !visitedUserIsAdminOrDev && (
-                                <MenuItem
-                                  onClick={() => {
-                                    setConfirmModalMode("DELETE_FRIEND");
-                                    setIsConfirmModalOpen(true);
-                                    setMoreOptionsAnchor(null);
-                                  }}
-                                  sx={{
-                                    color: theme.primaryText,
-                                    "&:hover": { color: accent },
-                                  }}
-                                >
-                                  Eliminar amigo
-                                </MenuItem>
-                              )}
-                            {isFriend &&
-                              !isBanned &&
-                              !visitedUserIsAdminOrDev && (
-                                <MenuItem
-                                  onClick={() => {
-                                    setConfirmModalMode("BLOCK");
-                                    setIsConfirmModalOpen(true);
-                                    setMoreOptionsAnchor(null);
-                                  }}
-                                  sx={{
-                                    color: theme.primaryText,
-                                    "&:hover": { color: accent },
-                                  }}
-                                >
-                                  Bloquear
-                                </MenuItem>
-                              )}
-                            {isFriend &&
-                              !isBanned &&
-                              !visitedUserIsAdminOrDev &&
-                              !currentUserIsAdminOrDev && (
-                                <MenuItem
-                                  onClick={() => {
-                                    setMoreOptionsAnchor(null);
-                                    setBlockReportDialog(true);
-                                  }}
-                                  sx={{ color: "#f44336" }}
-                                >
-                                  Bloquear y reportar
-                                </MenuItem>
-                              )}
-                            {puedeGestionar() && (
+                            {/* Eliminar amigo: visible si son amigos O si yo le bloqueé */}
+                            {(isFriend || iBlockedThem) && !isBanned && canDeleteFriend && (
                               <MenuItem
-                                onClick={() => {
-                                  setConfirmModalMode(
-                                    isBanned ? "UNBAN" : "BAN",
-                                  );
-                                  setIsConfirmModalOpen(true);
-                                  setMoreOptionsAnchor(null);
-                                }}
+                                onClick={() => { setConfirmModalMode("DELETE_FRIEND"); setIsConfirmModalOpen(true); setMoreOptionsAnchor(null); }}
+                                sx={{ color: theme.primaryText, "&:hover": { color: accent } }}
+                              >
+                                Eliminar amigo
+                              </MenuItem>
+                            )}
+                            {/* Bloquear: solo si son amigos (sin bloqueo activo) */}
+                            {isFriend && !isBanned && canBlock && (
+                              <MenuItem
+                                onClick={() => { setConfirmModalMode("BLOCK"); setIsConfirmModalOpen(true); setMoreOptionsAnchor(null); }}
+                                sx={{ color: theme.primaryText, "&:hover": { color: accent } }}
+                              >
+                                Bloquear
+                              </MenuItem>
+                            )}
+                            {/* Bloquear y reportar: solo si son amigos (sin bloqueo activo) */}
+                            {isFriend && !isBanned && canBlockAndReport && (
+                              <MenuItem
+                                onClick={() => { setMoreOptionsAnchor(null); setBlockReportDialog(true); }}
+                                sx={{ color: "#f44336" }}
+                              >
+                                Bloquear y reportar
+                              </MenuItem>
+                            )}
+                            {/* Reportar: si yo bloqueé (conexión bloqueada por mí) y canReport */}
+                            {iBlockedThem && !isBanned && canReport && (
+                              <MenuItem
+                                onClick={() => { setMoreOptionsAnchor(null); setBlockReportDialog(true); }}
+                                sx={{ color: "#f44336" }}
+                              >
+                                Reportar
+                              </MenuItem>
+                            )}
+                            {canBan && (
+                              <MenuItem
+                                onClick={() => { setConfirmModalMode(isBanned ? "UNBAN" : "BAN"); setIsConfirmModalOpen(true); setMoreOptionsAnchor(null); }}
                                 sx={{ color: isBanned ? "#4caf50" : "#f44336" }}
                               >
-                                {isBanned ? (
-                                  <>
-                                    <LockOpenIcon
-                                      sx={{ fontSize: 15, mr: 1 }}
-                                    />
-                                    Desbanear
-                                  </>
-                                ) : (
-                                  <>
-                                    <BlockIcon sx={{ fontSize: 15, mr: 1 }} />
-                                    Banear
-                                  </>
-                                )}{" "}
-                                usuario
+                                {isBanned ? <><LockOpenIcon sx={{ fontSize: 15, mr: 1 }} />Desbanear</> : <><BlockIcon sx={{ fontSize: 15, mr: 1 }} />Banear</>}{" "}usuario
                               </MenuItem>
                             )}
                           </Menu>
@@ -751,8 +816,19 @@ export default function UserPage() {
         open={isConfirmModalOpen}
         handleClose={() => setIsConfirmModalOpen(false)}
         onConfirm={handleAction}
+        onCancel={async () => {
+          if (confirmModalMode === "ACCEPT") {
+            try {
+              await api.put(`/requests/${pendingRequestData.id}/reject`);
+              await refreshButtonState();
+            } catch (e) {
+              console.error(e);
+            }
+          }
+        }}
         title={getModalContent().title}
         message={getModalContent().msg}
+        cancelLabel={confirmModalMode === "ACCEPT" ? "Rechazar" : "Cancelar"}
       />
 
       <Dialog

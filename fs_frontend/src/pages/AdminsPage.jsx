@@ -66,7 +66,6 @@ export default function AdminsPage() {
         }
       } catch (err) {
         console.error(err);
-
       } finally {
         setIsLoading(false);
         setIsLoadingMore(false);
@@ -100,6 +99,11 @@ export default function AdminsPage() {
     setForm({ ...form, [e.target.name]: e.target.value });
     setFormErrors({ ...formErrors, [e.target.name]: false });
     setErrorMsg("");
+  };
+
+  const handleReset = () => {
+    setQuery("");
+    fetchAdmins(1, true);
   };
 
   const handleCreateAdmin = async () => {
@@ -227,7 +231,7 @@ export default function AdminsPage() {
           placeholder="Buscar administrador..."
           searchValue={query}
           onSearchChange={setQuery}
-          onReset={() => setQuery("")}
+          onReset={handleReset}
           showAdd={false}
           variant="searchAdmins"
         />
@@ -365,6 +369,7 @@ export default function AdminsPage() {
             name="name"
             label="Nombre de usuario"
             fullWidth
+            autoComplete="off"
             value={form.name}
             onChange={handleChange}
             error={formErrors.name}
@@ -374,6 +379,7 @@ export default function AdminsPage() {
             name="email"
             label="Correo electrónico"
             fullWidth
+            autoComplete="off"
             value={form.email}
             onChange={handleChange}
             error={formErrors.email}
@@ -384,6 +390,7 @@ export default function AdminsPage() {
             label="Contraseña inicial"
             type="password"
             fullWidth
+            autoComplete="new-password"
             value={form.password}
             onChange={handleChange}
             error={formErrors.password}

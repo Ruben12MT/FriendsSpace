@@ -27,14 +27,25 @@ const validarToken = async (req, res, next) => {
 
     // Si el token_version no coincide la contraseña fue cambiada en otro dispositivo
     if (decoded.token_version !== usuarioActual.token_version) {
-      return res.status(401).json({ ok: false, mensaje: "Sesión expirada, vuelve a iniciar sesión" });
+      return res
+        .status(401)
+        .json({
+          ok: false,
+          mensaje: "Sesión expirada, vuelve a iniciar sesión",
+        });
     }
 
-    req.user = decoded;
+    req.user = {
+      id: usuarioActual.id,
+      role: usuarioActual.role,
+      token_version: usuarioActual.token_version,
+    };
     next();
   } catch (error) {
     logger.error("EL TOKEN ES INVALIDO");
-    return res.status(401).json({ ok: false, mensaje: "Token inválido", detalles: error.message });
+    return res
+      .status(401)
+      .json({ ok: false, mensaje: "Token inválido", detalles: error.message });
   }
 };
 

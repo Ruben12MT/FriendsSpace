@@ -9,7 +9,11 @@ class RequestService {
     return await request.findByPk(nuevaReq.id, {
       include: [
         { model: user, as: "sender", attributes: ["id", "name", "url_image"] },
-        { model: user, as: "receiver", attributes: ["id", "name", "url_image"] },
+        {
+          model: user,
+          as: "receiver",
+          attributes: ["id", "name", "url_image"],
+        },
       ],
     });
   }
@@ -22,7 +26,11 @@ class RequestService {
     return await request.findByPk(id, {
       include: [
         { model: user, as: "sender", attributes: ["id", "name", "url_image"] },
-        { model: user, as: "receiver", attributes: ["id", "name", "url_image"] },
+        {
+          model: user,
+          as: "receiver",
+          attributes: ["id", "name", "url_image"],
+        },
       ],
     });
   }
@@ -37,13 +45,25 @@ class RequestService {
       },
     });
 
-    const activeFriendship = await connection.findOne({
-      include: [
-        { model: user_connection, as: "user_connections", where: { user_id: userId1 } },
-        { model: user_connection, as: "user_connections", where: { user_id: userId2 } },
-      ],
-      where: { status: "ACTIVE" },
+    const conexionesUser1 = await user_connection.findAll({
+      where: { user_id: userId1 },
+      attributes: ["connection_id"],
     });
+
+    const ids1 = conexionesUser1.map((uc) => uc.connection_id);
+
+    let activeFriendship = null;
+    if (ids1.length > 0) {
+      const coincidencia = await user_connection.findOne({
+        where: { user_id: userId2, connection_id: { [Op.in]: ids1 } },
+        attributes: ["connection_id"],
+      });
+      if (coincidencia) {
+        activeFriendship = await connection.findOne({
+          where: { id: coincidencia.connection_id, status: "ACTIVE" },
+        });
+      }
+    }
 
     return { pending, activeFriendship };
   }
@@ -51,9 +71,18 @@ class RequestService {
   async acceptRequest(requestId, receiverId, senderId, isReport = false) {
     const t = await sequelize.transaction();
     try {
-      const newConn = await connection.create({ status: "ACTIVE" }, { transaction: t });
-      await user_connection.create({ user_id: senderId, connection_id: newConn.id }, { transaction: t });
-      await user_connection.create({ user_id: receiverId, connection_id: newConn.id }, { transaction: t });
+      const newConn = await connection.create(
+        { status: "ACTIVE" },
+        { transaction: t },
+      );
+      await user_connection.create(
+        { user_id: senderId, connection_id: newConn.id },
+        { transaction: t },
+      );
+      await user_connection.create(
+        { user_id: receiverId, connection_id: newConn.id },
+        { transaction: t },
+      );
 
       await request.update(
         {
@@ -84,7 +113,11 @@ class RequestService {
     return await request.count({
       where: {
         [Op.or]: [
-          { receiver_id: userId, visible_receiver: true, is_read_receiver: false },
+          {
+            receiver_id: userId,
+            visible_receiver: true,
+            is_read_receiver: false,
+          },
           { sender_id: userId, visible_sender: true, is_read_sender: false },
         ],
       },
@@ -94,11 +127,23 @@ class RequestService {
   async markAllAsRead(userId) {
     await request.update(
       { is_read_receiver: true },
-      { where: { receiver_id: userId, visible_receiver: true, is_read_receiver: false } },
+      {
+        where: {
+          receiver_id: userId,
+          visible_receiver: true,
+          is_read_receiver: false,
+        },
+      },
     );
     await request.update(
       { is_read_sender: true },
-      { where: { sender_id: userId, visible_sender: true, is_read_sender: false } },
+      {
+        where: {
+          sender_id: userId,
+          visible_sender: true,
+          is_read_sender: false,
+        },
+      },
     );
   }
 
@@ -112,7 +157,11 @@ class RequestService {
       },
       include: [
         { model: user, as: "sender", attributes: ["id", "name", "url_image"] },
-        { model: user, as: "receiver", attributes: ["id", "name", "url_image"] },
+        {
+          model: user,
+          as: "receiver",
+          attributes: ["id", "name", "url_image"],
+        },
       ],
       order: [["updated_at", "DESC"]],
     });
@@ -135,7 +184,11 @@ class RequestService {
       where: {
         [Op.or]: [
           { sender_id: userId, is_read_sender: false, visible_sender: true },
-          { receiver_id: userId, is_read_receiver: false, visible_receiver: true },
+          {
+            receiver_id: userId,
+            is_read_receiver: false,
+            visible_receiver: true,
+          },
         ],
       },
     });
@@ -147,26 +200,56 @@ class RequestService {
       attributes: ["id", "name"],
     });
 
-    if (admins.length === 0) throw new Error("No hay administradores disponibles");
+    if (admins.length === 0)
+      throw new Error("No hay administradores disponibles");
 
     let adminConMenosCarga = null;
     let menorCarga = Infinity;
 
     for (const admin of admins) {
+      // Reportes pendientes asignados a este admin
       const reportesPendientes = await request.count({
         where: { receiver_id: admin.id, is_report: true, status: "PENDING" },
       });
 
-      const conexionesActivas = await connection.count({
-        where: { status: "ACTIVE" },
-        include: [
-          { model: user_connection, as: "user_connections", where: { user_id: admin.id }, required: true },
-          {
-            model: user_connection, as: "user_connections", required: true,
-            include: [{ model: user, as: "user", where: { role: "USER" }, required: true }],
-          },
-        ],
+      // Conexiones activas con usuarios de role USER
+      // Primero obtenemos los connection_ids del admin
+      const ucsAdmin = await user_connection.findAll({
+        where: { user_id: admin.id },
+        attributes: ["connection_id"],
       });
+      const connIds = ucsAdmin.map((uc) => uc.connection_id);
+
+      let conexionesActivas = 0;
+      if (connIds.length > 0) {
+        // Contamos cuántas de esas conexiones están ACTIVE y tienen un USER al otro lado
+        const ucsUser = await user_connection.findAll({
+          where: {
+            connection_id: { [Op.in]: connIds },
+            user_id: { [Op.ne]: admin.id },
+          },
+          include: [
+            {
+              model: user,
+              as: "user",
+              where: { role: "USER" },
+              required: true,
+              attributes: [],
+            },
+          ],
+          attributes: ["connection_id"],
+        });
+
+        const connIdsConUser = ucsUser.map((uc) => uc.connection_id);
+        if (connIdsConUser.length > 0) {
+          conexionesActivas = await connection.count({
+            where: {
+              id: { [Op.in]: connIdsConUser },
+              status: "ACTIVE",
+            },
+          });
+        }
+      }
 
       const cargaTotal = reportesPendientes + conexionesActivas;
       if (cargaTotal < menorCarga) {
@@ -199,7 +282,11 @@ class RequestService {
     return await request.findByPk(nuevoReporte.id, {
       include: [
         { model: user, as: "sender", attributes: ["id", "name", "url_image"] },
-        { model: user, as: "receiver", attributes: ["id", "name", "url_image"] },
+        {
+          model: user,
+          as: "receiver",
+          attributes: ["id", "name", "url_image"],
+        },
       ],
     });
   }

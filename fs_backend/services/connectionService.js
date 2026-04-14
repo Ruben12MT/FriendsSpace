@@ -44,6 +44,14 @@ class ConnectionService {
     });
   }
 
+  async getConnectionUsers(connectionId) {
+    const userConns = await models.user_connection.findAll({
+      where: { connection_id: connectionId },
+      include: [{ model: models.user, as: "user", attributes: ["id", "role"] }],
+    });
+    return userConns.map((uc) => ({ id: uc.user_id, role: uc.user?.role }));
+  }
+
   async finishConnection(id) {
     return await models.connection.update(
       { status: "FINISHED" },
@@ -69,7 +77,6 @@ class ConnectionService {
       throw error;
     }
   }
-
   async activateConnection(connectionId) {
     const transaction = await sequelize.transaction();
     try {
@@ -99,7 +106,10 @@ class ConnectionService {
     if (idsDeConexiones.length === 0) return null;
 
     const conexionesDelPerfil = await models.user_connection.findAll({
-      where: { user_id: profileId, connection_id: { [Op.in]: idsDeConexiones } },
+      where: {
+        user_id: profileId,
+        connection_id: { [Op.in]: idsDeConexiones },
+      },
       attributes: ["connection_id"],
     });
 

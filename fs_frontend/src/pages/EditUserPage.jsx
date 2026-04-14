@@ -194,7 +194,6 @@ export default function EditUserPage() {
 
   return (
     <>
-      {/* Cabecera */}
       <Box sx={{ maxWidth: 960, mx: "auto", width: "100%", px: { xs: 2, md: 4, lg: 6 }, pt: 4, pb: 1 }}>
         <Typography sx={{ fontWeight: 800, fontSize: { xs: "1.4rem", md: "1.8rem" }, color: theme.primaryText }}>
           {loggedUser.first_login === 1 ? "Bienvenido a FriendsSpace" : "Editar perfil"}
@@ -206,10 +205,8 @@ export default function EditUserPage() {
         </Typography>
       </Box>
 
-      {/* Contenido */}
       <Box sx={{ maxWidth: 960, mx: "auto", width: "100%", px: { xs: 2, md: 4, lg: 6 }, pb: 4 }}>
 
-        {/* Tarjeta avatar y nombre */}
         <Box sx={{ borderRadius: "20px", overflow: "hidden", background: theme.secondaryBack, border: `1px solid ${accent}20`, boxShadow: isDark ? "0 4px 24px rgba(0,0,0,0.3)" : `0 4px 24px ${accent}10`, mb: 2 }}>
           <Box sx={{ height: { xs: 80, md: 100 }, background: isDark ? `linear-gradient(135deg, ${accent}25, ${accent}08)` : `linear-gradient(135deg, ${accent}20, ${accent}06)` }} />
           <Box sx={{ px: 3, pb: 3 }}>
@@ -274,7 +271,6 @@ export default function EditUserPage() {
           </Box>
         </Box>
 
-        {/* Descripcion */}
         <Box sx={sectionSx}>
           <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1 }}>
             <Typography component="span" sx={labelSx}>Descripción</Typography>
@@ -283,7 +279,6 @@ export default function EditUserPage() {
           <TextField name="bio" fullWidth multiline rows={3} placeholder="Cuéntanos algo sobre ti..." value={editedUser.bio || ""} onChange={handleChange} sx={inputStyle} />
         </Box>
 
-        {/* Frase publica */}
         <Box sx={sectionSx}>
           <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1 }}>
             <Typography component="span" sx={labelSx}>Frase pública</Typography>
@@ -292,7 +287,6 @@ export default function EditUserPage() {
           <TextField name="short_sentece" fullWidth placeholder="Una frase..." value={editedUser.short_sentece || ""} onChange={handleChange} sx={inputStyle} />
         </Box>
 
-        {/* Objetivos */}
         <Box sx={sectionSx}>
           <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1 }}>
             <Typography component="span" sx={labelSx}>Objetivos personales</Typography>
@@ -301,7 +295,6 @@ export default function EditUserPage() {
           <TextField name="goals" fullWidth multiline rows={3} placeholder="Objetivos..." value={editedUser.goals || ""} onChange={handleChange} sx={inputStyle} />
         </Box>
 
-        {/* Intereses */}
         <Box sx={{ ...sectionSx, mb: 3 }}>
           <Typography component="span" sx={labelSx}>Intereses</Typography>
           <Autocomplete
@@ -327,7 +320,6 @@ export default function EditUserPage() {
           )}
         </Box>
 
-        {/* Botones */}
         <Box sx={{ display: "flex", flexDirection: { xs: "column-reverse", sm: "row" }, justifyContent: loggedUser.first_login === 1 ? "flex-end" : "space-between", gap: 2 }}>
           {loggedUser.first_login !== 1 && (
             <Button variant="outlined" onClick={() => navigate("/app/" + loggedUser.id)}

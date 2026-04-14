@@ -1,5 +1,6 @@
 const requestService = require("../services/requestService");
 const logger = require("../utils/logger");
+const userService = require("../services/userService");
 
 class RequestController {
   async createRequest(req, res) {
@@ -7,15 +8,44 @@ class RequestController {
       const { receiver_id, body, is_report, info_report } = req.body;
       const sender_id = req.user.id;
 
-      const { pending, activeFriendship } = await requestService.findExistingRelationship(sender_id, receiver_id);
+      const { pending, activeFriendship } =
+        await requestService.findExistingRelationship(sender_id, receiver_id);
 
-      if (pending) return res.status(400).json({ ok: false, mensaje: "Ya hay una solicitud pendiente" });
-      if (activeFriendship) return res.status(400).json({ ok: false, mensaje: "Ya sois amigos" });
+      if (pending)
+        return res
+          .status(400)
+          .json({ ok: false, mensaje: "Ya hay una solicitud pendiente" });
+      if (activeFriendship)
+        return res.status(400).json({ ok: false, mensaje: "Ya sois amigos" });
+      const receiver = await userService.getUserById(receiver_id);
+      if (!receiver)
+        return res
+          .status(404)
+          .json({ ok: false, mensaje: "Usuario no encontrado" });
+
+      if (req.user.role === "USER" && receiver.role !== "USER")
+        return res.status(403).json({
+          ok: false,
+          mensaje: "No puedes enviar solicitudes a este usuario",
+        });
+
+      if (req.user.role === "ADMIN" && receiver.role !== "ADMIN")
+        return res.status(403).json({
+          ok: false,
+          mensaje: "No puedes enviar solicitudes a este usuario",
+        });
 
       const newRequest = await requestService.createRequest({
-        sender_id, receiver_id, body, is_report, info_report,
-        status: "PENDING", is_read_sender: true, is_read_receiver: false,
-        visible_sender: false, visible_receiver: true,
+        sender_id,
+        receiver_id,
+        body,
+        is_report,
+        info_report,
+        status: "PENDING",
+        is_read_sender: true,
+        is_read_receiver: false,
+        visible_sender: false,
+        visible_receiver: true,
       });
 
       const io = req.app.get("socketio");
@@ -29,7 +59,9 @@ class RequestController {
       res.status(201).json({ ok: true, datos: newRequest });
     } catch (err) {
       logger.error("Error en createRequest: " + err.message);
-      res.status(500).json({ ok: false, mensaje: "Error al enviar la solicitud" });
+      res
+        .status(500)
+        .json({ ok: false, mensaje: "Error al enviar la solicitud" });
     }
   }
 
@@ -38,13 +70,43 @@ class RequestController {
       const sender_id = req.user.id;
       const { body, infoReport } = req.body;
 
-      if (!body || !body.trim()) return res.status(400).json({ ok: false, mensaje: "El motivo del reporte no puede estar vacío" });
-      if (!infoReport || !infoReport.type) return res.status(400).json({ ok: false, mensaje: "Debes indicar qué estás reportando" });
-      if (infoReport.type === "USER" && String(infoReport.user_id) === String(sender_id)) {
-        return res.status(400).json({ ok: false, mensaje: "No puedes reportarte a ti mismo" });
+      if (!body || !body.trim())
+        return res.status(400).json({
+          ok: false,
+          mensaje: "El motivo del reporte no puede estar vacío",
+        });
+      if (!infoReport || !infoReport.type)
+        return res
+          .status(400)
+          .json({ ok: false, mensaje: "Debes indicar qué estás reportando" });
+      if (
+        infoReport.type === "USER" &&
+        String(infoReport.user_id) === String(sender_id)
+      ) {
+        return res
+          .status(400)
+          .json({ ok: false, mensaje: "No puedes reportarte a ti mismo" });
       }
 
-      const nuevoReporte = await requestService.createReport(sender_id, body.trim(), infoReport);
+      if (infoReport.type === "USER") {
+        const reportedUser = await userService.getUserById(infoReport.user_id);
+        if (
+          reportedUser &&
+          (reportedUser.role === "ADMIN" || reportedUser.role === "DEVELOPER")
+        )
+          return res
+            .status(403)
+            .json({
+              ok: false,
+              mensaje: "No puedes reportar a un administrador",
+            });
+      }
+
+      const nuevoReporte = await requestService.createReport(
+        sender_id,
+        body.trim(),
+        infoReport,
+      );
 
       const io = req.app.get("socketio");
       if (io) {
@@ -57,7 +119,10 @@ class RequestController {
       res.status(201).json({ ok: true, datos: nuevoReporte });
     } catch (err) {
       logger.error("Error en createReport: " + err.message);
-      const mensaje = err.message === "No hay administradores disponibles" ? err.message : "Error al enviar el reporte";
+      const mensaje =
+        err.message === "No hay administradores disponibles"
+          ? err.message
+          : "Error al enviar el reporte";
       res.status(500).json({ ok: false, mensaje });
     }
   }
@@ -68,11 +133,25 @@ class RequestController {
       const userId = req.user.id;
 
       const reqFound = await requestService.getRequestById(id);
-      if (!reqFound) return res.status(404).json({ ok: false, mensaje: "Solicitud no encontrada" });
-      if (reqFound.receiver_id !== userId) return res.status(403).json({ ok: false, mensaje: "No tienes permiso" });
-      if (reqFound.status !== "PENDING") return res.status(400).json({ ok: false, mensaje: "La solicitud ya no está pendiente" });
+      if (!reqFound)
+        return res
+          .status(404)
+          .json({ ok: false, mensaje: "Solicitud no encontrada" });
+      if (reqFound.receiver_id !== userId)
+        return res
+          .status(403)
+          .json({ ok: false, mensaje: "No tienes permiso" });
+      if (reqFound.status !== "PENDING")
+        return res
+          .status(400)
+          .json({ ok: false, mensaje: "La solicitud ya no está pendiente" });
 
-      const connectionId = await requestService.acceptRequest(id, userId, reqFound.sender_id, reqFound.is_report);
+      const connectionId = await requestService.acceptRequest(
+        id,
+        userId,
+        reqFound.sender_id,
+        reqFound.is_report,
+      );
       const reqActualizada = await requestService.getRequestByIdWithUsers(id);
 
       const io = req.app.get("socketio");
@@ -94,7 +173,9 @@ class RequestController {
         }
       }
 
-      res.status(200).json({ ok: true, mensaje: "Solicitud aceptada", connectionId });
+      res
+        .status(200)
+        .json({ ok: true, mensaje: "Solicitud aceptada", connectionId });
     } catch (err) {
       logger.error("Error en accept: " + err.message);
       res.status(500).json({ ok: false, mensaje: "Error al aceptar" });
@@ -107,7 +188,8 @@ class RequestController {
       const userId = req.user.id;
 
       const reqFound = await requestService.getRequestById(id);
-      if (!reqFound || reqFound.receiver_id !== userId) return res.status(403).json({ ok: false, mensaje: "No autorizado" });
+      if (!reqFound || reqFound.receiver_id !== userId)
+        return res.status(403).json({ ok: false, mensaje: "No autorizado" });
 
       await requestService.updateRequest(id, {
         status: "REJECTED",
@@ -143,13 +225,22 @@ class RequestController {
       const userId = req.user.id;
 
       const reqFound = await requestService.getRequestById(id);
-      if (!reqFound || (reqFound.sender_id !== userId && reqFound.receiver_id !== userId)) {
+      if (
+        !reqFound ||
+        (reqFound.sender_id !== userId && reqFound.receiver_id !== userId)
+      ) {
         return res.status(403).json({ ok: false, mensaje: "No autorizado" });
       }
 
       const updateData = { updated_at: new Date() };
-      if (reqFound.sender_id === userId) { updateData.visible_sender = false; updateData.is_read_sender = true; }
-      if (reqFound.receiver_id === userId) { updateData.visible_receiver = false; updateData.is_read_receiver = true; }
+      if (reqFound.sender_id === userId) {
+        updateData.visible_sender = false;
+        updateData.is_read_sender = true;
+      }
+      if (reqFound.receiver_id === userId) {
+        updateData.visible_receiver = false;
+        updateData.is_read_receiver = true;
+      }
 
       await requestService.updateRequest(id, updateData);
       res.status(200).json({ ok: true, mensaje: "Notificacion ocultada" });
@@ -165,7 +256,9 @@ class RequestController {
       res.status(200).json({ ok: true, datos: count });
     } catch (err) {
       logger.error("Error en getUnreadCount: " + err.message);
-      res.status(500).json({ ok: false, mensaje: "Error al contar notificaciones" });
+      res
+        .status(500)
+        .json({ ok: false, mensaje: "Error al contar notificaciones" });
     }
   }
 
@@ -181,7 +274,9 @@ class RequestController {
 
   async getMyNotifications(req, res) {
     try {
-      const notifications = await requestService.getAllVisibleRequests(req.user.id);
+      const notifications = await requestService.getAllVisibleRequests(
+        req.user.id,
+      );
       res.status(200).json({ ok: true, datos: notifications });
     } catch (err) {
       logger.error("Error en getMyNotifications: " + err.message);
@@ -194,10 +289,15 @@ class RequestController {
       const myId = req.user.id;
       const { receiverId } = req.params;
 
-      const pending = await requestService.getPendingRequestBetweenUsers(myId, receiverId);
+      const pending = await requestService.getPendingRequestBetweenUsers(
+        myId,
+        receiverId,
+      );
       if (pending) {
         const type = pending.sender_id === myId ? "SENT" : "RECEIVED";
-        return res.status(200).json({ ok: true, exists: true, type, data: pending });
+        return res
+          .status(200)
+          .json({ ok: true, exists: true, type, data: pending });
       }
 
       res.status(200).json({ ok: true, exists: false });
@@ -214,7 +314,9 @@ class RequestController {
       return res.status(200).json({ ok: true, numRequests: requests.length });
     } catch (err) {
       logger.error("Error en getRequestsWithoutRead: " + err.message);
-      res.status(500).json({ ok: false, mensaje: "Error en getRequestsWithoutRead" });
+      res
+        .status(500)
+        .json({ ok: false, mensaje: "Error en getRequestsWithoutRead" });
     }
   }
 }

@@ -4,10 +4,12 @@ import BlockIcon from "@mui/icons-material/Block";
 import { useNavigate } from "react-router-dom";
 import useAuthStore from "../store/useAuthStore";
 import api from "../utils/api";
+import { useAppTheme } from "../hooks/useAppTheme";
 
 export default function BannedPage() {
   const { clearAuth } = useAuthStore();
   const navigate = useNavigate();
+  const theme = useAppTheme();
 
   const handleLogout = async () => {
     try {
@@ -21,6 +23,7 @@ export default function BannedPage() {
     <Box
       sx={{
         minHeight: "100vh",
+        background: theme.primaryBack,
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
@@ -40,6 +43,7 @@ export default function BannedPage() {
         sx={{
           maxWidth: 480,
           fontSize: "1rem",
+          color: theme.primaryText,
           opacity: 0.8,
           lineHeight: 1.7,
         }}

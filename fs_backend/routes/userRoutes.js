@@ -3,6 +3,8 @@ const router = express.Router();
 const userController = require("../controllers/userController");
 const { validarToken } = require("../middlewares/validarToken");
 const { uploadAvatar } = require("../config/cloudinary");
+const { verificarRol } = require("../middlewares/verificarRol");
+
 
 router.post("/login", userController.login);
 router.post("/register", userController.createUser);
@@ -10,8 +12,8 @@ router.post("/logout", userController.logout);
 router.get("/check-auth", validarToken, userController.checkAuth);
 
 router.get("/", userController.getAllUsers);
-router.get("/admins", validarToken, userController.getAllAdmins);
-router.post("/create-admin", validarToken, userController.createAdmin);
+router.get("/admins", validarToken, verificarRol("DEVELOPER", "ADMIN"), userController.getAllAdmins);
+router.post("/create-admin", validarToken, verificarRol("DEVELOPER"), userController.createAdmin);
 router.get("/search/:emailorusername", userController.getUserByEmailOrUsername);
 router.get("/:id", userController.getUserById);
 

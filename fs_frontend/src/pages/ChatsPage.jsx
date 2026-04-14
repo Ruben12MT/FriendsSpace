@@ -95,6 +95,9 @@ export default function ChatsPage() {
   const [chatBlockReportDialog, setChatBlockReportDialog] = useState(false);
   const [chatReportMotivo, setChatReportMotivo] = useState("");
   const [chatReportSending, setChatReportSending] = useState(false);
+  const [chatOnlyReportDialog, setChatOnlyReportDialog] = useState(false);
+  const [chatOnlyReportMotivo, setChatOnlyReportMotivo] = useState("");
+  const [chatOnlyReportSending, setChatOnlyReportSending] = useState(false);
 
   const bottomOfMessagesRef = useRef(null);
   const topSentinelRef = useRef(null);
@@ -202,7 +205,8 @@ export default function ChatsPage() {
           }
         }
       } catch (error) {
-        console.error(error);}
+        console.error(error);
+      }
     }
     if (loggedUser) loadConversationList();
   }, [loggedUser]);
@@ -249,7 +253,8 @@ export default function ChatsPage() {
         );
       }
     } catch (error) {
-      console.error(error);}
+      console.error(error);
+    }
   }, []);
 
   const selectConversation = (conversation) => {
@@ -292,7 +297,6 @@ export default function ChatsPage() {
       setMessageList([]);
     } catch (error) {
       console.error(error);
-
     } finally {
       setFinishInvestigationDialog(false);
     }
@@ -404,13 +408,23 @@ export default function ChatsPage() {
       setConversationList((prev) =>
         prev.map((c) =>
           c.connectionId === connectionId
-            ? { ...c, connectionStatus: "BLOCKED", isBlocked: true, iBlockedThem }
+            ? {
+                ...c,
+                connectionStatus: "BLOCKED",
+                isBlocked: true,
+                iBlockedThem,
+              }
             : c,
         ),
       );
       setOpenedConversation((prev) =>
         prev?.connectionId === connectionId
-          ? { ...prev, connectionStatus: "BLOCKED", isBlocked: true, iBlockedThem }
+          ? {
+              ...prev,
+              connectionStatus: "BLOCKED",
+              isBlocked: true,
+              iBlockedThem,
+            }
           : prev,
       );
     };
@@ -418,13 +432,23 @@ export default function ChatsPage() {
       setConversationList((prev) =>
         prev.map((c) =>
           c.connectionId === connectionId
-            ? { ...c, connectionStatus: "ACTIVE", isBlocked: false, iBlockedThem: false }
+            ? {
+                ...c,
+                connectionStatus: "ACTIVE",
+                isBlocked: false,
+                iBlockedThem: false,
+              }
             : c,
         ),
       );
       setOpenedConversation((prev) =>
         prev?.connectionId === connectionId
-          ? { ...prev, connectionStatus: "ACTIVE", isBlocked: false, iBlockedThem: false }
+          ? {
+              ...prev,
+              connectionStatus: "ACTIVE",
+              isBlocked: false,
+              iBlockedThem: false,
+            }
           : prev,
       );
     };
@@ -481,7 +505,6 @@ export default function ChatsPage() {
         setMessageInputText("");
       } catch (error) {
         console.error(error);
-
       } finally {
         setIsSendingMessage(false);
       }
@@ -497,7 +520,6 @@ export default function ChatsPage() {
       setReplyTargetMessage(null);
     } catch (error) {
       console.error(error);
-
     } finally {
       setIsSendingMessage(false);
     }
@@ -558,24 +580,53 @@ export default function ChatsPage() {
 
   const handleChatBlockAndReport = async () => {
     if (!chatReportMotivo.trim()) return;
+    const connectionId = openedConversation.connectionId;
+    const friendUserId = openedConversation.friendUser?.id;
+    const friendUserName = openedConversation.friendUser?.name;
+    const motivo = chatReportMotivo.trim();
+
     setChatReportSending(true);
     try {
-      await api.put(`/connections/${openedConversation.connectionId}/block`);
+      await api.put(`/connections/${connectionId}/block`);
       await api.post("/requests/report", {
-        body: chatReportMotivo.trim(),
+        body: motivo,
         infoReport: {
           type: "USER",
-          user_id: openedConversation.friendUser?.id,
-          user_name: openedConversation.friendUser?.name,
+          user_id: friendUserId,
+          user_name: friendUserName,
         },
       });
       setChatBlockReportDialog(false);
       setChatReportMotivo("");
     } catch (error) {
-      console.error(error);
+      // silencioso
     } finally {
       setChatReportSending(false);
       setChatOptionsMenuAnchor(null);
+    }
+  };
+
+  const handleChatOnlyReport = async () => {
+    if (!chatOnlyReportMotivo.trim()) return;
+    const friendUserId = openedConversation.friendUser?.id;
+    const friendUserName = openedConversation.friendUser?.name;
+    const motivo = chatOnlyReportMotivo.trim();
+    setChatOnlyReportSending(true);
+    try {
+      await api.post("/requests/report", {
+        body: motivo,
+        infoReport: {
+          type: "USER",
+          user_id: friendUserId,
+          user_name: friendUserName,
+        },
+      });
+      setChatOnlyReportDialog(false);
+      setChatOnlyReportMotivo("");
+    } catch (error) {
+      // silencioso
+    } finally {
+      setChatOnlyReportSending(false);
     }
   };
 
@@ -995,36 +1046,51 @@ export default function ChatsPage() {
                 >
                   Ver perfil
                 </MenuItem>
-                {/* Bloquear/Desbloquear: admin/dev SÍ puede bloquear usuarios normales */}
-                {!openedConversation.isReportChat && (
-                  openedConversation.isBlocked && openedConversation.iBlockedThem ? (
-                    <MenuItem
-                      onClick={() => { setChatOptionsMenuAnchor(null); handleChatUnblock(); }}
-                      sx={{ color: mainTextColor, fontSize: "0.875rem", py: 1.25 }}
-                    >
-                      Desbloquear
-                    </MenuItem>
-                  ) : !openedConversation.isBlocked ? (
-                    <MenuItem
-                      onClick={() => { setChatOptionsMenuAnchor(null); handleChatBlock(); }}
-                      sx={{ color: mainTextColor, fontSize: "0.875rem", py: 1.25 }}
-                    >
-                      Bloquear
-                    </MenuItem>
-                  ) : null
-                )}
-                {/* Bloquear y reportar: solo si el chat no es de reporte y el usuario actual NO es admin/dev */}
-                {!openedConversation.isReportChat && !currentUserIsAdmin && !openedConversation.isBlocked && (
-                  <MenuItem
-                    onClick={() => {
-                      setChatOptionsMenuAnchor(null);
-                      setChatBlockReportDialog(true);
-                    }}
-                    sx={{ color: "#f44336", fontSize: "0.875rem", py: 1.25 }}
-                  >
-                    Bloquear y reportar
-                  </MenuItem>
-                )}
+
+                {(() => {
+                  const myRole = loggedUser?.role;
+                  const friendRole = openedConversation.friendUser?.role;
+                  const isBlocked = openedConversation.isBlocked;
+                  const iBlockedThem = openedConversation.iBlockedThem;
+                  const isReport = openedConversation.isReportChat;
+
+                  // SOY USER — chat con USER (normal) o chat con ADMIN (reporte)
+                  if (myRole === "USER") {
+                    if (isReport) return null; // chat de reporte: solo ver perfil
+                    // chat con otro USER
+                    if (isBlocked && iBlockedThem) return (
+                      <>
+                        <MenuItem onClick={() => { setChatOptionsMenuAnchor(null); handleChatUnblock(); }} sx={{ color: mainTextColor, fontSize: "0.875rem", py: 1.25 }}>Desbloquear</MenuItem>
+                        <MenuItem onClick={() => { setChatOptionsMenuAnchor(null); setChatOnlyReportDialog(true); }} sx={{ color: "#f44336", fontSize: "0.875rem", py: 1.25 }}>Reportar</MenuItem>
+                      </>
+                    );
+                    if (!isBlocked) return (
+                      <>
+                        <MenuItem onClick={() => { setChatOptionsMenuAnchor(null); handleChatBlock(); }} sx={{ color: mainTextColor, fontSize: "0.875rem", py: 1.25 }}>Bloquear</MenuItem>
+                        <MenuItem onClick={() => { setChatOptionsMenuAnchor(null); setChatOnlyReportDialog(true); }} sx={{ color: "#f44336", fontSize: "0.875rem", py: 1.25 }}>Reportar</MenuItem>
+                        <MenuItem onClick={() => { setChatOptionsMenuAnchor(null); setChatBlockReportDialog(true); }} sx={{ color: "#f44336", fontSize: "0.875rem", py: 1.25 }}>Bloquear y reportar</MenuItem>
+                      </>
+                    );
+                    return null; // él me bloqueó: solo ver perfil
+                  }
+
+                  // SOY ADMIN — chat con ADMIN (normal) o chat con USER (reporte)
+                  if (myRole === "ADMIN") {
+                    if (isReport) return null; // reporte con user: solo ver perfil
+                    if (friendRole === "DEVELOPER") return null; // con dev: solo ver perfil
+                    // chat con otro ADMIN
+                    if (isBlocked && iBlockedThem) return (
+                      <MenuItem onClick={() => { setChatOptionsMenuAnchor(null); handleChatUnblock(); }} sx={{ color: mainTextColor, fontSize: "0.875rem", py: 1.25 }}>Desbloquear</MenuItem>
+                    );
+                    if (!isBlocked) return (
+                      <MenuItem onClick={() => { setChatOptionsMenuAnchor(null); handleChatBlock(); }} sx={{ color: mainTextColor, fontSize: "0.875rem", py: 1.25 }}>Bloquear</MenuItem>
+                    );
+                    return null;
+                  }
+
+                  // SOY DEVELOPER — solo ver perfil siempre
+                  return null;
+                })()}
               </Menu>
             </Box>
 
@@ -1070,12 +1136,19 @@ export default function ChatsPage() {
                   onReplyClick={(parentId) => {
                     const el = document.getElementById(`msg-${parentId}`);
                     if (el) {
-                      el.scrollIntoView({ behavior: "smooth", block: "center" });
+                      el.scrollIntoView({
+                        behavior: "smooth",
+                        block: "center",
+                      });
                       el.style.transition = "background 0.4s";
                       el.style.background = `${accentColor}30`;
-                      setTimeout(() => { el.style.background = ""; }, 1000);
-                    }else{
-                      alert("No se pudo encontrar el mensaje al que estás respondiendo. Prueba a cargar más mensajes.");
+                      setTimeout(() => {
+                        el.style.background = "";
+                      }, 1000);
+                    } else {
+                      alert(
+                        "No se pudo encontrar el mensaje al que estás respondiendo. Prueba a cargar más mensajes.",
+                      );
                     }
                   }}
                 />
@@ -1153,7 +1226,11 @@ export default function ChatsPage() {
                 <Typography sx={{ fontSize: "0.8rem", color: "#f44336" }}>
                   {mediaError}
                 </Typography>
-                <IconButton size="small" onClick={() => setMediaError(null)} sx={{ color: "#f44336" }}>
+                <IconButton
+                  size="small"
+                  onClick={() => setMediaError(null)}
+                  sx={{ color: "#f44336" }}
+                >
                   <CloseIcon fontSize="small" />
                 </IconButton>
               </Box>
@@ -1360,8 +1437,78 @@ export default function ChatsPage() {
       )}
 
       <Dialog
+        open={chatOnlyReportDialog}
+        onClose={() => { setChatOnlyReportDialog(false); setChatOnlyReportMotivo(""); }}
+        PaperProps={{
+          sx: {
+            borderRadius: "16px",
+            background: sidebarBg,
+            border: `1px solid ${dividerColor}`,
+            minWidth: { xs: "90vw", sm: 360 },
+          },
+        }}
+      >
+        <DialogTitle sx={{ color: mainTextColor, fontWeight: 700, pb: 1 }}>
+          <Box display="flex" alignItems="center" gap={1}>
+            <ReportIcon sx={{ color: "#f44336", fontSize: 20 }} />
+            Reportar usuario
+          </Box>
+        </DialogTitle>
+        <DialogContent>
+          <DialogContentText sx={{ color: mutedTextColor, fontSize: "0.875rem", mb: 2 }}>
+            Indica el motivo del reporte. El asunto es obligatorio.
+          </DialogContentText>
+          <TextField
+            fullWidth
+            multiline
+            rows={3}
+            placeholder="Describe el motivo..."
+            value={chatOnlyReportMotivo}
+            onChange={(e) => setChatOnlyReportMotivo(e.target.value)}
+            sx={{
+              "& .MuiOutlinedInput-root": {
+                borderRadius: "10px",
+                color: mainTextColor,
+                "& fieldset": { borderColor: `${accentColor}40` },
+                "&:hover fieldset": { borderColor: accentColor },
+                "&.Mui-focused fieldset": { borderColor: accentColor },
+              },
+              "& .MuiInputBase-input": { fontSize: "0.875rem" },
+            }}
+          />
+        </DialogContent>
+        <DialogActions sx={{ px: 2, pb: 2, gap: 1 }}>
+          <Button
+            onClick={() => { setChatOnlyReportDialog(false); setChatOnlyReportMotivo(""); }}
+            sx={{ color: mutedTextColor, textTransform: "none", borderRadius: "8px" }}
+          >
+            Cancelar
+          </Button>
+          <Button
+            onClick={handleChatOnlyReport}
+            disabled={!chatOnlyReportMotivo.trim() || chatOnlyReportSending}
+            variant="contained"
+            sx={{
+              background: "#f44336",
+              color: "#fff",
+              textTransform: "none",
+              borderRadius: "8px",
+              fontWeight: 600,
+              "&:hover": { background: "#c62828" },
+              "&.Mui-disabled": { background: "#f4433640", color: "#fff8" },
+            }}
+          >
+            {chatOnlyReportSending ? <CircularProgress size={18} sx={{ color: "#fff" }} /> : "Enviar reporte"}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog
         open={chatBlockReportDialog}
-        onClose={() => { setChatBlockReportDialog(false); setChatReportMotivo(""); }}
+        onClose={() => {
+          setChatBlockReportDialog(false);
+          setChatReportMotivo("");
+        }}
         PaperProps={{
           sx: {
             borderRadius: "16px",
@@ -1378,7 +1525,9 @@ export default function ChatsPage() {
           </Box>
         </DialogTitle>
         <DialogContent>
-          <DialogContentText sx={{ color: mutedTextColor, fontSize: "0.875rem", mb: 2 }}>
+          <DialogContentText
+            sx={{ color: mutedTextColor, fontSize: "0.875rem", mb: 2 }}
+          >
             Indica el motivo del reporte. El asunto es obligatorio.
           </DialogContentText>
           <TextField
@@ -1402,8 +1551,15 @@ export default function ChatsPage() {
         </DialogContent>
         <DialogActions sx={{ px: 2, pb: 2, gap: 1 }}>
           <Button
-            onClick={() => { setChatBlockReportDialog(false); setChatReportMotivo(""); }}
-            sx={{ color: mutedTextColor, textTransform: "none", borderRadius: "8px" }}
+            onClick={() => {
+              setChatBlockReportDialog(false);
+              setChatReportMotivo("");
+            }}
+            sx={{
+              color: mutedTextColor,
+              textTransform: "none",
+              borderRadius: "8px",
+            }}
           >
             Cancelar
           </Button>
@@ -1421,7 +1577,11 @@ export default function ChatsPage() {
               "&.Mui-disabled": { background: "#f4433640", color: "#fff8" },
             }}
           >
-            {chatReportSending ? <CircularProgress size={18} sx={{ color: "#fff" }} /> : "Bloquear y reportar"}
+            {chatReportSending ? (
+              <CircularProgress size={18} sx={{ color: "#fff" }} />
+            ) : (
+              "Bloquear y reportar"
+            )}
           </Button>
         </DialogActions>
       </Dialog>

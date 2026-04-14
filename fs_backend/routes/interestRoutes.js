@@ -1,13 +1,21 @@
-const express = require('express');
+const express = require("express");
 const router = express.Router();
-const interestController = require('../controllers/interestController');
-const { validarToken } = require('../middlewares/validarToken');
+const interestController = require("../controllers/interestController");
+const { validarToken } = require("../middlewares/validarToken");
+const { verificarRol } = require("../middlewares/verificarRol");
+router.get("/", interestController.getAllInterests);
 
-// Ruta publica para que cualquiera (o usuarios logueados) vean los intereses disponibles
-router.get('/', interestController.getAllInterests);
-
-// Rutas que podrias proteger mas adelante solo para administradores
-router.post('/', validarToken, interestController.createInterest);
-router.delete('/:id', validarToken, interestController.deleteInterest);
+router.post(
+  "/",
+  validarToken,
+  verificarRol("ADMIN", "DEVELOPER"),
+  interestController.createInterest,
+);
+router.delete(
+  "/:id",
+  validarToken,
+  verificarRol("ADMIN", "DEVELOPER"),
+  interestController.deleteInterest,
+);
 
 module.exports = router;
