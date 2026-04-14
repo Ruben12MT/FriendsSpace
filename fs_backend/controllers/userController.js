@@ -107,7 +107,7 @@ class UserController {
     try {
       const usuarioActual = await userService.getUserById(req.user.id);
       if (!usuarioActual) return res.status(401).json({ ok: false, mensaje: "Usuario no encontrado" });
-      const { password, ...usuarioLimpio } = usuarioActual.toJSON();
+      const { password, ...usuarioLimpio } = usuarioActual;
       return res.status(200).json({ ok: true, usuario: usuarioLimpio });
     } catch (err) {
       logger.error("Error en checkAuth: " + err.message);
@@ -142,7 +142,7 @@ class UserController {
     try {
       const usuarioBuscado = await userService.getUserById(req.params.id);
       if (!usuarioBuscado) return res.status(404).json({ ok: false, mensaje: "Usuario no encontrado" });
-      const { password, ...usuarioLimpio } = usuarioBuscado.toJSON ? usuarioBuscado.toJSON() : usuarioBuscado;
+      const { password, ...usuarioLimpio } = usuarioBuscado;
       return res.status(200).json({ ok: true, usuario: usuarioLimpio });
     } catch (err) {
       res.status(500).json({ ok: false, mensaje: "Error al buscar usuario" });

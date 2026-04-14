@@ -89,11 +89,18 @@ export default function ChatsPage() {
   const [finishInvestigationDialog, setFinishInvestigationDialog] =
     useState(false);
   const [chatOptionsMenuAnchor, setChatOptionsMenuAnchor] = useState(null);
+  const [uploadingMedia, setUploadingMedia] = useState(false);
+  const [mediaError, setMediaError] = useState(null);
+  const [hasNewMessage, setHasNewMessage] = useState(false);
+  const [chatBlockReportDialog, setChatBlockReportDialog] = useState(false);
+  const [chatReportMotivo, setChatReportMotivo] = useState("");
+  const [chatReportSending, setChatReportSending] = useState(false);
 
   const bottomOfMessagesRef = useRef(null);
   const topSentinelRef = useRef(null);
   const messageInputRef = useRef(null);
   const filePickerRef = useRef(null);
+  const messagesContainerRef = useRef(null);
 
   const sidebarBg = theme.sidebarBg;
   const chatAreaBg = theme.name === "dark" ? "#1e1e1e" : "#f9f9f9";
@@ -102,6 +109,17 @@ export default function ChatsPage() {
   const accentColor = theme.accent || theme.primaryBack;
   const mainTextColor = theme.primaryText;
   const mutedTextColor = theme.mutedText || theme.secondaryText;
+
+  const isAtBottom = useCallback(() => {
+    const el = messagesContainerRef.current;
+    if (!el) return true;
+    return el.scrollHeight - el.scrollTop - el.clientHeight < 80;
+  }, []);
+
+  const scrollToBottom = useCallback((behavior = "smooth") => {
+    bottomOfMessagesRef.current?.scrollIntoView({ behavior });
+    setHasNewMessage(false);
+  }, []);
 
   const buildConversationList = (rawConnections, currentUserId) => {
     return rawConnections
@@ -184,8 +202,7 @@ export default function ChatsPage() {
           }
         }
       } catch (error) {
-        console.error(error);
-      }
+        console.error(error);}
     }
     if (loggedUser) loadConversationList();
   }, [loggedUser]);
@@ -232,8 +249,7 @@ export default function ChatsPage() {
         );
       }
     } catch (error) {
-      console.error("Error cargando último mensaje:", error);
-    }
+      console.error(error);}
   }, []);
 
   const selectConversation = (conversation) => {
@@ -276,6 +292,7 @@ export default function ChatsPage() {
       setMessageList([]);
     } catch (error) {
       console.error(error);
+
     } finally {
       setFinishInvestigationDialog(false);
     }
@@ -335,7 +352,7 @@ export default function ChatsPage() {
               buildConversationList(response.data.datos, loggedUser.id),
             );
         })
-        .catch(console.error);
+        .catch(() => {});
     };
     const onIncomingMessage = (payload) => {
       const newMessage = payload.data || payload;
@@ -343,11 +360,11 @@ export default function ChatsPage() {
         if (prev.find((m) => m.id === newMessage.id)) return prev;
         return [...prev, newMessage];
       });
-      setTimeout(
-        () =>
-          bottomOfMessagesRef.current?.scrollIntoView({ behavior: "smooth" }),
-        50,
-      );
+      if (isAtBottom()) {
+        setTimeout(() => scrollToBottom("smooth"), 50);
+      } else {
+        setHasNewMessage(true);
+      }
       const connectionId = newMessage.connection_id;
       if (connectionId)
         setConversationList((prev) =>
@@ -381,12 +398,47 @@ export default function ChatsPage() {
     socket.on("mensaje_borrado", onDeletedMessage);
     socket.on("investigacion_finalizada", onInvestigacionFinalizada);
     socket.on("reporte_aceptado", onReporteAceptado);
+
+    const onConexionBloqueada = ({ connectionId, blockedBy }) => {
+      const iBlockedThem = blockedBy === loggedUser?.id;
+      setConversationList((prev) =>
+        prev.map((c) =>
+          c.connectionId === connectionId
+            ? { ...c, connectionStatus: "BLOCKED", isBlocked: true, iBlockedThem }
+            : c,
+        ),
+      );
+      setOpenedConversation((prev) =>
+        prev?.connectionId === connectionId
+          ? { ...prev, connectionStatus: "BLOCKED", isBlocked: true, iBlockedThem }
+          : prev,
+      );
+    };
+    const onConexionActivada = ({ connectionId }) => {
+      setConversationList((prev) =>
+        prev.map((c) =>
+          c.connectionId === connectionId
+            ? { ...c, connectionStatus: "ACTIVE", isBlocked: false, iBlockedThem: false }
+            : c,
+        ),
+      );
+      setOpenedConversation((prev) =>
+        prev?.connectionId === connectionId
+          ? { ...prev, connectionStatus: "ACTIVE", isBlocked: false, iBlockedThem: false }
+          : prev,
+      );
+    };
+    socket.on("conexion_bloqueada", onConexionBloqueada);
+    socket.on("conexion_activada", onConexionActivada);
+
     return () => {
       socket.off("nuevo_mensaje", onIncomingMessage);
       socket.off("mensaje_editado", onEditedMessage);
       socket.off("mensaje_borrado", onDeletedMessage);
       socket.off("investigacion_finalizada", onInvestigacionFinalizada);
       socket.off("reporte_aceptado", onReporteAceptado);
+      socket.off("conexion_bloqueada", onConexionBloqueada);
+      socket.off("conexion_activada", onConexionActivada);
     };
   }, [socket, loggedUser]);
 
@@ -429,6 +481,7 @@ export default function ChatsPage() {
         setMessageInputText("");
       } catch (error) {
         console.error(error);
+
       } finally {
         setIsSendingMessage(false);
       }
@@ -444,6 +497,7 @@ export default function ChatsPage() {
       setReplyTargetMessage(null);
     } catch (error) {
       console.error(error);
+
     } finally {
       setIsSendingMessage(false);
     }
@@ -452,6 +506,14 @@ export default function ChatsPage() {
   const sendMediaMessage = async (file) => {
     if (!file || !openedConversation) return;
     if (checkIfBlockedBeforeAction()) return;
+    const MAX_BYTES = 200 * 1024 * 1024;
+    if (file.size > MAX_BYTES) {
+      setMediaError("El archivo supera el límite de 200 MB.");
+      if (filePickerRef.current) filePickerRef.current.value = "";
+      return;
+    }
+    setMediaError(null);
+    setUploadingMedia(true);
     const formData = new FormData();
     formData.append("file", file);
     formData.append("body", file.name);
@@ -463,8 +525,57 @@ export default function ChatsPage() {
         { headers: { "Content-Type": "multipart/form-data" } },
       );
       setReplyTargetMessage(null);
+      setTimeout(() => scrollToBottom("smooth"), 50);
+    } catch (error) {
+      setMediaError("Error al enviar el archivo. Inténtalo de nuevo.");
+    } finally {
+      setUploadingMedia(false);
+      if (filePickerRef.current) filePickerRef.current.value = "";
+    }
+  };
+
+  const handleChatBlock = async () => {
+    if (!openedConversation) return;
+    try {
+      await api.put(`/connections/${openedConversation.connectionId}/block`);
+    } catch (error) {
+      // socket actualizará el estado
+    } finally {
+      setChatOptionsMenuAnchor(null);
+    }
+  };
+
+  const handleChatUnblock = async () => {
+    if (!openedConversation) return;
+    try {
+      await api.put(`/connections/${openedConversation.connectionId}/activate`);
+    } catch (error) {
+      // socket actualizará el estado
+    } finally {
+      setChatOptionsMenuAnchor(null);
+    }
+  };
+
+  const handleChatBlockAndReport = async () => {
+    if (!chatReportMotivo.trim()) return;
+    setChatReportSending(true);
+    try {
+      await api.put(`/connections/${openedConversation.connectionId}/block`);
+      await api.post("/requests/report", {
+        body: chatReportMotivo.trim(),
+        infoReport: {
+          type: "USER",
+          user_id: openedConversation.friendUser?.id,
+          user_name: openedConversation.friendUser?.name,
+        },
+      });
+      setChatBlockReportDialog(false);
+      setChatReportMotivo("");
     } catch (error) {
       console.error(error);
+    } finally {
+      setChatReportSending(false);
+      setChatOptionsMenuAnchor(null);
     }
   };
 
@@ -753,6 +864,7 @@ export default function ChatsPage() {
               flexDirection: "column",
               background: chatAreaBg,
               overflow: "hidden",
+              position: "relative",
             }}
           >
             <Box
@@ -883,28 +995,44 @@ export default function ChatsPage() {
                 >
                   Ver perfil
                 </MenuItem>
-                <MenuItem
-                  onClick={() => {
-                    setChatOptionsMenuAnchor(null);
-                    navigate("/app/" + openedConversation.friendUser?.id);
-                  }}
-                  sx={{ color: mainTextColor, fontSize: "0.875rem", py: 1.25 }}
-                >
-                  Bloquear
-                </MenuItem>
-                <MenuItem
-                  onClick={() => {
-                    setChatOptionsMenuAnchor(null);
-                    navigate("/app/" + openedConversation.friendUser?.id);
-                  }}
-                  sx={{ color: "#f44336", fontSize: "0.875rem", py: 1.25 }}
-                >
-                  Bloquear y reportar
-                </MenuItem>
+                {/* Bloquear/Desbloquear: admin/dev SÍ puede bloquear usuarios normales */}
+                {!openedConversation.isReportChat && (
+                  openedConversation.isBlocked && openedConversation.iBlockedThem ? (
+                    <MenuItem
+                      onClick={() => { setChatOptionsMenuAnchor(null); handleChatUnblock(); }}
+                      sx={{ color: mainTextColor, fontSize: "0.875rem", py: 1.25 }}
+                    >
+                      Desbloquear
+                    </MenuItem>
+                  ) : !openedConversation.isBlocked ? (
+                    <MenuItem
+                      onClick={() => { setChatOptionsMenuAnchor(null); handleChatBlock(); }}
+                      sx={{ color: mainTextColor, fontSize: "0.875rem", py: 1.25 }}
+                    >
+                      Bloquear
+                    </MenuItem>
+                  ) : null
+                )}
+                {/* Bloquear y reportar: solo si el chat no es de reporte y el usuario actual NO es admin/dev */}
+                {!openedConversation.isReportChat && !currentUserIsAdmin && !openedConversation.isBlocked && (
+                  <MenuItem
+                    onClick={() => {
+                      setChatOptionsMenuAnchor(null);
+                      setChatBlockReportDialog(true);
+                    }}
+                    sx={{ color: "#f44336", fontSize: "0.875rem", py: 1.25 }}
+                  >
+                    Bloquear y reportar
+                  </MenuItem>
+                )}
               </Menu>
             </Box>
 
             <Box
+              ref={messagesContainerRef}
+              onScroll={() => {
+                if (isAtBottom()) setHasNewMessage(false);
+              }}
               sx={{
                 flex: 1,
                 overflowY: "auto",
@@ -954,6 +1082,82 @@ export default function ChatsPage() {
               ))}
               <Box ref={bottomOfMessagesRef} />
             </Box>
+
+            {/* Burbuja de carga al subir media */}
+            {uploadingMedia && (
+              <Box
+                sx={{
+                  position: "absolute",
+                  bottom: 80,
+                  left: "50%",
+                  transform: "translateX(-50%)",
+                  background: sidebarBg,
+                  border: `1px solid ${dividerColor}`,
+                  borderRadius: "20px",
+                  px: 2,
+                  py: 0.75,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 1,
+                  boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+                  zIndex: 10,
+                }}
+              >
+                <CircularProgress size={14} sx={{ color: accentColor }} />
+                <Typography sx={{ fontSize: "0.8rem", color: mutedTextColor }}>
+                  Subiendo archivo...
+                </Typography>
+              </Box>
+            )}
+
+            {/* Indicador ↓ Nuevo mensaje */}
+            {hasNewMessage && (
+              <Box
+                onClick={() => scrollToBottom("smooth")}
+                sx={{
+                  position: "absolute",
+                  bottom: 80,
+                  right: 16,
+                  background: accentColor,
+                  color: "#fff",
+                  borderRadius: "20px",
+                  px: 2,
+                  py: 0.5,
+                  fontSize: "0.78rem",
+                  fontWeight: 600,
+                  cursor: "pointer",
+                  boxShadow: "0 4px 12px rgba(0,0,0,0.2)",
+                  zIndex: 10,
+                  userSelect: "none",
+                  "&:hover": { opacity: 0.9 },
+                }}
+              >
+                ↓ Nuevo mensaje
+              </Box>
+            )}
+
+            {/* Banner de error de archivo */}
+            {mediaError && (
+              <Box
+                sx={{
+                  px: 2,
+                  py: 0.75,
+                  background: "#f4433615",
+                  borderTop: `1px solid #f4433640`,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  flexShrink: 0,
+                }}
+              >
+                <Typography sx={{ fontSize: "0.8rem", color: "#f44336" }}>
+                  {mediaError}
+                </Typography>
+                <IconButton size="small" onClick={() => setMediaError(null)} sx={{ color: "#f44336" }}>
+                  <CloseIcon fontSize="small" />
+                </IconButton>
+              </Box>
+            )}
 
             {(replyTargetMessage || messageBeingEdited) && (
               <Box
@@ -1154,6 +1358,73 @@ export default function ChatsPage() {
           onClose={closeRightClickMenu}
         />
       )}
+
+      <Dialog
+        open={chatBlockReportDialog}
+        onClose={() => { setChatBlockReportDialog(false); setChatReportMotivo(""); }}
+        PaperProps={{
+          sx: {
+            borderRadius: "16px",
+            background: sidebarBg,
+            border: `1px solid ${dividerColor}`,
+            minWidth: { xs: "90vw", sm: 360 },
+          },
+        }}
+      >
+        <DialogTitle sx={{ color: mainTextColor, fontWeight: 700, pb: 1 }}>
+          <Box display="flex" alignItems="center" gap={1}>
+            <ReportIcon sx={{ color: "#f44336", fontSize: 20 }} />
+            Bloquear y reportar
+          </Box>
+        </DialogTitle>
+        <DialogContent>
+          <DialogContentText sx={{ color: mutedTextColor, fontSize: "0.875rem", mb: 2 }}>
+            Indica el motivo del reporte. El asunto es obligatorio.
+          </DialogContentText>
+          <TextField
+            fullWidth
+            multiline
+            rows={3}
+            placeholder="Describe el motivo..."
+            value={chatReportMotivo}
+            onChange={(e) => setChatReportMotivo(e.target.value)}
+            sx={{
+              "& .MuiOutlinedInput-root": {
+                borderRadius: "10px",
+                color: mainTextColor,
+                "& fieldset": { borderColor: `${accentColor}40` },
+                "&:hover fieldset": { borderColor: accentColor },
+                "&.Mui-focused fieldset": { borderColor: accentColor },
+              },
+              "& .MuiInputBase-input": { fontSize: "0.875rem" },
+            }}
+          />
+        </DialogContent>
+        <DialogActions sx={{ px: 2, pb: 2, gap: 1 }}>
+          <Button
+            onClick={() => { setChatBlockReportDialog(false); setChatReportMotivo(""); }}
+            sx={{ color: mutedTextColor, textTransform: "none", borderRadius: "8px" }}
+          >
+            Cancelar
+          </Button>
+          <Button
+            onClick={handleChatBlockAndReport}
+            disabled={!chatReportMotivo.trim() || chatReportSending}
+            variant="contained"
+            sx={{
+              background: "#f44336",
+              color: "#fff",
+              textTransform: "none",
+              borderRadius: "8px",
+              fontWeight: 600,
+              "&:hover": { background: "#c62828" },
+              "&.Mui-disabled": { background: "#f4433640", color: "#fff8" },
+            }}
+          >
+            {chatReportSending ? <CircularProgress size={18} sx={{ color: "#fff" }} /> : "Bloquear y reportar"}
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       <Dialog
         open={finishInvestigationDialog}

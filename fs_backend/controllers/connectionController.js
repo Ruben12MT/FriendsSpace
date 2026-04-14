@@ -23,6 +23,17 @@ class ConnectionController {
       }
 
       await connectionService.activateConnection(connectionId);
+
+      const io = req.app.get("socketio");
+      if (io) {
+        const otherUserId = await connectionService.getOtherUserInConnection(connectionId, userId);
+        const payload = { connectionId: Number(connectionId) };
+        io.to(`user_${userId}`).emit("conexion_activada", payload);
+        if (otherUserId) {
+          io.to(`user_${otherUserId}`).emit("conexion_activada", payload);
+        }
+      }
+
       res.json({ ok: true, mensaje: "Conexión activada" });
     } catch (error) {
       res.status(500).json({ ok: false, mensaje: error.message });
@@ -70,6 +81,17 @@ class ConnectionController {
       }
 
       await connectionService.blockConnection(connectionId, userId);
+
+      const io = req.app.get("socketio");
+      if (io) {
+        const otherUserId = await connectionService.getOtherUserInConnection(connectionId, userId);
+        const payload = { connectionId: Number(connectionId), blockedBy: userId };
+        io.to(`user_${userId}`).emit("conexion_bloqueada", payload);
+        if (otherUserId) {
+          io.to(`user_${otherUserId}`).emit("conexion_bloqueada", payload);
+        }
+      }
+
       res.json({ ok: true, mensaje: "Conexión bloqueada" });
     } catch (error) {
       res.status(500).json({ ok: false, mensaje: error.message });

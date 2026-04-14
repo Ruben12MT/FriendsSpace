@@ -26,7 +26,15 @@ class UserService {
       limit: LIMIT, offset, distinct: true,
     });
 
-    return { datos: rows, total: count, hasMore: offset + rows.length < count };
+    const datos = await Promise.all(
+      rows.map(async (u) => {
+        const plain = u.toJSON();
+        plain.connections_count = await this._countConnections(u.id, u.role);
+        return plain;
+      })
+    );
+
+    return { datos, total: count, hasMore: offset + rows.length < count };
   }
 
   async getAllAdmins({ myUserId, page = 1, search = "" } = {}) {
@@ -41,13 +49,64 @@ class UserService {
       limit: LIMIT, offset, distinct: true,
     });
 
-    return { datos: rows, total: count, hasMore: offset + rows.length < count };
+    const datos = await Promise.all(
+      rows.map(async (u) => {
+        const plain = u.toJSON();
+        plain.connections_count = await this._countConnections(u.id, u.role);
+        return plain;
+      })
+    );
+
+    return { datos, total: count, hasMore: offset + rows.length < count };
+  }
+
+  // Devuelve los roles que cuentan como "conexión real" para un rol dado
+  _getPeerRoles(role) {
+    if (role === "USER") return ["USER"];
+    return ["ADMIN", "DEVELOPER"]; // admin y dev se cuentan entre sí
+  }
+
+  async _countConnections(userId, userRole) {
+    const peerRoles = this._getPeerRoles(userRole);
+    return await user_connection.count({
+      where: { user_id: userId },
+      include: [
+        {
+          model: connection,
+          as: "connection",
+          where: { status: { [Op.in]: ["ACTIVE", "BLOCKED"] } },
+          required: true,
+          include: [
+            {
+              model: user_connection,
+              as: "user_connections",
+              required: true,
+              where: { user_id: { [Op.ne]: userId } },
+              include: [
+                {
+                  model: user,
+                  as: "user",
+                  where: { role: { [Op.in]: peerRoles } },
+                  required: true,
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    });
   }
 
   async getUserById(id) {
-    return await user.findByPk(id, {
+    const foundUser = await user.findByPk(id, {
       include: [{ model: interest, as: "interests", through: { attributes: [] } }],
     });
+    if (!foundUser) return null;
+
+    const connectionsCount = await this._countConnections(id, foundUser.role);
+    const result = foundUser.toJSON();
+    result.connections_count = connectionsCount;
+    return result;
   }
 
   async getUserByEmailOrUsername(emailOrUsername) {

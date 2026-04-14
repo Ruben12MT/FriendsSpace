@@ -128,9 +128,7 @@ export default function UserCard({ user, variant = "card" }) {
       <Box
         sx={{
           width: "100%",
-          maxWidth: 320,
-          margin: "0 auto",
-          borderRadius: "20px",
+          borderRadius: "10px",
           overflow: "hidden",
           background: cardBg,
           border: `1px solid ${accent}30`,

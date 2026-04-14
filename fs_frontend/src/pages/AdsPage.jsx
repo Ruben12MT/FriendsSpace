@@ -26,58 +26,93 @@ export default function AdsPage() {
   const [userInterests, setUserInterests] = useState([]);
   const [openFormAd, setOpenFormAd] = useState(false);
   const [toast, setToast] = useState({ open: false, message: "" });
-  const [confirmDelete, setConfirmDelete] = useState({ open: false, adId: null });
+  const [confirmDelete, setConfirmDelete] = useState({
+    open: false,
+    adId: null,
+  });
 
   const sentinelRef = useRef(null);
   const searchTimeoutRef = useRef(null);
 
   useEffect(() => {
     if (!loggedUser) return;
-    api.get(`/users/${loggedUser.id}/interests`).then((res) => setUserInterests(res.data.datos || [])).catch(console.error);
+    api
+      .get(`/users/${loggedUser.id}/interests`)
+      .then((res) => setUserInterests(res.data.datos || []))
+      .catch(() => {});
   }, [loggedUser]);
 
   useEffect(() => {
-    api.get("/interests").then((res) => { if (res.data?.datos) setAllInterests(res.data.datos); }).catch(console.error);
+    api
+      .get("/interests")
+      .then((res) => {
+        if (res.data?.datos) setAllInterests(res.data.datos);
+      })
+      .catch(() => {});
   }, []);
 
-  const buildParams = useCallback((pageNum) => {
-    const params = { page: pageNum, limit: 20 };
-    if (wordToSearch.trim()) params.search = wordToSearch.trim();
-    return params;
-  }, [wordToSearch]);
+  const buildParams = useCallback(
+    (pageNum) => {
+      const params = { page: pageNum, limit: 20 };
+      if (wordToSearch.trim()) params.search = wordToSearch.trim();
+      return params;
+    },
+    [wordToSearch],
+  );
 
-  const fetchAds = useCallback(async (pageNum = 1, reset = false) => {
-    if (pageNum === 1) setIsLoading(true);
-    else setIsLoadingMore(true);
-    try {
-      const res = await api.get("/ads", { params: buildParams(pageNum) });
-      if (res.data?.ok) {
-        const nuevos = res.data.datos.filter((ad) => {
-          return selectedInterests.includes(-1) || ad.interests?.some((interesDelAnuncio) => {
-            const idAnuncio = interesDelAnuncio.id || interesDelAnuncio.interest_id;
-            if (selectedInterests.includes(0)) return userInterests.some((uInt) => Number(uInt.id || uInt.interest_id) === Number(idAnuncio));
-            return selectedInterests.includes(Number(idAnuncio));
+  const fetchAds = useCallback(
+    async (pageNum = 1, reset = false) => {
+      if (pageNum === 1) setIsLoading(true);
+      else setIsLoadingMore(true);
+      try {
+        const res = await api.get("/ads", { params: buildParams(pageNum) });
+        if (res.data?.ok) {
+          const nuevos = res.data.datos.filter((ad) => {
+            return (
+              selectedInterests.includes(-1) ||
+              ad.interests?.some((interesDelAnuncio) => {
+                const idAnuncio =
+                  interesDelAnuncio.id || interesDelAnuncio.interest_id;
+                if (selectedInterests.includes(0))
+                  return userInterests.some(
+                    (uInt) =>
+                      Number(uInt.id || uInt.interest_id) === Number(idAnuncio),
+                  );
+                return selectedInterests.includes(Number(idAnuncio));
+              })
+            );
           });
-        });
-        setAds((prev) => (reset ? nuevos : [...prev, ...nuevos]));
-        setHasMore(res.data.hasMore);
-        setPage(pageNum);
+          setAds((prev) => (reset ? nuevos : [...prev, ...nuevos]));
+          setHasMore(res.data.hasMore);
+          setPage(pageNum);
+        }
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setIsLoading(false);
+        setIsLoadingMore(false);
       }
-    } catch (err) { console.error(err); }
-    finally { setIsLoading(false); setIsLoadingMore(false); }
-  }, [buildParams, selectedInterests, userInterests]);
+    },
+    [buildParams, selectedInterests, userInterests],
+  );
 
   useEffect(() => {
     clearTimeout(searchTimeoutRef.current);
-    searchTimeoutRef.current = setTimeout(() => { fetchAds(1, true); }, 400);
+    searchTimeoutRef.current = setTimeout(() => {
+      fetchAds(1, true);
+    }, 400);
     return () => clearTimeout(searchTimeoutRef.current);
   }, [wordToSearch, selectedInterests, fetchAds]);
 
   useEffect(() => {
     if (!sentinelRef.current) return;
-    const observer = new IntersectionObserver(([entry]) => {
-      if (entry.isIntersecting && hasMore && !isLoadingMore && !isLoading) fetchAds(page + 1);
-    }, { threshold: 0.1 });
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting && hasMore && !isLoadingMore && !isLoading)
+          fetchAds(page + 1);
+      },
+      { threshold: 0.1 },
+    );
     observer.observe(sentinelRef.current);
     return () => observer.disconnect();
   }, [hasMore, isLoadingMore, isLoading, page, fetchAds]);
@@ -97,9 +132,11 @@ export default function AdsPage() {
   const handleSelectInterest = (e) => {
     const nuevosValores = e.target.value;
     const ultimaSeleccion = nuevosValores[nuevosValores.length - 1];
-    if (nuevosValores.length === 0 || ultimaSeleccion === -1) setSelectedInterests([-1]);
+    if (nuevosValores.length === 0 || ultimaSeleccion === -1)
+      setSelectedInterests([-1]);
     else if (ultimaSeleccion === 0) setSelectedInterests([0]);
-    else setSelectedInterests(nuevosValores.filter((id) => id !== 0 && id !== -1));
+    else
+      setSelectedInterests(nuevosValores.filter((id) => id !== 0 && id !== -1));
   };
 
   const handleReset = () => {
@@ -111,68 +148,223 @@ export default function AdsPage() {
   const getInterestText = () => {
     if (selectedInterests.includes(0)) return "Mis intereses";
     if (selectedInterests.includes(-1)) return "Todos";
-    const nombres = selectedInterests.map((id) => { const interest = allInterests.find((o) => o.id === id); return interest ? interest.name : id; });
-    return nombres.length > 3 ? `${nombres.slice(0, 3).join(", ")}...` : nombres.join(", ");
+    const nombres = selectedInterests.map((id) => {
+      const interest = allInterests.find((o) => o.id === id);
+      return interest ? interest.name : id;
+    });
+    return nombres.length > 3
+      ? `${nombres.slice(0, 3).join(", ")}...`
+      : nombres.join(", ");
   };
 
   return (
-    <Box sx={{ position: "fixed", top: "52px", left: { xs: 0, sm: "68px" }, right: 0, bottom: { xs: "56px", sm: 0 }, overflow: "hidden" }}>
-      <Container maxWidth="lg" sx={{ height: "100%", display: "flex", flexDirection: "column", py: { xs: 2, md: 3 }, overflow: "hidden" }}>
-        <Typography sx={{ fontWeight: 700, fontSize: { xs: "1.1rem", md: "1.4rem" }, color: theme.primaryText, mb: 2 }}>
+    <Box
+      sx={{
+        position: "fixed",
+        top: "52px",
+        left: { xs: 0, sm: "68px" },
+        right: 0,
+        bottom: { xs: "56px", sm: 0 },
+        overflow: "hidden",
+      }}
+    >
+      <Container
+        maxWidth="xl"
+        sx={{
+          height: "100%",
+          display: "flex",
+          flexDirection: "column",
+          py: { xs: 2, md: 3 },
+          px: { xs: 2, md: 4 },
+          overflow: "hidden",
+        }}
+      >
+        <Typography
+          sx={{
+            fontWeight: 700,
+            fontSize: { xs: "1.1rem", md: "1.4rem" },
+            color: theme.primaryText,
+            mb: 2,
+          }}
+        >
           ¿Tienes algo que decir? ¡Anúnciate!
         </Typography>
 
-        <MainSearchBar 
+        <MainSearchBar
           placeholder="Buscar por palabra clave o usuario"
           searchValue={wordToSearch}
           onSearchChange={setWordToSearch}
           onReset={handleReset}
-          onAdd={() => { setSelectedAdId(null); setOpenFormAd(true); }}
+          onAdd={() => {
+            setSelectedAdId(null);
+            setOpenFormAd(true);
+          }}
           showAdd={true}
           interests={allInterests}
           selectedInterests={selectedInterests}
           onInterestChange={handleSelectInterest}
         />
 
-        <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", px: 1, mt: 1, mb: 1, flexShrink: 0 }}>
+        <Box
+          sx={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            px: 1,
+            mt: 1,
+            mb: 1,
+            flexShrink: 0,
+          }}
+        >
           <Typography sx={{ color: theme.mutedText, fontSize: "0.82rem" }}>
-            {isLoading ? "Buscando..." : `${ads.length} anuncio${ads.length !== 1 ? "s" : ""}`}
+            {isLoading
+              ? "Buscando..."
+              : `${ads.length} anuncio${ads.length !== 1 ? "s" : ""}`}
           </Typography>
           <Typography sx={{ color: theme.mutedText, fontSize: "0.82rem" }}>
-            Intereses: <span style={{ fontWeight: 700, color: theme.primaryText }}>{getInterestText()}</span>
+            Intereses:{" "}
+            <span style={{ fontWeight: 700, color: theme.primaryText }}>
+              {getInterestText()}
+            </span>
           </Typography>
         </Box>
 
-        <Box component={motion.div} layout sx={{ flex: 1, overflowY: "auto", borderRadius: "12px", background: theme.tertiaryBack, borderTop: `3px solid ${accent}`, p: 2, display: "flex", flexDirection: "column", gap: 2, alignItems: isLoading && ads.length === 0 ? "center" : "stretch", justifyContent: isLoading && ads.length === 0 ? "center" : "flex-start", "&::-webkit-scrollbar": { width: "4px" }, "&::-webkit-scrollbar-thumb": { backgroundColor: accent, borderRadius: "10px" }, "&::-webkit-scrollbar-track": { backgroundColor: "transparent" } }}>
+        <Box
+          component={motion.div}
+          layout
+          sx={{
+            flex: 1,
+            overflowY: "auto",
+            borderRadius: "12px",
+            background: theme.tertiaryBack,
+            borderTop: `3px solid ${accent}`,
+            p: 2,
+            "&::-webkit-scrollbar": { width: "4px" },
+            "&::-webkit-scrollbar-thumb": {
+              backgroundColor: accent,
+              borderRadius: "10px",
+            },
+            "&::-webkit-scrollbar-track": { backgroundColor: "transparent" },
+          }}
+        >
           {isLoading && ads.length === 0 ? (
-            <Box sx={{ textAlign: "center" }}>
-              <CircularProgress sx={{ color: accent, mb: 2 }} />
-              <Typography sx={{ color: theme.primaryText }}>Cargando anuncios...</Typography>
+            <Box
+              sx={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "center",
+                height: "100%",
+                gap: 2,
+              }}
+            >
+              <CircularProgress sx={{ color: accent }} />
+              <Typography sx={{ color: theme.primaryText }}>
+                Cargando anuncios...
+              </Typography>
             </Box>
           ) : ads.length > 0 ? (
-            <AnimatePresence mode="popLayout">
-              {ads.map((ad) => (
-                <motion.div key={ad.id} initial={{ opacity: 0, y: 7 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95 }} transition={{ duration: 0.3 }}>
-                  <AdCard ad={ad} onChange={() => fetchAds(1, true)} onSelect={setSelectedAdId} setOpenFormAd={setOpenFormAd} onDelete={() => setConfirmDelete({ open: true, adId: ad.id })} />
-                </motion.div>
-              ))}
-              <Box ref={sentinelRef} sx={{ height: 40, display: "flex", justifyContent: "center", alignItems: "center", mt: 2 }}>
-                {isLoadingMore && <CircularProgress size={24} sx={{ color: accent }} />}
+            <>
+              <Box
+                sx={{
+                  display: "grid",
+                  gridTemplateColumns: {
+                    xs: "1fr",
+                    lg: "repeat(2, 1fr)",
+                  },
+                  gap: 2,
+                  alignItems: "start",
+                }}
+              >
+                <AnimatePresence mode="popLayout">
+                  {ads.map((ad) => (
+                    <motion.div
+                      key={ad.id}
+                      initial={{ opacity: 0, y: 7 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 0.95 }}
+                      transition={{ duration: 0.3 }}
+                    >
+                      <AdCard
+                        ad={ad}
+                        onChange={() => fetchAds(1, true)}
+                        onSelect={setSelectedAdId}
+                        setOpenFormAd={setOpenFormAd}
+                        onDelete={() =>
+                          setConfirmDelete({ open: true, adId: ad.id })
+                        }
+                      />
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
               </Box>
-            </AnimatePresence>
+              <Box
+                ref={sentinelRef}
+                sx={{
+                  height: 40,
+                  display: "flex",
+                  justifyContent: "center",
+                  alignItems: "center",
+                  mt: 2,
+                }}
+              >
+                {isLoadingMore && (
+                  <CircularProgress size={24} sx={{ color: accent }} />
+                )}
+              </Box>
+            </>
           ) : (
-            <Typography sx={{ color: theme.mutedText, textAlign: "center" }}>No se ha encontrado ningún anuncio</Typography>
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                height: "100%",
+              }}
+            >
+              <Typography sx={{ color: theme.mutedText, textAlign: "center" }}>
+                No se ha encontrado ningún anuncio
+              </Typography>
+            </Box>
           )}
         </Box>
       </Container>
 
-      <FormAdCard key={selectedAdId || "nuevo"} adId={selectedAdId} handleFinish={() => fetchAds(1, true)} open={openFormAd} handleOpen={setOpenFormAd} />
-      <ConfirmModal open={confirmDelete.open} handleClose={() => setConfirmDelete({ open: false, adId: null })} onConfirm={handleDeleteAd} title="¿Eliminar anuncio?" message="Esta acción no se puede deshacer. ¿Estás seguro de que quieres borrar este anuncio?" />
+      <FormAdCard
+        key={selectedAdId || "nuevo"}
+        adId={selectedAdId}
+        handleFinish={() => fetchAds(1, true)}
+        open={openFormAd}
+        handleOpen={setOpenFormAd}
+      />
+      <ConfirmModal
+        open={confirmDelete.open}
+        handleClose={() => setConfirmDelete({ open: false, adId: null })}
+        onConfirm={handleDeleteAd}
+        title="¿Eliminar anuncio?"
+        message="Esta acción no se puede deshacer. ¿Estás seguro de que quieres borrar este anuncio?"
+      />
 
       <AnimatePresence>
         {toast.open && (
-          <Box component={motion.div} initial={{ opacity: 0, x: 100 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 100 }} transition={{ duration: 0.5 }}
-            sx={{ position: "fixed", bottom: { xs: 70, sm: 40 }, right: 40, backgroundColor: "#d32f2f", color: "white", p: 2, borderRadius: 2, boxShadow: 3, zIndex: 9999 }}>
+          <Box
+            component={motion.div}
+            initial={{ opacity: 0, x: 100 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 100 }}
+            transition={{ duration: 0.5 }}
+            sx={{
+              position: "fixed",
+              bottom: { xs: 70, sm: 40 },
+              right: 40,
+              backgroundColor: "#d32f2f",
+              color: "white",
+              p: 2,
+              borderRadius: 2,
+              boxShadow: 3,
+              zIndex: 9999,
+            }}
+          >
             <Typography>{toast.message}</Typography>
           </Box>
         )}

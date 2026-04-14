@@ -57,7 +57,8 @@ export default function AdCard({ ad, onDelete, setOpenFormAd, onSelect }) {
       setReportOpen(false);
       setReportMotivo("");
     } catch (e) {
-      console.error(e);
+      console.error("Error al reportar el anuncio:", e);
+
     } finally {
       setReportSending(false);
     }

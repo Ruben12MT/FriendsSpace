@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
-  Box, Container, Typography, Grid, CircularProgress,
+  Box, Container, Typography, CircularProgress,
   ToggleButton, ToggleButtonGroup, useMediaQuery, useTheme
 } from "@mui/material";
 import ViewModuleIcon from "@mui/icons-material/ViewModule";
@@ -108,7 +108,7 @@ export default function SearchNewFriendsPage() {
 
   return (
     <Box sx={{ position: "fixed", top: "52px", left: { xs: 0, sm: "68px" }, right: 0, bottom: { xs: "56px", sm: 0 }, display: "flex", overflow: "hidden" }}>
-      <Container maxWidth="lg" sx={{ height: "100%", display: "flex", flexDirection: "column", py: { xs: 2, md: 3 } }}>
+      <Container maxWidth="xl" sx={{ height: "100%", display: "flex", flexDirection: "column", py: { xs: 2, md: 3 }, px: { xs: 2, md: 4 } }}>
         <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2.5 }}>
           <Box>
             <Typography sx={{ fontWeight: 700, fontSize: { xs: "1.2rem", md: "1.5rem" }, color: textMain, lineHeight: 1.2 }}>
@@ -118,19 +118,19 @@ export default function SearchNewFriendsPage() {
               {isLoading ? "Buscando..." : users.length > 0 ? `${users.length} usuario${users.length !== 1 ? "s" : ""} cargados` : "Busca por nombre o intereses"}
             </Typography>
           </Box>
-          <ToggleButtonGroup 
-            value={viewMode} 
-            exclusive 
+          <ToggleButtonGroup
+            value={viewMode}
+            exclusive
             onChange={(e, v) => v && setViewMode(v)}
-            sx={{ 
-              background: theme.tertiaryBack, 
-              borderRadius: "12px", 
-              p: 0.5, 
-              height: 38, 
-              border: `1px solid ${accent}20`, 
-              display: { xs: "none", md: "flex" } 
-            }} 
-          >   
+            sx={{
+              background: theme.tertiaryBack,
+              borderRadius: "12px",
+              p: 0.5,
+              height: 38,
+              border: `1px solid ${accent}20`,
+              display: { xs: "none", md: "flex" }
+            }}
+          >
             <ToggleButton value="card" sx={toggleButtonSx}><ViewModuleIcon fontSize="small" /></ToggleButton>
             <ToggleButton value="row" sx={toggleButtonSx}><ViewStreamIcon fontSize="small" /></ToggleButton>
           </ToggleButtonGroup>
@@ -138,7 +138,12 @@ export default function SearchNewFriendsPage() {
 
         <MainSearchBar placeholder="Busca por nombre..." searchValue={query} onSearchChange={setQuery} onReset={handleReset} showAdd={false} interests={allInterests} selectedInterests={selectedInterests} onInterestChange={handleSelectInterest} />
 
-        <Box sx={{ flexGrow: 1, overflowY: "auto", mt: 3, pr: 0.5, pt: 0.5, "&::-webkit-scrollbar": { width: "4px" }, "&::-webkit-scrollbar-thumb": { background: `${accent}40`, borderRadius: "10px" }, "&::-webkit-scrollbar-track": { background: "transparent" } }}>
+        <Box sx={{
+          flexGrow: 1, overflowY: "auto", mt: 3, pr: 0.5, pt: 0.5,
+          "&::-webkit-scrollbar": { width: "4px" },
+          "&::-webkit-scrollbar-thumb": { background: `${accent}40`, borderRadius: "10px" },
+          "&::-webkit-scrollbar-track": { background: "transparent" }
+        }}>
           {isLoading ? (
             <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", mt: 12, gap: 2 }}>
               <CircularProgress sx={{ color: accent }} size={36} />
@@ -149,19 +154,34 @@ export default function SearchNewFriendsPage() {
               <PeopleOutlineIcon sx={{ fontSize: 52, color: textMuted }} />
               <Typography sx={{ color: textMuted, fontSize: "0.9rem" }}>No se encontraron usuarios</Typography>
             </Box>
+          ) : effectiveViewMode === "card" ? (
+            <>
+              <Box sx={{
+                display: "grid",
+                gridTemplateColumns: {
+                  xs: "1fr",
+                  sm: "repeat(2, 1fr)",
+                  md: "repeat(3, 1fr)",
+                  lg: "repeat(4, 1fr)",
+                  xl: "repeat(5, 1fr)",
+                },
+                gap: 2,
+              }}>
+                {users.map((user) => (
+                  <UserCard key={user.id} user={user} variant="card" />
+                ))}
+              </Box>
+              <Box ref={sentinelRef} sx={{ height: 40, display: "flex", justifyContent: "center", alignItems: "center", mt: 2 }}>
+                {isLoadingMore && <CircularProgress size={24} sx={{ color: accent }} />}
+              </Box>
+            </>
           ) : (
             <>
-              <Grid container spacing={2}>
+              <Box sx={{ display: "flex", flexDirection: "column", gap: 1, maxWidth: 800, mx: "auto" }}>
                 {users.map((user) => (
-                  <Grid key={user.id} sx={{ width: "100%" }} size={{ 
-                    xs: 12, 
-                    md: effectiveViewMode === "card" ? 6 : 12, 
-                    lg: effectiveViewMode === "card" ? 4 : 12 
-                  }}>
-                    <UserCard user={user} variant={effectiveViewMode} />
-                  </Grid>
+                  <UserCard key={user.id} user={user} variant="row" />
                 ))}
-              </Grid>
+              </Box>
               <Box ref={sentinelRef} sx={{ height: 40, display: "flex", justifyContent: "center", alignItems: "center", mt: 2 }}>
                 {isLoadingMore && <CircularProgress size={24} sx={{ color: accent }} />}
               </Box>
