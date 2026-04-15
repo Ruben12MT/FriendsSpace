@@ -47,6 +47,15 @@ export default function LoginPage() {
         WebkitBoxShadow: `0 0 0 1000px ${inputBg} inset`,
         WebkitTextFillColor: hasError ? "#e53935" : textMain,
         caretColor: textMain,
+        transition: "background-color 5000s ease-in-out 0s",
+      },
+      "&:-webkit-autofill:focus": {
+        WebkitBoxShadow: `0 0 0 1000px ${inputBg} inset`,
+        WebkitTextFillColor: hasError ? "#e53935" : textMain,
+      },
+      "&:-webkit-autofill:hover": {
+        WebkitBoxShadow: `0 0 0 1000px ${inputBg} inset`,
+        WebkitTextFillColor: hasError ? "#e53935" : textMain,
       },
     },
     "& .MuiInputLabel-root": {

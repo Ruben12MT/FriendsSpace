@@ -1054,23 +1054,88 @@ export default function ChatsPage() {
                   const iBlockedThem = openedConversation.iBlockedThem;
                   const isReport = openedConversation.isReportChat;
 
-                  // SOY USER — chat con USER (normal) o chat con ADMIN (reporte)
                   if (myRole === "USER") {
-                    if (isReport) return null; // chat de reporte: solo ver perfil
-                    // chat con otro USER
-                    if (isBlocked && iBlockedThem) return (
-                      <>
-                        <MenuItem onClick={() => { setChatOptionsMenuAnchor(null); handleChatUnblock(); }} sx={{ color: mainTextColor, fontSize: "0.875rem", py: 1.25 }}>Desbloquear</MenuItem>
-                        <MenuItem onClick={() => { setChatOptionsMenuAnchor(null); setChatOnlyReportDialog(true); }} sx={{ color: "#f44336", fontSize: "0.875rem", py: 1.25 }}>Reportar</MenuItem>
-                      </>
-                    );
-                    if (!isBlocked) return (
-                      <>
-                        <MenuItem onClick={() => { setChatOptionsMenuAnchor(null); handleChatBlock(); }} sx={{ color: mainTextColor, fontSize: "0.875rem", py: 1.25 }}>Bloquear</MenuItem>
-                        <MenuItem onClick={() => { setChatOptionsMenuAnchor(null); setChatOnlyReportDialog(true); }} sx={{ color: "#f44336", fontSize: "0.875rem", py: 1.25 }}>Reportar</MenuItem>
-                        <MenuItem onClick={() => { setChatOptionsMenuAnchor(null); setChatBlockReportDialog(true); }} sx={{ color: "#f44336", fontSize: "0.875rem", py: 1.25 }}>Bloquear y reportar</MenuItem>
-                      </>
-                    );
+                    if (
+                      isReport ||
+                      friendRole === "ADMIN" ||
+                      friendRole === "DEVELOPER"
+                    )
+                      return null; // chat con otro USER
+                    if (isBlocked && iBlockedThem)
+                      return (
+                        <>
+                          <MenuItem
+                            onClick={() => {
+                              setChatOptionsMenuAnchor(null);
+                              handleChatUnblock();
+                            }}
+                            sx={{
+                              color: mainTextColor,
+                              fontSize: "0.875rem",
+                              py: 1.25,
+                            }}
+                          >
+                            Desbloquear
+                          </MenuItem>
+                          <MenuItem
+                            onClick={() => {
+                              setChatOptionsMenuAnchor(null);
+                              setChatOnlyReportDialog(true);
+                            }}
+                            sx={{
+                              color: "#f44336",
+                              fontSize: "0.875rem",
+                              py: 1.25,
+                            }}
+                          >
+                            Reportar
+                          </MenuItem>
+                        </>
+                      );
+                    if (!isBlocked)
+                      return (
+                        <>
+                          <MenuItem
+                            onClick={() => {
+                              setChatOptionsMenuAnchor(null);
+                              handleChatBlock();
+                            }}
+                            sx={{
+                              color: mainTextColor,
+                              fontSize: "0.875rem",
+                              py: 1.25,
+                            }}
+                          >
+                            Bloquear
+                          </MenuItem>
+                          <MenuItem
+                            onClick={() => {
+                              setChatOptionsMenuAnchor(null);
+                              setChatOnlyReportDialog(true);
+                            }}
+                            sx={{
+                              color: "#f44336",
+                              fontSize: "0.875rem",
+                              py: 1.25,
+                            }}
+                          >
+                            Reportar
+                          </MenuItem>
+                          <MenuItem
+                            onClick={() => {
+                              setChatOptionsMenuAnchor(null);
+                              setChatBlockReportDialog(true);
+                            }}
+                            sx={{
+                              color: "#f44336",
+                              fontSize: "0.875rem",
+                              py: 1.25,
+                            }}
+                          >
+                            Bloquear y reportar
+                          </MenuItem>
+                        </>
+                      );
                     return null; // él me bloqueó: solo ver perfil
                   }
 
@@ -1079,12 +1144,38 @@ export default function ChatsPage() {
                     if (isReport) return null; // reporte con user: solo ver perfil
                     if (friendRole === "DEVELOPER") return null; // con dev: solo ver perfil
                     // chat con otro ADMIN
-                    if (isBlocked && iBlockedThem) return (
-                      <MenuItem onClick={() => { setChatOptionsMenuAnchor(null); handleChatUnblock(); }} sx={{ color: mainTextColor, fontSize: "0.875rem", py: 1.25 }}>Desbloquear</MenuItem>
-                    );
-                    if (!isBlocked) return (
-                      <MenuItem onClick={() => { setChatOptionsMenuAnchor(null); handleChatBlock(); }} sx={{ color: mainTextColor, fontSize: "0.875rem", py: 1.25 }}>Bloquear</MenuItem>
-                    );
+                    if (isBlocked && iBlockedThem)
+                      return (
+                        <MenuItem
+                          onClick={() => {
+                            setChatOptionsMenuAnchor(null);
+                            handleChatUnblock();
+                          }}
+                          sx={{
+                            color: mainTextColor,
+                            fontSize: "0.875rem",
+                            py: 1.25,
+                          }}
+                        >
+                          Desbloquear
+                        </MenuItem>
+                      );
+                    if (!isBlocked)
+                      return (
+                        <MenuItem
+                          onClick={() => {
+                            setChatOptionsMenuAnchor(null);
+                            handleChatBlock();
+                          }}
+                          sx={{
+                            color: mainTextColor,
+                            fontSize: "0.875rem",
+                            py: 1.25,
+                          }}
+                        >
+                          Bloquear
+                        </MenuItem>
+                      );
                     return null;
                   }
 
@@ -1438,7 +1529,10 @@ export default function ChatsPage() {
 
       <Dialog
         open={chatOnlyReportDialog}
-        onClose={() => { setChatOnlyReportDialog(false); setChatOnlyReportMotivo(""); }}
+        onClose={() => {
+          setChatOnlyReportDialog(false);
+          setChatOnlyReportMotivo("");
+        }}
         PaperProps={{
           sx: {
             borderRadius: "16px",
@@ -1455,7 +1549,9 @@ export default function ChatsPage() {
           </Box>
         </DialogTitle>
         <DialogContent>
-          <DialogContentText sx={{ color: mutedTextColor, fontSize: "0.875rem", mb: 2 }}>
+          <DialogContentText
+            sx={{ color: mutedTextColor, fontSize: "0.875rem", mb: 2 }}
+          >
             Indica el motivo del reporte. El asunto es obligatorio.
           </DialogContentText>
           <TextField
@@ -1479,8 +1575,15 @@ export default function ChatsPage() {
         </DialogContent>
         <DialogActions sx={{ px: 2, pb: 2, gap: 1 }}>
           <Button
-            onClick={() => { setChatOnlyReportDialog(false); setChatOnlyReportMotivo(""); }}
-            sx={{ color: mutedTextColor, textTransform: "none", borderRadius: "8px" }}
+            onClick={() => {
+              setChatOnlyReportDialog(false);
+              setChatOnlyReportMotivo("");
+            }}
+            sx={{
+              color: mutedTextColor,
+              textTransform: "none",
+              borderRadius: "8px",
+            }}
           >
             Cancelar
           </Button>
@@ -1498,7 +1601,11 @@ export default function ChatsPage() {
               "&.Mui-disabled": { background: "#f4433640", color: "#fff8" },
             }}
           >
-            {chatOnlyReportSending ? <CircularProgress size={18} sx={{ color: "#fff" }} /> : "Enviar reporte"}
+            {chatOnlyReportSending ? (
+              <CircularProgress size={18} sx={{ color: "#fff" }} />
+            ) : (
+              "Enviar reporte"
+            )}
           </Button>
         </DialogActions>
       </Dialog>
@@ -1592,7 +1699,7 @@ export default function ChatsPage() {
         PaperProps={{
           sx: {
             borderRadius: "16px",
-            background: sidebarBg,
+            background: theme.name === "dark" ? "#2c2c2c" : sidebarBg,
             border: `1px solid ${dividerColor}`,
             minWidth: { xs: "90vw", sm: 320 },
           },
@@ -1647,7 +1754,7 @@ export default function ChatsPage() {
         PaperProps={{
           sx: {
             borderRadius: "16px",
-            background: sidebarBg,
+            background: theme.name === "dark" ? "#2c2c2c" : sidebarBg,
             border: `1px solid ${dividerColor}`,
             minWidth: { xs: "90vw", sm: 320 },
             textAlign: "center",
@@ -1772,7 +1879,7 @@ export default function ChatsPage() {
         PaperProps={{
           sx: {
             borderRadius: "16px",
-            background: sidebarBg,
+            background: theme.name === "dark" ? "#2c2c2c" : sidebarBg,
             border: `1px solid ${dividerColor}`,
             minWidth: { xs: "90vw", sm: 340 },
             textAlign: "center",

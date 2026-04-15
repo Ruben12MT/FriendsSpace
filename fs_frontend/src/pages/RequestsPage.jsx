@@ -185,12 +185,12 @@ export default function RequestsPages() {
           <Button startIcon={<NotificationsIcon />} onClick={() => setActiveView("solicitudes")} variant={activeView === "solicitudes" ? "contained" : "outlined"}
             sx={{ borderRadius: "10px", textTransform: "none", background: activeView === "solicitudes" ? accent : "transparent", borderColor: accent, color: activeView === "solicitudes" ? (isDark ? "#1a1200" : "#fff") : accent, "&:hover": { background: accent, color: isDark ? "#1a1200" : "#fff" }, fontSize: { xs: "0.75rem", sm: "0.875rem" } }}>
             Solicitudes{" "}
-            {pendingRequests > 0 && <Chip label={pendingRequests} size="small" sx={{ ml: 1, height: 18, fontSize: "0.68rem", background: "rgba(255,255,255,0.3)", color: isDark ? "#1a1200" : "#fff" }} />}
+            {pendingRequests > 0 && <Chip label={pendingRequests} size="small" sx={{ ml: 1, height: 18, fontSize: "0.68rem", background: activeView === "solicitudes" ? "rgba(0,0,0,0.2)" : accent, color: "#fff", fontWeight: 700 }} />}
           </Button>
           <Button startIcon={<ReportIcon />} onClick={handleViewReportes} variant={activeView === "reportes" ? "contained" : "outlined"}
             sx={{ borderRadius: "10px", textTransform: "none", background: activeView === "reportes" ? "#f44336" : "transparent", borderColor: "#f44336", color: activeView === "reportes" ? "#fff" : "#f44336", "&:hover": { background: "#f44336", color: "#fff" }, fontSize: { xs: "0.75rem", sm: "0.875rem" } }}>
             Reportes{" "}
-            {unreadReports > 0 && <Chip label={unreadReports} size="small" sx={{ ml: 1, height: 18, fontSize: "0.68rem", background: "rgba(255,255,255,0.3)", color: "#fff" }} />}
+            {unreadReports > 0 && <Chip label={unreadReports} size="small" sx={{ ml: 1, height: 18, fontSize: "0.68rem", background: activeView === "reportes" ? "rgba(0,0,0,0.2)" : "#f44336", color: "#fff", fontWeight: 700 }} />}
           </Button>
         </Box>
 

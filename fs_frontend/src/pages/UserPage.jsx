@@ -98,6 +98,9 @@ export default function UserPage() {
   const [blockReportDialog, setBlockReportDialog] = useState(false);
   const [blockReportMotivo, setBlockReportMotivo] = useState("");
   const [blockReportSending, setBlockReportSending] = useState(false);
+  const [onlyReportDialog, setOnlyReportDialog] = useState(false);
+  const [onlyReportMotivo, setOnlyReportMotivo] = useState("");
+  const [onlyReportSending, setOnlyReportSending] = useState(false);
 
   const puedeGestionar = () => {
     if (isOwnProfile || !visitedUser.role) return false;
@@ -288,6 +291,26 @@ export default function UserPage() {
     } catch (e) {
     } finally {
       setBlockReportSending(false);
+    }
+  };
+
+  const handleOnlyReport = async () => {
+    if (!onlyReportMotivo.trim()) return;
+    setOnlyReportSending(true);
+    try {
+      await api.post("/requests/report", {
+        body: onlyReportMotivo.trim(),
+        infoReport: {
+          type: "USER",
+          user_id: visitedUser.id,
+          user_name: visitedUser.name,
+        },
+      });
+      setOnlyReportDialog(false);
+      setOnlyReportMotivo("");
+    } catch (e) {
+    } finally {
+      setOnlyReportSending(false);
     }
   };
 
@@ -619,10 +642,10 @@ export default function UserPage() {
                                 Bloquear y reportar
                               </MenuItem>
                             )}
-                            {/* Reportar: si yo bloqueé (conexión bloqueada por mí) y canReport */}
-                            {iBlockedThem && !isBanned && canReport && (
+                            {/* Reportar: si son amigos o si yo bloqueé, y canReport */}
+                            {(isFriend || iBlockedThem) && !isBanned && canReport && (
                               <MenuItem
-                                onClick={() => { setMoreOptionsAnchor(null); setBlockReportDialog(true); }}
+                                onClick={() => { setMoreOptionsAnchor(null); setOnlyReportDialog(true); }}
                                 sx={{ color: "#f44336" }}
                               >
                                 Reportar
@@ -830,6 +853,64 @@ export default function UserPage() {
         message={getModalContent().msg}
         cancelLabel={confirmModalMode === "ACCEPT" ? "Rechazar" : "Cancelar"}
       />
+
+      <Dialog
+        open={onlyReportDialog}
+        onClose={() => { setOnlyReportDialog(false); setOnlyReportMotivo(""); }}
+        PaperProps={{
+          sx: {
+            borderRadius: "16px",
+            background: theme.secondaryBack,
+            border: `1px solid ${accent}20`,
+            minWidth: { xs: "90vw", sm: 380 },
+          },
+        }}
+      >
+        <DialogTitle sx={{ color: theme.primaryText, fontWeight: 700, pb: 1 }}>
+          <Box display="flex" alignItems="center" gap={1}>
+            <FlagIcon sx={{ color: "#f44336", fontSize: 20 }} />
+            Reportar usuario
+            <Box sx={{ flex: 1 }} />
+            <IconButton size="small" onClick={() => { setOnlyReportDialog(false); setOnlyReportMotivo(""); }} sx={{ color: theme.mutedText }}>
+              <CloseIcon fontSize="small" />
+            </IconButton>
+          </Box>
+        </DialogTitle>
+        <DialogContent>
+          <DialogContentText sx={{ color: theme.mutedText, fontSize: "0.875rem", mb: 2 }}>
+            Indica el motivo del reporte contra <strong>@{visitedUser.name}</strong>. El asunto es obligatorio.
+          </DialogContentText>
+          <TextField
+            fullWidth multiline rows={3}
+            placeholder="Describe el motivo..."
+            value={onlyReportMotivo}
+            onChange={(e) => setOnlyReportMotivo(e.target.value)}
+            sx={{
+              "& .MuiOutlinedInput-root": {
+                borderRadius: "10px",
+                color: theme.primaryText,
+                "& fieldset": { borderColor: `${accent}40` },
+                "&:hover fieldset": { borderColor: accent },
+                "&.Mui-focused fieldset": { borderColor: accent },
+              },
+              "& .MuiInputBase-input": { fontSize: "0.875rem" },
+            }}
+          />
+        </DialogContent>
+        <DialogActions sx={{ px: 2, pb: 2, gap: 1 }}>
+          <Button onClick={() => { setOnlyReportDialog(false); setOnlyReportMotivo(""); }} sx={{ color: theme.mutedText, textTransform: "none", borderRadius: "8px" }}>
+            Cancelar
+          </Button>
+          <Button
+            onClick={handleOnlyReport}
+            disabled={!onlyReportMotivo.trim() || onlyReportSending}
+            variant="contained"
+            sx={{ background: "#f44336", color: "#fff", textTransform: "none", borderRadius: "8px", fontWeight: 600, "&:hover": { background: "#c62828" }, "&.Mui-disabled": { background: "#f4433640", color: "#fff8" } }}
+          >
+            {onlyReportSending ? <CircularProgress size={18} sx={{ color: "#fff" }} /> : "Enviar reporte"}
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       <Dialog
         open={blockReportDialog}
