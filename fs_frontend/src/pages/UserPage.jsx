@@ -334,15 +334,31 @@ export default function UserPage() {
         title: "Enviar solicitud",
         msg: (
           <Box sx={{ pt: 1 }}>
-            <Typography mb={2}>Mensaje para @{visitedUser.name}:</Typography>
-            <TextField
-              fullWidth
-              multiline
-              rows={3}
-              value={requestBodyText}
-              onChange={(e) => setRequestBodyText(e.target.value)}
-            />
-          </Box>
+  <Typography mb={2} sx={{ color: theme.primaryText }}>
+    Mensaje para @{visitedUser.name}:
+  </Typography>
+  <TextField
+    fullWidth
+    multiline
+    rows={3}
+    value={requestBodyText}
+    onChange={(e) => setRequestBodyText(e.target.value)}
+    sx={{
+      "& .MuiOutlinedInput-root": {
+        borderRadius: "10px",
+        background: theme.tertiaryBack,
+        color: theme.primaryText,
+        "& fieldset": { borderColor: `${accent}40` },
+        "&:hover fieldset": { borderColor: accent },
+        "&.Mui-focused fieldset": { borderColor: accent },
+      },
+      "& .MuiInputBase-input": {
+        color: theme.primaryText,
+        fontSize: "0.875rem",
+      },
+    }}
+  />
+</Box>
         ),
       },
       ACCEPT: {
