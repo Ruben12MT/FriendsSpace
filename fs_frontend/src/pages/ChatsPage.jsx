@@ -699,8 +699,7 @@ export default function ChatsPage() {
             width: isMobile ? "100%" : SIDEBAR_PANEL_WIDTH,
             flexShrink: 0,
             borderRight: isMobile ? "none" : `1px solid ${dividerColor}`,
-            background: sidebarBg,
-            display: "flex",
+background: theme.name === "dark" ? "#2c2c2c" : sidebarBg,            display: "flex",
             flexDirection: "column",
             overflow: "hidden",
           }}
@@ -926,8 +925,7 @@ export default function ChatsPage() {
                 display: "flex",
                 alignItems: "center",
                 gap: 1.5,
-                background: sidebarBg,
-                flexShrink: 0,
+background: theme.name === "dark" ? "#2c2c2c" : sidebarBg,                flexShrink: 0,
               }}
             >
               {isMobile && (
@@ -1062,81 +1060,42 @@ export default function ChatsPage() {
                     )
                       return null; // chat con otro USER
                     if (isBlocked && iBlockedThem)
-                      return (
-                        <>
-                          <MenuItem
-                            onClick={() => {
-                              setChatOptionsMenuAnchor(null);
-                              handleChatUnblock();
-                            }}
-                            sx={{
-                              color: mainTextColor,
-                              fontSize: "0.875rem",
-                              py: 1.25,
-                            }}
-                          >
-                            Desbloquear
-                          </MenuItem>
-                          <MenuItem
-                            onClick={() => {
-                              setChatOptionsMenuAnchor(null);
-                              setChatOnlyReportDialog(true);
-                            }}
-                            sx={{
-                              color: "#f44336",
-                              fontSize: "0.875rem",
-                              py: 1.25,
-                            }}
-                          >
-                            Reportar
-                          </MenuItem>
-                        </>
-                      );
+                      return [
+                        <MenuItem key="unblock"
+                          onClick={() => { setChatOptionsMenuAnchor(null); handleChatUnblock(); }}
+                          sx={{ color: mainTextColor, fontSize: "0.875rem", py: 1.25 }}
+                        >
+                          Desbloquear
+                        </MenuItem>,
+                        <MenuItem key="report"
+                          onClick={() => { setChatOptionsMenuAnchor(null); setChatOnlyReportDialog(true); }}
+                          sx={{ color: "#f44336", fontSize: "0.875rem", py: 1.25 }}
+                        >
+                          Reportar
+                        </MenuItem>,
+                      ];
                     if (!isBlocked)
-                      return (
-                        <>
-                          <MenuItem
-                            onClick={() => {
-                              setChatOptionsMenuAnchor(null);
-                              handleChatBlock();
-                            }}
-                            sx={{
-                              color: mainTextColor,
-                              fontSize: "0.875rem",
-                              py: 1.25,
-                            }}
-                          >
-                            Bloquear
-                          </MenuItem>
-                          <MenuItem
-                            onClick={() => {
-                              setChatOptionsMenuAnchor(null);
-                              setChatOnlyReportDialog(true);
-                            }}
-                            sx={{
-                              color: "#f44336",
-                              fontSize: "0.875rem",
-                              py: 1.25,
-                            }}
-                          >
-                            Reportar
-                          </MenuItem>
-                          <MenuItem
-                            onClick={() => {
-                              setChatOptionsMenuAnchor(null);
-                              setChatBlockReportDialog(true);
-                            }}
-                            sx={{
-                              color: "#f44336",
-                              fontSize: "0.875rem",
-                              py: 1.25,
-                            }}
-                          >
-                            Bloquear y reportar
-                          </MenuItem>
-                        </>
-                      );
-                    return null; // él me bloqueó: solo ver perfil
+                      return [
+                        <MenuItem key="block"
+                          onClick={() => { setChatOptionsMenuAnchor(null); handleChatBlock(); }}
+                          sx={{ color: mainTextColor, fontSize: "0.875rem", py: 1.25 }}
+                        >
+                          Bloquear
+                        </MenuItem>,
+                        <MenuItem key="report"
+                          onClick={() => { setChatOptionsMenuAnchor(null); setChatOnlyReportDialog(true); }}
+                          sx={{ color: "#f44336", fontSize: "0.875rem", py: 1.25 }}
+                        >
+                          Reportar
+                        </MenuItem>,
+                        <MenuItem key="block-report"
+                          onClick={() => { setChatOptionsMenuAnchor(null); setChatBlockReportDialog(true); }}
+                          sx={{ color: "#f44336", fontSize: "0.875rem", py: 1.25 }}
+                        >
+                          Bloquear y reportar
+                        </MenuItem>,
+                      ];
+                    return null;
                   }
 
                   // SOY ADMIN — chat con ADMIN (normal) o chat con USER (reporte)
@@ -1255,8 +1214,7 @@ export default function ChatsPage() {
                   bottom: 80,
                   left: "50%",
                   transform: "translateX(-50%)",
-                  background: sidebarBg,
-                  border: `1px solid ${dividerColor}`,
+background: theme.name === "dark" ? "#2c2c2c" : sidebarBg,                  border: `1px solid ${dividerColor}`,
                   borderRadius: "20px",
                   px: 2,
                   py: 0.75,
@@ -1332,8 +1290,7 @@ export default function ChatsPage() {
                 sx={{
                   px: 2,
                   py: 0.75,
-                  background: sidebarBg,
-                  borderTop: `1px solid ${dividerColor}`,
+background: theme.name === "dark" ? "#2c2c2c" : sidebarBg,                  borderTop: `1px solid ${dividerColor}`,
                   display: "flex",
                   alignItems: "center",
                   gap: 1,
@@ -1394,8 +1351,7 @@ export default function ChatsPage() {
                 px: 2,
                 py: 1.25,
                 borderTop: `1px solid ${dividerColor}`,
-                background: sidebarBg,
-                display: "flex",
+background: theme.name === "dark" ? "#2c2c2c" : sidebarBg,                display: "flex",
                 alignItems: "center",
                 gap: 1,
                 flexShrink: 0,
@@ -1536,8 +1492,7 @@ export default function ChatsPage() {
         PaperProps={{
           sx: {
             borderRadius: "16px",
-            background: theme.name === "dark" ? "#2c2c2c" : sidebarBg,
-            border: `1px solid ${dividerColor}`,
+background: theme.name === "dark" ? "#2c2c2c" : sidebarBg,            border: `1px solid ${dividerColor}`,
             minWidth: { xs: "90vw", sm: 360 },
           },
         }}
@@ -1619,8 +1574,7 @@ export default function ChatsPage() {
         PaperProps={{
           sx: {
             borderRadius: "16px",
-            background: theme.name === "dark" ? "#2c2c2c" : sidebarBg,
-            border: `1px solid ${dividerColor}`,
+background: theme.name === "dark" ? "#2c2c2c" : sidebarBg,            border: `1px solid ${dividerColor}`,
             minWidth: { xs: "90vw", sm: 360 },
           },
         }}
@@ -1750,7 +1704,7 @@ export default function ChatsPage() {
 
       <Dialog
         open={conversationFinishedDialog}
-        onClose={() => setConversationFinishedDialog(false)}
+        onClose={() => {navigate(location.pathname, { replace: true, state: null }); setConversationFinishedDialog(false)}}
         PaperProps={{
           sx: {
             borderRadius: "16px",
@@ -1785,7 +1739,7 @@ export default function ChatsPage() {
         </DialogContent>
         <DialogActions sx={{ justifyContent: "center", pb: 2.5 }}>
           <Button
-            onClick={() => setConversationFinishedDialog(false)}
+            onClick={() => {navigate(location.pathname, { replace: true, state: null }); setConversationFinishedDialog(false)}}
             variant="contained"
             sx={{
               background: `linear-gradient(135deg, ${accentColor}, ${theme.variantBack})`,
@@ -1807,7 +1761,7 @@ export default function ChatsPage() {
         PaperProps={{
           sx: {
             borderRadius: "16px",
-            background: sidebarBg,
+            background: theme.name === "dark" ? "#2c2c2c" : sidebarBg,
             border: `1px solid ${dividerColor}`,
             minWidth: { xs: "90vw", sm: 320 },
           },
