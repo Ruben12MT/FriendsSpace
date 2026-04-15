@@ -1536,7 +1536,7 @@ export default function ChatsPage() {
         PaperProps={{
           sx: {
             borderRadius: "16px",
-            background: sidebarBg,
+            background: theme.name === "dark" ? "#2c2c2c" : sidebarBg,
             border: `1px solid ${dividerColor}`,
             minWidth: { xs: "90vw", sm: 360 },
           },
@@ -1619,7 +1619,7 @@ export default function ChatsPage() {
         PaperProps={{
           sx: {
             borderRadius: "16px",
-            background: sidebarBg,
+            background: theme.name === "dark" ? "#2c2c2c" : sidebarBg,
             border: `1px solid ${dividerColor}`,
             minWidth: { xs: "90vw", sm: 360 },
           },
