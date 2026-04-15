@@ -4,7 +4,7 @@ import Home from "./pages/Home";
 import ErrorPage from "./pages/ErrorPage";
 import { RouterProvider } from "react-router-dom";
 import UserPage from "./pages/UserPage";
-import { Box, CssBaseline } from "@mui/material";
+import { Box, CssBaseline, ThemeProvider, createTheme } from "@mui/material";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import UserBar from "./components/UserBar";
@@ -22,6 +22,20 @@ import AdminsPage from "./pages/AdminsPage";
 import ChangePasswordPage from "./pages/ChangePasswordPage";
 import { ErrorProvider } from "./context/ErrorContext";
 import ErrorDialog from "./components/ErrorDialog";
+
+const soraTheme = createTheme({
+  typography: {
+    fontFamily: "'Sora', sans-serif",
+  },
+  components: {
+    MuiCssBaseline: {
+      styleOverrides: {
+        "*": { fontFamily: "'Sora', sans-serif" },
+        body: { fontFamily: "'Sora', sans-serif" },
+      },
+    },
+  },
+});
 
 const router = createBrowserRouter([
   {
@@ -65,40 +79,42 @@ const router = createBrowserRouter([
 function App() {
   const theme = useAppTheme();
   return (
-    <Box
-      sx={{
-        minHeight: "100vh",
-        width: "100%",
-        overflowX: "hidden",
-        display: "flex",
-        flexDirection: "column",
-        position: "relative",
-      }}
-    >
-      <AuthProvider>
-        <SocketProvider>
-          <ErrorProvider>
-            <Box
-              sx={{
-                position: "fixed",
-                top: 0,
-                left: 0,
-                width: "100%",
-                height: "100%",
-                zIndex: -2,
-                background: theme.primaryBack,
-                backgroundSize: "cover",
-                backgroundPosition: "center",
-                pointerEvents: "none",
-              }}
-            />
-            <CssBaseline />
-            <RouterProvider router={router} />
-            <ErrorDialog />
-          </ErrorProvider>
-        </SocketProvider>
-      </AuthProvider>
-    </Box>
+    <ThemeProvider theme={soraTheme}>
+      <Box
+        sx={{
+          minHeight: "100vh",
+          width: "100%",
+          overflowX: "hidden",
+          display: "flex",
+          flexDirection: "column",
+          position: "relative",
+        }}
+      >
+        <AuthProvider>
+          <SocketProvider>
+            <ErrorProvider>
+              <Box
+                sx={{
+                  position: "fixed",
+                  top: 0,
+                  left: 0,
+                  width: "100%",
+                  height: "100%",
+                  zIndex: -2,
+                  background: theme.primaryBack,
+                  backgroundSize: "cover",
+                  backgroundPosition: "center",
+                  pointerEvents: "none",
+                }}
+              />
+              <CssBaseline />
+              <RouterProvider router={router} />
+              <ErrorDialog />
+            </ErrorProvider>
+          </SocketProvider>
+        </AuthProvider>
+      </Box>
+    </ThemeProvider>
   );
 }
 

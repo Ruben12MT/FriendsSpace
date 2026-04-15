@@ -28,6 +28,7 @@ function ErrorPage() {
         px: 3,
       }}
     >
+      {/* Fondo decorativo */}
       <Box sx={{
         position: "absolute",
         inset: 0,
@@ -35,6 +36,7 @@ function ErrorPage() {
         pointerEvents: "none",
         zIndex: 0,
       }}>
+        {/* Número gigante de fondo */}
         <Typography sx={{
           position: "absolute",
           top: "50%",
@@ -42,7 +44,7 @@ function ErrorPage() {
           transform: "translate(-50%, -50%)",
           fontSize: { xs: "40vw", md: "28vw" },
           fontWeight: 900,
-          fontFamily: "'Georgia', serif",
+          
           color: isDark ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.04)",
           userSelect: "none",
           lineHeight: 1,
@@ -51,6 +53,7 @@ function ErrorPage() {
           {is404 ? "404" : "!"}
         </Typography>
 
+        {/* Líneas decorativas */}
         <Box sx={{
           position: "absolute",
           top: "15%",
@@ -80,6 +83,7 @@ function ErrorPage() {
         }} />
       </Box>
 
+      {/* Contenido */}
       <Box sx={{
         position: "relative",
         zIndex: 1,
@@ -95,15 +99,16 @@ function ErrorPage() {
           textTransform: "uppercase",
           color: accent,
           mb: 2,
-          fontFamily: "'Georgia', serif",
+          
         }}>
           {is404 ? "Página no encontrada" : "Error del sistema"}
         </Typography>
 
+        {/* Título */}
         <Typography sx={{
           fontSize: { xs: "2rem", md: "2.8rem" },
           fontWeight: 800,
-          fontFamily: "'Georgia', serif",
+          
           color: isDark ? "#f5f0e8" : "#1a1200",
           lineHeight: 1.15,
           mb: 2,
@@ -114,18 +119,20 @@ function ErrorPage() {
             : "Algo ha salido mal"}
         </Typography>
 
+        {/* Descripción */}
         <Typography sx={{
           fontSize: "1rem",
           color: isDark ? "rgba(245,240,232,0.55)" : "rgba(26,18,0,0.5)",
           lineHeight: 1.7,
           mb: 3,
-          fontFamily: "'Georgia', serif",
+          
         }}>
           {is404
             ? "La ruta que buscas no existe o ha sido eliminada. Vuelve al inicio y continúa desde allí."
             : "Ha ocurrido un error inesperado en la aplicación. Puedes intentar volver al inicio."}
         </Typography>
 
+        {/* Detalle técnico */}
         {errorText && (
           <Box sx={{
             mb: 4,
@@ -147,6 +154,7 @@ function ErrorPage() {
           </Box>
         )}
 
+        {/* Botón */}
         <Box>
           <Button
             onClick={() => navigate("/")}
@@ -161,7 +169,7 @@ function ErrorPage() {
               px: 4,
               py: 1.4,
               boxShadow: `0 4px 20px ${accent}40`,
-              fontFamily: "'Georgia', serif",
+              
               letterSpacing: "0.02em",
               "&:hover": {
                 opacity: 0.88,
