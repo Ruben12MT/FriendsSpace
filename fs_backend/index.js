@@ -1,5 +1,5 @@
-if (process.env.NODE_ENV !== 'production') {
-  require('dotenv').config();
+if (process.env.NODE_ENV !== "production") {
+  require("dotenv").config();
 }
 const express = require("express");
 const { createServer } = require("http");
@@ -32,10 +32,12 @@ app.set("socketio", io);
 
 app.use(express.json());
 app.use(cookieParser());
-app.use(cors({
-  origin: FRONTEND_URL,
-  credentials: true,
-}));
+app.use(
+  cors({
+    origin: FRONTEND_URL,
+    credentials: true,
+  }),
+);
 
 io.on("connection", (socket) => {
   console.log("🟢 Usuario conectado al socket:", socket.id);
