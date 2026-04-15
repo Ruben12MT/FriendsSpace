@@ -39,6 +39,7 @@ import LockIcon from "@mui/icons-material/Lock";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import { useAppTheme } from "../hooks/useAppTheme";
 import { useUser } from "../hooks/useUser";
+import { useError } from "../context/ErrorContext";
 import { SocketContext } from "../context/SocketContext";
 import { useLocation, useNavigate } from "react-router-dom";
 import api from "../utils/api";
@@ -53,6 +54,7 @@ const TOPBAR_HEIGHT = "52px";
 export default function ChatsPage() {
   const theme = useAppTheme();
   const { loggedUser } = useUser();
+  const { showError } = useError();
   const { socket } = useContext(SocketContext);
   const { state: navigationState } = useLocation();
   const navigate = useNavigate();
@@ -296,7 +298,7 @@ export default function ChatsPage() {
       setOpenedConversation(null);
       setMessageList([]);
     } catch (error) {
-      console.error(error);
+      showError("No se pudo finalizar la investigación.", "Inténtalo de nuevo más tarde.");
     } finally {
       setFinishInvestigationDialog(false);
     }
@@ -504,7 +506,7 @@ export default function ChatsPage() {
         setMessageBeingEdited(null);
         setMessageInputText("");
       } catch (error) {
-        console.error(error);
+        showError("No se pudo editar el mensaje.", "Inténtalo de nuevo.");
       } finally {
         setIsSendingMessage(false);
       }
@@ -519,7 +521,7 @@ export default function ChatsPage() {
       setMessageInputText("");
       setReplyTargetMessage(null);
     } catch (error) {
-      console.error(error);
+      showError("No se pudo enviar el mensaje.", "Comprueba tu conexión e inténtalo de nuevo.");
     } finally {
       setIsSendingMessage(false);
     }
@@ -561,7 +563,7 @@ export default function ChatsPage() {
     try {
       await api.put(`/connections/${openedConversation.connectionId}/block`);
     } catch (error) {
-      // socket actualizará el estado
+      showError("No se pudo bloquear al usuario.", "Inténtalo de nuevo más tarde.");
     } finally {
       setChatOptionsMenuAnchor(null);
     }
@@ -572,7 +574,7 @@ export default function ChatsPage() {
     try {
       await api.put(`/connections/${openedConversation.connectionId}/activate`);
     } catch (error) {
-      // socket actualizará el estado
+      showError("No se pudo desbloquear al usuario.", "Inténtalo de nuevo más tarde.");
     } finally {
       setChatOptionsMenuAnchor(null);
     }
@@ -599,7 +601,7 @@ export default function ChatsPage() {
       setChatBlockReportDialog(false);
       setChatReportMotivo("");
     } catch (error) {
-      // silencioso
+      showError("No se pudo bloquear y reportar al usuario.", "Inténtalo de nuevo más tarde.");
     } finally {
       setChatReportSending(false);
       setChatOptionsMenuAnchor(null);
@@ -624,7 +626,7 @@ export default function ChatsPage() {
       setChatOnlyReportDialog(false);
       setChatOnlyReportMotivo("");
     } catch (error) {
-      // silencioso
+      showError("No se pudo enviar el reporte.", "Inténtalo de nuevo más tarde.");
     } finally {
       setChatOnlyReportSending(false);
     }
@@ -635,7 +637,7 @@ export default function ChatsPage() {
     try {
       await api.delete(`/messages/${message.id}`);
     } catch (error) {
-      console.error(error);
+      showError("No se pudo eliminar el mensaje.", "Inténtalo de nuevo.");
     }
   };
 

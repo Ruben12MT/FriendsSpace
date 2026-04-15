@@ -11,6 +11,7 @@ import RequestCard from "../components/RequestCard";
 import ConfirmModal from "../components/ConfirmModal";
 import { SocketContext } from "../context/SocketContext";
 import useAuthStore from "../store/useAuthStore";
+import { useError } from "../context/ErrorContext";
 
 export default function RequestsPages() {
   const theme = useAppTheme();
@@ -18,6 +19,7 @@ export default function RequestsPages() {
   const { socket } = useContext(SocketContext);
   const navigate = useNavigate();
   const resetUnread = useAuthStore((state) => state.resetUnread);
+  const { showError } = useError();
 
   const accent = theme.accent || theme.primaryBack;
   const isDark = theme.name === "dark";
@@ -122,7 +124,7 @@ export default function RequestsPages() {
         setAllUserRequests((prev) => prev.filter((r) => r.id !== requestToDelete));
         setAllReports((prev) => prev.filter((r) => r.id !== requestToDelete));
       }
-    } catch (e) { console.error(e); }
+    } catch (e) { showError("No se pudo eliminar la notificación.", "Inténtalo de nuevo más tarde."); }
     finally { setOpenDeleteModal(false); setRequestToDelete(null); }
   };
 
@@ -130,11 +132,11 @@ export default function RequestsPages() {
     if (activeView === "reportes") {
       const reportesAccionados = allReports.filter((r) => r.status !== "PENDING");
       try { await Promise.all(reportesAccionados.map((r) => api.put(`/requests/${r.id}/invisible`))); setAllReports((prev) => prev.filter((r) => r.status === "PENDING")); }
-      catch (e) { console.error(e); } finally { setOpenClearModal(false); }
+      catch (e) { showError("No se pudieron limpiar los reportes.", "Inténtalo de nuevo más tarde."); } finally { setOpenClearModal(false); }
     } else {
       const solicitudesLeidas = allUserRequests.filter((r) => r.status !== "PENDING");
       try { await Promise.all(solicitudesLeidas.map((r) => api.put(`/requests/${r.id}/invisible`))); setAllUserRequests((prev) => prev.filter((r) => r.status === "PENDING")); }
-      catch (e) { console.error(e); } finally { setOpenClearModal(false); }
+      catch (e) { showError("No se pudieron limpiar las notificaciones.", "Inténtalo de nuevo más tarde."); } finally { setOpenClearModal(false); }
     }
   };
 
@@ -149,7 +151,7 @@ export default function RequestsPages() {
         setAllReports(update);
         if (action === "accept" && activeView === "reportes" && connectionId) navigate("/app/chats", { state: { openConnectionId: connectionId } });
       }
-    } catch (e) { console.error(e); }
+    } catch (e) { showError("No se pudo procesar la solicitud.", "Inténtalo de nuevo más tarde."); }
   };
 
   const unreadReports = allReports.filter((r) => isAdmin ? !r.is_read_receiver : !r.is_read_sender).length;

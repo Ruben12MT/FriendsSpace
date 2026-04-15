@@ -20,7 +20,8 @@ import ChatsPage from "./pages/ChatsPage";
 import BannedPage from "./pages/BannedPage";
 import AdminsPage from "./pages/AdminsPage";
 import ChangePasswordPage from "./pages/ChangePasswordPage";
-
+import { ErrorProvider } from "./context/ErrorContext";
+import ErrorDialog from "./components/ErrorDialog";
 
 const router = createBrowserRouter([
   {
@@ -56,8 +57,7 @@ const router = createBrowserRouter([
       { path: "requests", element: <RequestsPages /> },
       { path: ":id", element: <UserPage /> },
       { path: "user/edit", element: <EditUserPage /> },
-            { path: "user/changePassword", element: <ChangePasswordPage /> },
-
+      { path: "user/changePassword", element: <ChangePasswordPage /> },
     ],
   },
 ]);
@@ -77,22 +77,25 @@ function App() {
     >
       <AuthProvider>
         <SocketProvider>
-          <Box
-            sx={{
-              position: "fixed",
-              top: 0,
-              left: 0,
-              width: "100%",
-              height: "100%",
-              zIndex: -2,
-              background: theme.primaryBack,
-              backgroundSize: "cover",
-              backgroundPosition: "center",
-              pointerEvents: "none",
-            }}
-          />
-          <CssBaseline />
-          <RouterProvider router={router} />
+          <ErrorProvider>
+            <Box
+              sx={{
+                position: "fixed",
+                top: 0,
+                left: 0,
+                width: "100%",
+                height: "100%",
+                zIndex: -2,
+                background: theme.primaryBack,
+                backgroundSize: "cover",
+                backgroundPosition: "center",
+                pointerEvents: "none",
+              }}
+            />
+            <CssBaseline />
+            <RouterProvider router={router} />
+            <ErrorDialog />
+          </ErrorProvider>
         </SocketProvider>
       </AuthProvider>
     </Box>

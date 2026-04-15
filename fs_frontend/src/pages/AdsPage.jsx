@@ -7,10 +7,12 @@ import { useUser } from "../hooks/useUser";
 import api from "../utils/api";
 import FormAdCard from "../components/FormAdCard";
 import ConfirmModal from "../components/ConfirmModal";
+import { useError } from "../context/ErrorContext";
 import MainSearchBar from "../components/MainSearchBar";
 
 export default function AdsPage() {
   const { loggedUser } = useUser();
+  const { showError } = useError();
   const theme = useAppTheme();
   const accent = theme.accent || theme.primaryBack;
 
@@ -123,8 +125,7 @@ export default function AdsPage() {
       setAds((prev) => prev.filter((a) => a.id !== confirmDelete.adId));
       setConfirmDelete({ open: false, adId: null });
     } catch (error) {
-      setToast({ open: true, message: "Error al eliminar el anuncio" });
-      setTimeout(() => setToast({ open: false, message: "" }), 5000);
+      showError("No se pudo eliminar el anuncio.", "Inténtalo de nuevo más tarde.");
       setConfirmDelete({ open: false, adId: null });
     }
   };

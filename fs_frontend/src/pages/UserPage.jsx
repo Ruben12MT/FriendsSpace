@@ -30,6 +30,7 @@ import {
 } from "@mui/icons-material";
 import { useUser } from "../hooks/useUser";
 import { useAppTheme } from "../hooks/useAppTheme";
+import { useError } from "../context/ErrorContext";
 import api from "../utils/api";
 import { SocketContext } from "../context/SocketContext";
 import InterestItem from "../components/InterestItem";
@@ -39,6 +40,7 @@ export default function UserPage() {
   const { id: visitedUserId } = useParams();
   const navigate = useNavigate();
   const { loggedUser } = useUser();
+  const { showError } = useError();
   const { socket } = useContext(SocketContext);
   const theme = useAppTheme();
 
@@ -267,6 +269,10 @@ export default function UserPage() {
       }
       await refreshButtonState();
     } catch (e) {
+      showError(
+        e.response?.data?.mensaje || "No se pudo completar la acción.",
+        "Inténtalo de nuevo más tarde."
+      );
     } finally {
       setIsButtonLoading(false);
     }
@@ -289,6 +295,10 @@ export default function UserPage() {
       setBlockReportMotivo("");
       await refreshButtonState();
     } catch (e) {
+      showError(
+        e.response?.data?.mensaje || "No se pudo bloquear y reportar al usuario.",
+        "Inténtalo de nuevo más tarde."
+      );
     } finally {
       setBlockReportSending(false);
     }
@@ -309,6 +319,10 @@ export default function UserPage() {
       setOnlyReportDialog(false);
       setOnlyReportMotivo("");
     } catch (e) {
+      showError(
+        e.response?.data?.mensaje || "No se pudo enviar el reporte.",
+        "Inténtalo de nuevo más tarde."
+      );
     } finally {
       setOnlyReportSending(false);
     }
@@ -845,7 +859,10 @@ export default function UserPage() {
               await api.put(`/requests/${pendingRequestData.id}/reject`);
               await refreshButtonState();
             } catch (e) {
-              console.error(e);
+              showError(
+                "No se pudo rechazar la solicitud.",
+                "Inténtalo de nuevo más tarde."
+              );
             }
           }
         }}

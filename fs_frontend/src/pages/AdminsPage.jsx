@@ -21,6 +21,7 @@ import UserCard from "../components/UserCard";
 import MainSearchBar from "../components/MainSearchBar";
 import api from "../utils/api";
 import { useUser } from "../hooks/useUser";
+import { useError } from "../context/ErrorContext";
 
 export default function AdminsPage() {
   const theme = useAppTheme();
@@ -28,6 +29,7 @@ export default function AdminsPage() {
   const isDark = theme.name === "dark";
   const { loggedUser } = useUser();
   const isDeveloper = loggedUser?.role === "DEVELOPER";
+  const { showError } = useError();
 
   const [adminList, setAdminList] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -65,7 +67,7 @@ export default function AdminsPage() {
           setPage(pageNum);
         }
       } catch (err) {
-        console.error(err);
+        showError("No se pudieron cargar los administradores.", "Comprueba tu conexión e inténtalo de nuevo.");
       } finally {
         setIsLoading(false);
         setIsLoadingMore(false);
