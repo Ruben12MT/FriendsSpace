@@ -1,24 +1,24 @@
-// config/sequelize.js
 const { Sequelize } = require('sequelize');
 
-// Instanciar sequelize  para conectar a mysql
-const sequelize = new Sequelize('FriendsSpace', // nombre bd
-    'root',  // usuario 
-    'test', // password 
-    { // objeto con opciones de conexion
-        host: 'localhost', // Cambia esto por la dirección del servidor MySQL
-        port: 3306, // Cambia esto por el puerto del servidor MySql
-        dialect: 'mysql' // Especificar el dialecto de la base de datos
-    });
+const sequelize = new Sequelize(
+  process.env.DB_NAME,
+  process.env.DB_USER,
+  process.env.DB_PASSWORD,
+  {
+    host: process.env.DB_HOST,
+    port: process.env.DB_PORT || 3306,
+    dialect: 'mysql',
+    logging: process.env.NODE_ENV === 'production' ? false : console.log,
+  }
+);
 
-// Probar la conexión
 (async () => {
-    try {
-        await sequelize.authenticate();
-        console.log('Conexión exitosa a la base de datos MySQL');
-    } catch (error) {
-        console.error('Error de conexión:', error);
-    }
+  try {
+    await sequelize.authenticate();
+    console.log('Conexión exitosa a la base de datos MySQL');
+  } catch (error) {
+    console.error('Error de conexión:', error);
+  }
 })();
 
-module.exports = sequelize; // Exportar la instancia de Sequelize para usarla en otros archivos
+module.exports = sequelize;

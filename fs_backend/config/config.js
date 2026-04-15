@@ -1,5 +1,5 @@
-const SECRET_JWT_KEY = "tu_clave_super_secreta";
+const SECRET_JWT_KEY = process.env.JWT_SECRET;
 
 module.exports = {
   SECRET_JWT_KEY
-}; 
+};
