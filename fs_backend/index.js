@@ -19,25 +19,28 @@ const app = express();
 const port = process.env.PORT || 3000;
 const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:5173";
 
+const corsOptions = {
+  origin: function (origin, callback) {
+    if (!origin || origin === FRONTEND_URL || origin.endsWith(".vercel.app") || origin === "http://localhost:5173") {
+      callback(null, true);
+    } else {
+      callback(new Error("No permitido por CORS"));
+    }
+  },
+  credentials: true,
+};
+
 const httpServer = createServer(app);
 
 const io = new Server(httpServer, {
-  cors: {
-    origin: FRONTEND_URL,
-    credentials: true,
-  },
+  cors: corsOptions,
 });
 
 app.set("socketio", io);
 
 app.use(express.json());
 app.use(cookieParser());
-app.use(
-  cors({
-    origin: FRONTEND_URL,
-    credentials: true,
-  }),
-);
+app.use(cors(corsOptions));
 
 io.on("connection", (socket) => {
   console.log("🟢 Usuario conectado al socket:", socket.id);
