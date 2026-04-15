@@ -8,7 +8,7 @@ import { useAppTheme } from "../hooks/useAppTheme";
 import GroupsIcon from "@mui/icons-material/Groups";
 import ForumIcon from "@mui/icons-material/Forum";
 import SearchIcon from "@mui/icons-material/Search";
-import ThemeToggler from "../components/themeToggler";
+import ThemeToggler from "../components/ThemeToggler";
 import BackgroundVideo from "../components/BackgroundVideo";
 import { checkSession } from "../utils/checkSession";
 
