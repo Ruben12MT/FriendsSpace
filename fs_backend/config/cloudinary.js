@@ -9,7 +9,7 @@ cloudinary.config({
 });
 
 const avatarStorage = new CloudinaryStorage({
-  cloudinary,
+  cloudinary: cloudinary,
   params: {
     folder: "friendsspace/avatars",
     allowed_formats: ["jpg", "jpeg", "png", "webp"],
@@ -18,7 +18,7 @@ const avatarStorage = new CloudinaryStorage({
 });
 
 const chatStorage = new CloudinaryStorage({
-  cloudinary,
+  cloudinary: cloudinary,
   params: async (req, file) => {
     const mime = file.mimetype || "";
     const esVideo = mime.startsWith("video/");
@@ -27,7 +27,7 @@ const chatStorage = new CloudinaryStorage({
 
     return {
       folder: "friendsspace/chats",
-      resource_type: esVideo ? "video" : esAudio ? "video" : esImagen ? "image" : "raw",
+      resource_type: esVideo || esAudio ? "video" : esImagen ? "image" : "raw",
       ...(esVideo && {
         transformation: [{ quality: "auto:low", fetch_format: "mp4" }],
       }),
