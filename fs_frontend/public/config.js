@@ -1,3 +1,3 @@
 window.__APP_CONFIG__ = {
-  API_URL: "http://localhost:3000/api"
+  API_URL: "https://friendsspace-production.up.railway.app/api"
 };
