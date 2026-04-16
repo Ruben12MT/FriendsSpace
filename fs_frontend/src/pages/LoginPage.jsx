@@ -177,7 +177,7 @@ export default function LoginPage() {
                 lineHeight: 1.2,
               }}
             >
-              Bienvenido de nuevo
+              Bienvenido amigo
             </Typography>
             <Typography
               sx={{ fontSize: "0.875rem", color: textMuted, mt: 0.5 }}

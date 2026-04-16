@@ -4,7 +4,7 @@ import Home from "./pages/Home";
 import ErrorPage from "./pages/ErrorPage";
 import { RouterProvider } from "react-router-dom";
 import UserPage from "./pages/UserPage";
-import { Box, CssBaseline } from "@mui/material";
+import { Box, createTheme, CssBaseline, ThemeProvider } from "@mui/material";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import UserBar from "./components/UserBar";
@@ -64,41 +64,56 @@ const router = createBrowserRouter([
 
 function App() {
   const theme = useAppTheme();
+  const nunitoTheme = createTheme({
+  typography: {
+    fontFamily: "'Nunito', sans-serif",
+  },
+  components: {
+    MuiCssBaseline: {
+      styleOverrides: {
+        "*": { fontFamily: "'Nunito', sans-serif" },
+        body: { fontFamily: "'Nunito', sans-serif" },
+      },
+    },
+  },
+});
   return (
-    <Box
-      sx={{
-        minHeight: "100vh",
-        width: "100%",
-        overflowX: "hidden",
-        display: "flex",
-        flexDirection: "column",
-        position: "relative",
-      }}
-    >
-      <AuthProvider>
-        <SocketProvider>
-          <ErrorProvider>
-            <Box
-              sx={{
-                position: "fixed",
-                top: 0,
-                left: 0,
-                width: "100%",
-                height: "100%",
-                zIndex: -2,
-                background: theme.primaryBack,
-                backgroundSize: "cover",
-                backgroundPosition: "center",
-                pointerEvents: "none",
-              }}
-            />
-            <CssBaseline />
-            <RouterProvider router={router} />
-            <ErrorDialog />
-          </ErrorProvider>
-        </SocketProvider>
-      </AuthProvider>
-    </Box>
+    <ThemeProvider theme={nunitoTheme}>
+      <Box
+        sx={{
+          minHeight: "100vh",
+          width: "100%",
+          overflowX: "hidden",
+          display: "flex",
+          flexDirection: "column",
+          position: "relative",
+        }}
+      >
+        <AuthProvider>
+          <SocketProvider>
+            <ErrorProvider>
+              <Box
+                sx={{
+                  position: "fixed",
+                  top: 0,
+                  left: 0,
+                  width: "100%",
+                  height: "100%",
+                  zIndex: -2,
+                  background: theme.primaryBack,
+                  backgroundSize: "cover",
+                  backgroundPosition: "center",
+                  pointerEvents: "none",
+                }}
+              />
+              <CssBaseline />
+              <RouterProvider router={router} />
+              <ErrorDialog />
+            </ErrorProvider>
+          </SocketProvider>
+        </AuthProvider>
+      </Box>
+    </ThemeProvider>
   );
 }
 

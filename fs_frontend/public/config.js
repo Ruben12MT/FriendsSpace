@@ -12,8 +12,8 @@
  */
 window.__APP_CONFIG__ = {
   // URL de la API en producción
-  API_URL: "https://friendsspace-production.up.railway.app/api"
+  // API_URL: "https://friendsspace-production.up.railway.app/api"
 
   // URL de la API en desarrollo
-  //API_URL: "http://localhost:3000/api",
+  API_URL: "http://localhost:3000/api",
 };

@@ -30,7 +30,6 @@ export default function Home() {
 
   return (
     <Box sx={{ position: "relative", minHeight: "100vh" }}>
-      <ThemeToggler />
 
       {theme.backgroundVideo && (
         <BackgroundVideo
@@ -57,6 +56,8 @@ export default function Home() {
           </Box>
 
           <Stack direction="row" alignItems="center" spacing={2}>
+                <ThemeToggler block={true} />
+
             {isAuth ? (
               <Button
                 onClick={() => navigate("/app/searchnewfriends")}
@@ -83,7 +84,7 @@ export default function Home() {
                   "&:hover": { bgcolor: `${accent}15`, borderColor: accent, transform: "translateY(-2px)" },
                 }}
               >
-                Log In
+                Iniciar sesión
               </Button>
             )}
           </Stack>
@@ -94,12 +95,12 @@ export default function Home() {
             <Box>
               <Typography sx={{
                 color: accent, fontWeight: 950,
-                fontSize: { xs: "3.5rem", md: "6rem", lg: "8rem" },
+                fontSize: { xs: "3rem", md: "6rem", lg: "8rem" },
                 lineHeight: 0.85, letterSpacing: -4, mb: 2,
                 textShadow: isDark ? "0 10px 30px rgba(0,0,0,0.5)" : "none",
               }}>
-                TUS GUSTOS. <br />
-                <span style={{ color: theme.primaryText }}>TU GENTE.</span>
+                UNA GALAXIA. <br />
+                <span style={{ color: theme.primaryText }}>LLENA DE AMIGOS.</span>
               </Typography>
 
               <Typography variant="h5" sx={{
@@ -107,7 +108,7 @@ export default function Home() {
                 maxWidth: "550px", borderLeft: `4px solid ${accent}`,
                 pl: 3, lineHeight: 1.4, backdropFilter: "blur(4px)", py: 1,
               }}>
-                Conecta con personas reales que comparten tu misma energía. La red social donde los intereses importan más que el scroll.
+                Conecta con personas reales que comparten tu misma energía. La red social donde tus intereses importan más que el scroll.
               </Typography>
 
               <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
@@ -152,7 +153,7 @@ export default function Home() {
         <Container maxWidth="lg">
           <Grid container spacing={3}>
             {[
-              { title: "DESCUBRE", desc: "Filtros inteligentes basados en tus pasiones y hobbies reales.", icon: <SearchIcon fontSize="large" /> },
+              { title: "DESCUBRE", desc: "Aquí es más facil encontrar personas afines a ti.", icon: <SearchIcon fontSize="large" /> },
               { title: "CHATEA", desc: "Conecta al instante mediante mensajería en tiempo real.", icon: <ForumIcon fontSize="large" /> },
               { title: "CONECTA", desc: "Una comunidad segura para expandir tu círculo social.", icon: <GroupsIcon fontSize="large" /> },
             ].map((item, index) => (
@@ -182,7 +183,7 @@ export default function Home() {
           }}>
             <Avatar src="/logo.png" sx={{ width: 240, height: 240, position: "absolute", bottom: -60, right: -60, opacity: 0.07, transform: "rotate(-15deg)", pointerEvents: "none" }} />
             <Typography variant="h2" sx={{ color: theme.primaryText, fontWeight: 950, mb: 4, fontSize: { xs: "2.5rem", md: "4.5rem" }, letterSpacing: -2 }}>
-              ENCUENTRA TU <span style={{ color: accent }}>ESPACIO</span>.
+              ENCUENTRA TU <span style={{ color: accent}}>ESPACIO</span>.
             </Typography>
             <Button
               component={isAuth ? undefined : Link}
