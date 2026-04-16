@@ -339,7 +339,7 @@ export default function ChatsPage() {
 
   useEffect(() => {
     if (!socket) return;
-    const onInvestigacionFinalizada = ({ connectionId }) => {
+    const onInvestigacionFinalizada = ({ connectionId, esReporte }) => {
       setConversationList((prev) =>
         prev.filter((c) => c.connectionId !== connectionId),
       );
@@ -350,7 +350,7 @@ export default function ChatsPage() {
         }
         return prev;
       });
-      setReportClosedDialog(true);
+      if (esReporte) setReportClosedDialog(true);
     };
     const onReporteAceptado = ({ connectionId }) => {
       api
@@ -365,16 +365,9 @@ export default function ChatsPage() {
     };
     const onIncomingMessage = (payload) => {
       const newMessage = payload.data || payload;
-      setMessageList((prev) => {
-        if (prev.find((m) => m.id === newMessage.id)) return prev;
-        return [...prev, newMessage];
-      });
-      if (isAtBottom()) {
-        setTimeout(() => scrollToBottom("smooth"), 50);
-      } else {
-        setHasNewMessage(true);
-      }
       const connectionId = newMessage.connection_id;
+
+      // Actualizar último mensaje en la lista siempre
       if (connectionId)
         setConversationList((prev) =>
           prev.map((c) =>
@@ -383,6 +376,21 @@ export default function ChatsPage() {
               : c,
           ),
         );
+
+      // Solo añadir al chat abierto si el mensaje pertenece a esa conversación
+      setOpenedConversation((currentConv) => {
+        if (currentConv?.connectionId !== connectionId) return currentConv;
+        setMessageList((prev) => {
+          if (prev.find((m) => m.id === newMessage.id)) return prev;
+          return [...prev, newMessage];
+        });
+        if (isAtBottom()) {
+          setTimeout(() => scrollToBottom("smooth"), 50);
+        } else {
+          setHasNewMessage(true);
+        }
+        return currentConv;
+      });
     };
     const onEditedMessage = (payload) => {
       const editedMessage = payload.data || payload;

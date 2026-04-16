@@ -143,6 +143,10 @@ class UserController {
       const usuarioBuscado = await userService.getUserById(req.params.id);
       if (!usuarioBuscado) return res.status(404).json({ ok: false, mensaje: "Usuario no encontrado" });
       const { password, ...usuarioLimpio } = usuarioBuscado;
+      // Solo devolver email si es el propio usuario
+      if (!req.user || String(req.user.id) !== String(req.params.id)) {
+        delete usuarioLimpio.email;
+      }
       return res.status(200).json({ ok: true, usuario: usuarioLimpio });
     } catch (err) {
       res.status(500).json({ ok: false, mensaje: "Error al buscar usuario" });

@@ -60,6 +60,7 @@ class ConnectionController {
         if (otherUserId) {
           io.to(`user_${otherUserId}`).emit("investigacion_finalizada", {
             connectionId: Number(connectionId),
+            esReporte: esAdmin,
           });
         }
       }

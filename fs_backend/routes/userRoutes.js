@@ -15,7 +15,7 @@ router.get("/", userController.getAllUsers);
 router.get("/admins", validarToken, verificarRol("DEVELOPER", "ADMIN"), userController.getAllAdmins);
 router.post("/create-admin", validarToken, verificarRol("DEVELOPER"), userController.createAdmin);
 router.get("/search/:emailorusername", userController.getUserByEmailOrUsername);
-router.get("/:id", userController.getUserById);
+router.get("/:id", validarToken, userController.getUserById);
 
 router.put("/:id", validarToken, userController.updateUser);
 router.put("/:id/avatar", validarToken, uploadAvatar.single("avatar"), userController.updateAvatar);
