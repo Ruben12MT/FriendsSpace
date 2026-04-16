@@ -273,16 +273,11 @@ export default function UserBar() {
               <Avatar src="/logo.png" sx={{ width: 30, height: 30 }} />
             </Box>
             <Typography
-              onClick={() => navigate("/")}
+              variant="h6"
               sx={{
-                fontFamily: "monospace",
-                fontWeight: 700,
-                fontSize: "0.95rem",
-                color: fg,
-                letterSpacing: "0.06em",
-                cursor: "pointer",
-                userSelect: "none",
-                "&:hover": { color: accent },
+                color: theme.primaryText,
+                fontWeight: 900,
+                letterSpacing: -1,
               }}
             >
               Friends Space
