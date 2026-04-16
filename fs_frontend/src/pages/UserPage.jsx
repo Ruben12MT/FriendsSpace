@@ -54,7 +54,7 @@ export default function UserPage() {
   const [userInterests, setUserInterests] = useState([]);
   const [activeConnectionId, setActiveConnectionId] = useState(null);
   const [pendingRequestData, setPendingRequestData] = useState(null);
-  const [isButtonLoading, setIsButtonLoading] = useState(false);
+  const [isButtonLoading, setIsButtonLoading] = useState(true);
   const [isFriend, setIsFriend] = useState(false);
   const [iBlockedThem, setIBlockedThem] = useState(false);
   const [isBanned, setIsBanned] = useState(false);
@@ -73,27 +73,30 @@ export default function UserPage() {
 
   const isMoreOptionsOpen = Boolean(moreOptionsAnchor);
 
-  const myRole   = loggedUser?.role;
+  const myRole = loggedUser?.role;
   const theirRole = visitedUser?.role;
 
-  const visitedUserIsAdminOrDev = theirRole === "ADMIN" || theirRole === "DEVELOPER";
+  const visitedUserIsAdminOrDev =
+    theirRole === "ADMIN" || theirRole === "DEVELOPER";
   const currentUserIsAdminOrDev = myRole === "ADMIN" || myRole === "DEVELOPER";
-  const loggedUserIsNormalUser  = myRole === "USER";
+  const loggedUserIsNormalUser = myRole === "USER";
 
-  const iAmUser  = myRole === "USER";
+  const iAmUser = myRole === "USER";
   const iAmAdmin = myRole === "ADMIN";
-  const iAmDev   = myRole === "DEVELOPER";
-  const theyAreUser  = theirRole === "USER";
+  const iAmDev = myRole === "DEVELOPER";
+  const theyAreUser = theirRole === "USER";
   const theyAreAdmin = theirRole === "ADMIN";
-  const theyAreDev   = theirRole === "DEVELOPER";
+  const theyAreDev = theirRole === "DEVELOPER";
 
   // Acciones permitidas según tabla de reglas
-  const canSendRequest    = (iAmUser && theyAreUser) || (iAmAdmin && theyAreAdmin);
-  const canDeleteFriend   = (iAmUser && theyAreUser) || (iAmAdmin && theyAreAdmin);
-  const canBlock          = (iAmUser && theyAreUser) || (iAmAdmin && theyAreAdmin);
+  const canSendRequest = (iAmUser && theyAreUser) || (iAmAdmin && theyAreAdmin);
+  const canDeleteFriend =
+    (iAmUser && theyAreUser) || (iAmAdmin && theyAreAdmin);
+  const canBlock = (iAmUser && theyAreUser) || (iAmAdmin && theyAreAdmin);
   const canBlockAndReport = iAmUser && theyAreUser;
-  const canReport         = iAmUser && theyAreUser;
-  const canBan            = (iAmAdmin && theyAreUser) || (iAmDev && (theyAreUser || theyAreAdmin));
+  const canReport = iAmUser && theyAreUser;
+  const canBan =
+    (iAmAdmin && theyAreUser) || (iAmDev && (theyAreUser || theyAreAdmin));
   // DEV visitando ADMIN: conexión permanente, sin botón primario ni menú de amistad
   const isDevVisitingAdmin = iAmDev && theyAreAdmin;
 
@@ -112,6 +115,7 @@ export default function UserPage() {
 
   const refreshButtonState = useCallback(async () => {
     if (isOwnProfile) return;
+    let newButton = primaryButton;
     try {
       setIsButtonLoading(true);
       if (visitedUserIsAdminOrDev && loggedUserIsNormalUser) {
@@ -136,15 +140,13 @@ export default function UserPage() {
           const blockedByMe = friendship.blocked_by === loggedUser.id;
           setIsFriend(false);
           setIBlockedThem(blockedByMe);
-          setPrimaryButton(
-            blockedByMe
-              ? { text: "Desbloquear usuario", type: "UNBLOCK" }
-              : { text: "Usuario no disponible", type: "NONE" },
-          );
+          newButton = blockedByMe
+            ? { text: "Desbloquear usuario", type: "UNBLOCK" }
+            : { text: "Usuario no disponible", type: "NONE" };
         } else {
           setIsFriend(true);
           setIBlockedThem(false);
-          setPrimaryButton({ text: "Enviar mensaje", type: "MESSAGE" });
+          newButton = { text: "Enviar mensaje", type: "MESSAGE" };
         }
       } else {
         setIsFriend(false);
@@ -153,16 +155,18 @@ export default function UserPage() {
         );
         if (pending.exists) {
           setPendingRequestData(pending.data);
-          setPrimaryButton(
+          newButton =
             pending.type === "SENT"
               ? { text: "Solicitud Pendiente", type: "NONE" }
-              : { text: "Responder Solicitud", type: "ACCEPT" },
-          );
-        } else setPrimaryButton({ text: "Enviar Solicitud", type: "SEND" });
+              : { text: "Responder Solicitud", type: "ACCEPT" };
+        } else {
+          newButton = { text: "Enviar Solicitud", type: "SEND" };
+        }
       }
     } catch (e) {
       console.error(e);
     } finally {
+      setPrimaryButton(newButton); // se actualiza al final, cuando ya terminó
       setIsButtonLoading(false);
     }
   }, [
@@ -271,7 +275,7 @@ export default function UserPage() {
     } catch (e) {
       showError(
         e.response?.data?.mensaje || "No se pudo completar la acción.",
-        "Inténtalo de nuevo más tarde."
+        "Inténtalo de nuevo más tarde.",
       );
     } finally {
       setIsButtonLoading(false);
@@ -296,8 +300,9 @@ export default function UserPage() {
       await refreshButtonState();
     } catch (e) {
       showError(
-        e.response?.data?.mensaje || "No se pudo bloquear y reportar al usuario.",
-        "Inténtalo de nuevo más tarde."
+        e.response?.data?.mensaje ||
+          "No se pudo bloquear y reportar al usuario.",
+        "Inténtalo de nuevo más tarde.",
       );
     } finally {
       setBlockReportSending(false);
@@ -321,7 +326,7 @@ export default function UserPage() {
     } catch (e) {
       showError(
         e.response?.data?.mensaje || "No se pudo enviar el reporte.",
-        "Inténtalo de nuevo más tarde."
+        "Inténtalo de nuevo más tarde.",
       );
     } finally {
       setOnlyReportSending(false);
@@ -334,31 +339,31 @@ export default function UserPage() {
         title: "Enviar solicitud",
         msg: (
           <Box sx={{ pt: 1 }}>
-  <Typography mb={2} sx={{ color: theme.primaryText }}>
-    Mensaje para @{visitedUser.name}:
-  </Typography>
-  <TextField
-    fullWidth
-    multiline
-    rows={3}
-    value={requestBodyText}
-    onChange={(e) => setRequestBodyText(e.target.value)}
-    sx={{
-      "& .MuiOutlinedInput-root": {
-        borderRadius: "10px",
-        background: theme.tertiaryBack,
-        color: theme.primaryText,
-        "& fieldset": { borderColor: `${accent}40` },
-        "&:hover fieldset": { borderColor: accent },
-        "&.Mui-focused fieldset": { borderColor: accent },
-      },
-      "& .MuiInputBase-input": {
-        color: theme.primaryText,
-        fontSize: "0.875rem",
-      },
-    }}
-  />
-</Box>
+            <Typography mb={2} sx={{ color: theme.primaryText }}>
+              Mensaje para @{visitedUser.name}:
+            </Typography>
+            <TextField
+              fullWidth
+              multiline
+              rows={3}
+              value={requestBodyText}
+              onChange={(e) => setRequestBodyText(e.target.value)}
+              sx={{
+                "& .MuiOutlinedInput-root": {
+                  borderRadius: "10px",
+                  background: theme.tertiaryBack,
+                  color: theme.primaryText,
+                  "& fieldset": { borderColor: `${accent}40` },
+                  "&:hover fieldset": { borderColor: accent },
+                  "&.Mui-focused fieldset": { borderColor: accent },
+                },
+                "& .MuiInputBase-input": {
+                  color: theme.primaryText,
+                  fontSize: "0.875rem",
+                },
+              }}
+            />
+          </Box>
         ),
       },
       ACCEPT: {
@@ -459,8 +464,14 @@ export default function UserPage() {
           textAlign: "center",
         }}
       >
-
-<PersonOffIcon sx={{ fontSize: { xs: 64, md: 96 }, color: theme.mutedText, opacity: 0.4 }} />        <Typography
+        <PersonOffIcon
+          sx={{
+            fontSize: { xs: 64, md: 96 },
+            color: theme.mutedText,
+            opacity: 0.4,
+          }}
+        />{" "}
+        <Typography
           sx={{
             fontWeight: 800,
             fontSize: { xs: "1.5rem", md: "2rem" },
@@ -584,7 +595,13 @@ export default function UserPage() {
                             <Button
                               variant="contained"
                               disabled={isButtonLoading}
-                              onClick={() => navigate("/app/chats", { state: { openConnectionId: activeConnectionId } })}
+                              onClick={() =>
+                                navigate("/app/chats", {
+                                  state: {
+                                    openConnectionId: activeConnectionId,
+                                  },
+                                })
+                              }
                               sx={{
                                 background: `linear-gradient(135deg, ${accent}, ${theme.variantBack || accent})`,
                                 color: isDark ? "#1a1200" : "#ffffff",
@@ -596,18 +613,32 @@ export default function UserPage() {
                                 fontSize: { xs: "0.78rem", md: "0.875rem" },
                               }}
                             >
-                              {isButtonLoading ? <CircularProgress size={20} sx={{ color: "inherit" }} /> : "Enviar mensaje"}
+                              {isButtonLoading ? (
+                                <CircularProgress
+                                  size={20}
+                                  sx={{ color: "inherit" }}
+                                />
+                              ) : (
+                                "Enviar mensaje"
+                              )}
                             </Button>
                           )}
                           {/* Resto de acciones: solo si no es DEV visitando ADMIN y el rol lo permite */}
-                          {!isDevVisitingAdmin && primaryButton.type !== "MESSAGE" && (
+                          {!isDevVisitingAdmin &&
+                            primaryButton.type !== "MESSAGE" &&
                             (primaryButton.type === "UNBLOCK" ||
-                              (primaryButton.type === "NONE" && (canSendRequest || isFriend)) ||
-                              (primaryButton.type === "SEND" && canSendRequest) ||
-                              (primaryButton.type === "ACCEPT" && canSendRequest)) && (
+                              (primaryButton.type === "NONE" &&
+                                (canSendRequest || isFriend)) ||
+                              (primaryButton.type === "SEND" &&
+                                canSendRequest) ||
+                              (primaryButton.type === "ACCEPT" &&
+                                canSendRequest)) && (
                               <Button
                                 variant="contained"
-                                disabled={isButtonLoading || primaryButton.type === "NONE"}
+                                disabled={
+                                  isButtonLoading ||
+                                  primaryButton.type === "NONE"
+                                }
                                 onClick={() => {
                                   setConfirmModalMode(primaryButton.type);
                                   setIsConfirmModalOpen(true);
@@ -620,22 +651,38 @@ export default function UserPage() {
                                   fontWeight: 600,
                                   boxShadow: `0 4px 12px ${accent}40`,
                                   "&:hover": { opacity: 0.9 },
-                                  "&.Mui-disabled": { background: theme.tertiaryBack, color: theme.mutedText },
+                                  "&.Mui-disabled": {
+                                    background: theme.tertiaryBack,
+                                    color: theme.mutedText,
+                                  },
                                   fontSize: { xs: "0.78rem", md: "0.875rem" },
                                 }}
                               >
-                                {isButtonLoading ? <CircularProgress size={20} sx={{ color: "inherit" }} /> : primaryButton.text}
+                                {isButtonLoading ? (
+                                  <CircularProgress
+                                    size={20}
+                                    sx={{ color: "inherit" }}
+                                  />
+                                ) : (
+                                  primaryButton.text
+                                )}
                               </Button>
-                            )
-                          )}
+                            )}
                         </>
                       )}
                       {/* Menú de tres puntos */}
                       {(isFriend || iBlockedThem || canBan) && (
                         <>
                           <IconButton
-                            onClick={(e) => setMoreOptionsAnchor(e.currentTarget)}
-                            sx={{ border: `1px solid ${accent}25`, borderRadius: "8px", color: theme.mutedText, "&:hover": { color: accent } }}
+                            onClick={(e) =>
+                              setMoreOptionsAnchor(e.currentTarget)
+                            }
+                            sx={{
+                              border: `1px solid ${accent}25`,
+                              borderRadius: "8px",
+                              color: theme.mutedText,
+                              "&:hover": { color: accent },
+                            }}
                           >
                             <MoreVertIcon />
                           </IconButton>
@@ -643,22 +690,45 @@ export default function UserPage() {
                             anchorEl={moreOptionsAnchor}
                             open={isMoreOptionsOpen}
                             onClose={() => setMoreOptionsAnchor(null)}
-                            PaperProps={{ sx: { minWidth: 180, borderRadius: "12px", background: theme.secondaryBack, border: `1px solid ${accent}20` } }}
+                            PaperProps={{
+                              sx: {
+                                minWidth: 180,
+                                borderRadius: "12px",
+                                background: theme.secondaryBack,
+                                border: `1px solid ${accent}20`,
+                              },
+                            }}
                           >
                             {/* Eliminar amigo: visible si son amigos O si yo le bloqueé */}
-                            {(isFriend || iBlockedThem) && !isBanned && canDeleteFriend && (
-                              <MenuItem
-                                onClick={() => { setConfirmModalMode("DELETE_FRIEND"); setIsConfirmModalOpen(true); setMoreOptionsAnchor(null); }}
-                                sx={{ color: theme.primaryText, "&:hover": { color: accent } }}
-                              >
-                                Eliminar amigo
-                              </MenuItem>
-                            )}
+                            {(isFriend || iBlockedThem) &&
+                              !isBanned &&
+                              canDeleteFriend && (
+                                <MenuItem
+                                  onClick={() => {
+                                    setConfirmModalMode("DELETE_FRIEND");
+                                    setIsConfirmModalOpen(true);
+                                    setMoreOptionsAnchor(null);
+                                  }}
+                                  sx={{
+                                    color: theme.primaryText,
+                                    "&:hover": { color: accent },
+                                  }}
+                                >
+                                  Eliminar amigo
+                                </MenuItem>
+                              )}
                             {/* Bloquear: solo si son amigos (sin bloqueo activo) */}
                             {isFriend && !isBanned && canBlock && (
                               <MenuItem
-                                onClick={() => { setConfirmModalMode("BLOCK"); setIsConfirmModalOpen(true); setMoreOptionsAnchor(null); }}
-                                sx={{ color: theme.primaryText, "&:hover": { color: accent } }}
+                                onClick={() => {
+                                  setConfirmModalMode("BLOCK");
+                                  setIsConfirmModalOpen(true);
+                                  setMoreOptionsAnchor(null);
+                                }}
+                                sx={{
+                                  color: theme.primaryText,
+                                  "&:hover": { color: accent },
+                                }}
                               >
                                 Bloquear
                               </MenuItem>
@@ -666,27 +736,54 @@ export default function UserPage() {
                             {/* Bloquear y reportar: solo si son amigos (sin bloqueo activo) */}
                             {isFriend && !isBanned && canBlockAndReport && (
                               <MenuItem
-                                onClick={() => { setMoreOptionsAnchor(null); setBlockReportDialog(true); }}
+                                onClick={() => {
+                                  setMoreOptionsAnchor(null);
+                                  setBlockReportDialog(true);
+                                }}
                                 sx={{ color: "#f44336" }}
                               >
                                 Bloquear y reportar
                               </MenuItem>
                             )}
                             {/* Reportar: si son amigos o si yo bloqueé, y canReport */}
-                            {(isFriend || iBlockedThem) && !isBanned && canReport && (
-                              <MenuItem
-                                onClick={() => { setMoreOptionsAnchor(null); setOnlyReportDialog(true); }}
-                                sx={{ color: "#f44336" }}
-                              >
-                                Reportar
-                              </MenuItem>
-                            )}
+                            {(isFriend || iBlockedThem) &&
+                              !isBanned &&
+                              canReport && (
+                                <MenuItem
+                                  onClick={() => {
+                                    setMoreOptionsAnchor(null);
+                                    setOnlyReportDialog(true);
+                                  }}
+                                  sx={{ color: "#f44336" }}
+                                >
+                                  Reportar
+                                </MenuItem>
+                              )}
                             {canBan && (
                               <MenuItem
-                                onClick={() => { setConfirmModalMode(isBanned ? "UNBAN" : "BAN"); setIsConfirmModalOpen(true); setMoreOptionsAnchor(null); }}
+                                onClick={() => {
+                                  setConfirmModalMode(
+                                    isBanned ? "UNBAN" : "BAN",
+                                  );
+                                  setIsConfirmModalOpen(true);
+                                  setMoreOptionsAnchor(null);
+                                }}
                                 sx={{ color: isBanned ? "#4caf50" : "#f44336" }}
                               >
-                                {isBanned ? <><LockOpenIcon sx={{ fontSize: 15, mr: 1 }} />Desbanear</> : <><BlockIcon sx={{ fontSize: 15, mr: 1 }} />Banear</>}{" "}usuario
+                                {isBanned ? (
+                                  <>
+                                    <LockOpenIcon
+                                      sx={{ fontSize: 15, mr: 1 }}
+                                    />
+                                    Desbanear
+                                  </>
+                                ) : (
+                                  <>
+                                    <BlockIcon sx={{ fontSize: 15, mr: 1 }} />
+                                    Banear
+                                  </>
+                                )}{" "}
+                                usuario
                               </MenuItem>
                             )}
                           </Menu>
@@ -877,7 +974,7 @@ export default function UserPage() {
             } catch (e) {
               showError(
                 "No se pudo rechazar la solicitud.",
-                "Inténtalo de nuevo más tarde."
+                "Inténtalo de nuevo más tarde.",
               );
             }
           }
@@ -889,7 +986,10 @@ export default function UserPage() {
 
       <Dialog
         open={onlyReportDialog}
-        onClose={() => { setOnlyReportDialog(false); setOnlyReportMotivo(""); }}
+        onClose={() => {
+          setOnlyReportDialog(false);
+          setOnlyReportMotivo("");
+        }}
         PaperProps={{
           sx: {
             borderRadius: "16px",
@@ -904,17 +1004,29 @@ export default function UserPage() {
             <FlagIcon sx={{ color: "#f44336", fontSize: 20 }} />
             Reportar usuario
             <Box sx={{ flex: 1 }} />
-            <IconButton size="small" onClick={() => { setOnlyReportDialog(false); setOnlyReportMotivo(""); }} sx={{ color: theme.mutedText }}>
+            <IconButton
+              size="small"
+              onClick={() => {
+                setOnlyReportDialog(false);
+                setOnlyReportMotivo("");
+              }}
+              sx={{ color: theme.mutedText }}
+            >
               <CloseIcon fontSize="small" />
             </IconButton>
           </Box>
         </DialogTitle>
         <DialogContent>
-          <DialogContentText sx={{ color: theme.mutedText, fontSize: "0.875rem", mb: 2 }}>
-            Indica el motivo del reporte contra <strong>@{visitedUser.name}</strong>. El asunto es obligatorio.
+          <DialogContentText
+            sx={{ color: theme.mutedText, fontSize: "0.875rem", mb: 2 }}
+          >
+            Indica el motivo del reporte contra{" "}
+            <strong>@{visitedUser.name}</strong>. El asunto es obligatorio.
           </DialogContentText>
           <TextField
-            fullWidth multiline rows={3}
+            fullWidth
+            multiline
+            rows={3}
             placeholder="Describe el motivo..."
             value={onlyReportMotivo}
             onChange={(e) => setOnlyReportMotivo(e.target.value)}
@@ -931,16 +1043,38 @@ export default function UserPage() {
           />
         </DialogContent>
         <DialogActions sx={{ px: 2, pb: 2, gap: 1 }}>
-          <Button onClick={() => { setOnlyReportDialog(false); setOnlyReportMotivo(""); }} sx={{ color: theme.mutedText, textTransform: "none", borderRadius: "8px" }}>
+          <Button
+            onClick={() => {
+              setOnlyReportDialog(false);
+              setOnlyReportMotivo("");
+            }}
+            sx={{
+              color: theme.mutedText,
+              textTransform: "none",
+              borderRadius: "8px",
+            }}
+          >
             Cancelar
           </Button>
           <Button
             onClick={handleOnlyReport}
             disabled={!onlyReportMotivo.trim() || onlyReportSending}
             variant="contained"
-            sx={{ background: "#f44336", color: "#fff", textTransform: "none", borderRadius: "8px", fontWeight: 600, "&:hover": { background: "#c62828" }, "&.Mui-disabled": { background: "#f4433640", color: "#fff8" } }}
+            sx={{
+              background: "#f44336",
+              color: "#fff",
+              textTransform: "none",
+              borderRadius: "8px",
+              fontWeight: 600,
+              "&:hover": { background: "#c62828" },
+              "&.Mui-disabled": { background: "#f4433640", color: "#fff8" },
+            }}
           >
-            {onlyReportSending ? <CircularProgress size={18} sx={{ color: "#fff" }} /> : "Enviar reporte"}
+            {onlyReportSending ? (
+              <CircularProgress size={18} sx={{ color: "#fff" }} />
+            ) : (
+              "Enviar reporte"
+            )}
           </Button>
         </DialogActions>
       </Dialog>

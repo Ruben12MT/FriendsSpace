@@ -38,7 +38,7 @@ const chatStorage = new CloudinaryStorage({
 const uploadAvatar = multer({ storage: avatarStorage });
 const uploadChat = multer({
   storage: chatStorage,
-  limits: { fileSize: 50 * 1024 * 1024 },
+  limits: { fileSize: 100 * 1024 * 1024 },
 });
 
 module.exports = { uploadAvatar, uploadChat, cloudinary };

@@ -298,7 +298,10 @@ export default function ChatsPage() {
       setOpenedConversation(null);
       setMessageList([]);
     } catch (error) {
-      showError("No se pudo finalizar la investigación.", "Inténtalo de nuevo más tarde.");
+      showError(
+        "No se pudo finalizar la investigación.",
+        "Inténtalo de nuevo más tarde.",
+      );
     } finally {
       setFinishInvestigationDialog(false);
     }
@@ -521,7 +524,10 @@ export default function ChatsPage() {
       setMessageInputText("");
       setReplyTargetMessage(null);
     } catch (error) {
-      showError("No se pudo enviar el mensaje.", "Comprueba tu conexión e inténtalo de nuevo.");
+      showError(
+        "No se pudo enviar el mensaje.",
+        "Comprueba tu conexión e inténtalo de nuevo.",
+      );
     } finally {
       setIsSendingMessage(false);
     }
@@ -530,12 +536,38 @@ export default function ChatsPage() {
   const sendMediaMessage = async (file) => {
     if (!file || !openedConversation) return;
     if (checkIfBlockedBeforeAction()) return;
-    const MAX_BYTES = 200 * 1024 * 1024;
-    if (file.size > MAX_BYTES) {
-      setMediaError("El archivo supera el límite de 200 MB.");
+
+    const mime = file.type || "";
+    const esVideo = mime.startsWith("video/");
+    const esAudio = mime.startsWith("audio/");
+    const esImagen = mime.startsWith("image/");
+
+    const MAX_VIDEO = 100 * 1024 * 1024;
+    const MAX_IMAGEN = 10 * 1024 * 1024;
+    const MAX_AUDIO = 100 * 1024 * 1024;
+    const MAX_ARCHIVO = 10 * 1024 * 1024;
+
+    if (esVideo && file.size > MAX_VIDEO) {
+      setMediaError("Los vídeos no pueden superar los 100 MB.");
       if (filePickerRef.current) filePickerRef.current.value = "";
       return;
     }
+    if (esImagen && file.size > MAX_IMAGEN) {
+      setMediaError("Las imágenes no pueden superar los 10 MB.");
+      if (filePickerRef.current) filePickerRef.current.value = "";
+      return;
+    }
+    if (esAudio && file.size > MAX_AUDIO) {
+      setMediaError("Los audios no pueden superar los 100 MB.");
+      if (filePickerRef.current) filePickerRef.current.value = "";
+      return;
+    }
+    if (!esVideo && !esImagen && !esAudio && file.size > MAX_ARCHIVO) {
+      setMediaError("Los archivos no pueden superar los 10 MB.");
+      if (filePickerRef.current) filePickerRef.current.value = "";
+      return;
+    }
+
     setMediaError(null);
     setUploadingMedia(true);
     const formData = new FormData();
@@ -563,7 +595,10 @@ export default function ChatsPage() {
     try {
       await api.put(`/connections/${openedConversation.connectionId}/block`);
     } catch (error) {
-      showError("No se pudo bloquear al usuario.", "Inténtalo de nuevo más tarde.");
+      showError(
+        "No se pudo bloquear al usuario.",
+        "Inténtalo de nuevo más tarde.",
+      );
     } finally {
       setChatOptionsMenuAnchor(null);
     }
@@ -574,7 +609,10 @@ export default function ChatsPage() {
     try {
       await api.put(`/connections/${openedConversation.connectionId}/activate`);
     } catch (error) {
-      showError("No se pudo desbloquear al usuario.", "Inténtalo de nuevo más tarde.");
+      showError(
+        "No se pudo desbloquear al usuario.",
+        "Inténtalo de nuevo más tarde.",
+      );
     } finally {
       setChatOptionsMenuAnchor(null);
     }
@@ -601,7 +639,10 @@ export default function ChatsPage() {
       setChatBlockReportDialog(false);
       setChatReportMotivo("");
     } catch (error) {
-      showError("No se pudo bloquear y reportar al usuario.", "Inténtalo de nuevo más tarde.");
+      showError(
+        "No se pudo bloquear y reportar al usuario.",
+        "Inténtalo de nuevo más tarde.",
+      );
     } finally {
       setChatReportSending(false);
       setChatOptionsMenuAnchor(null);
@@ -626,7 +667,10 @@ export default function ChatsPage() {
       setChatOnlyReportDialog(false);
       setChatOnlyReportMotivo("");
     } catch (error) {
-      showError("No se pudo enviar el reporte.", "Inténtalo de nuevo más tarde.");
+      showError(
+        "No se pudo enviar el reporte.",
+        "Inténtalo de nuevo más tarde.",
+      );
     } finally {
       setChatOnlyReportSending(false);
     }
@@ -701,7 +745,8 @@ export default function ChatsPage() {
             width: isMobile ? "100%" : SIDEBAR_PANEL_WIDTH,
             flexShrink: 0,
             borderRight: isMobile ? "none" : `1px solid ${dividerColor}`,
-background: theme.name === "dark" ? "#2c2c2c" : sidebarBg,            display: "flex",
+            background: theme.name === "dark" ? "#2c2c2c" : sidebarBg,
+            display: "flex",
             flexDirection: "column",
             overflow: "hidden",
           }}
@@ -927,7 +972,8 @@ background: theme.name === "dark" ? "#2c2c2c" : sidebarBg,            display: "
                 display: "flex",
                 alignItems: "center",
                 gap: 1.5,
-background: theme.name === "dark" ? "#2c2c2c" : sidebarBg,                flexShrink: 0,
+                background: theme.name === "dark" ? "#2c2c2c" : sidebarBg,
+                flexShrink: 0,
               }}
             >
               {isMobile && (
@@ -1063,36 +1109,76 @@ background: theme.name === "dark" ? "#2c2c2c" : sidebarBg,                flexSh
                       return null; // chat con otro USER
                     if (isBlocked && iBlockedThem)
                       return [
-                        <MenuItem key="unblock"
-                          onClick={() => { setChatOptionsMenuAnchor(null); handleChatUnblock(); }}
-                          sx={{ color: mainTextColor, fontSize: "0.875rem", py: 1.25 }}
+                        <MenuItem
+                          key="unblock"
+                          onClick={() => {
+                            setChatOptionsMenuAnchor(null);
+                            handleChatUnblock();
+                          }}
+                          sx={{
+                            color: mainTextColor,
+                            fontSize: "0.875rem",
+                            py: 1.25,
+                          }}
                         >
                           Desbloquear
                         </MenuItem>,
-                        <MenuItem key="report"
-                          onClick={() => { setChatOptionsMenuAnchor(null); setChatOnlyReportDialog(true); }}
-                          sx={{ color: "#f44336", fontSize: "0.875rem", py: 1.25 }}
+                        <MenuItem
+                          key="report"
+                          onClick={() => {
+                            setChatOptionsMenuAnchor(null);
+                            setChatOnlyReportDialog(true);
+                          }}
+                          sx={{
+                            color: "#f44336",
+                            fontSize: "0.875rem",
+                            py: 1.25,
+                          }}
                         >
                           Reportar
                         </MenuItem>,
                       ];
                     if (!isBlocked)
                       return [
-                        <MenuItem key="block"
-                          onClick={() => { setChatOptionsMenuAnchor(null); handleChatBlock(); }}
-                          sx={{ color: mainTextColor, fontSize: "0.875rem", py: 1.25 }}
+                        <MenuItem
+                          key="block"
+                          onClick={() => {
+                            setChatOptionsMenuAnchor(null);
+                            handleChatBlock();
+                          }}
+                          sx={{
+                            color: mainTextColor,
+                            fontSize: "0.875rem",
+                            py: 1.25,
+                          }}
                         >
                           Bloquear
                         </MenuItem>,
-                        <MenuItem key="report"
-                          onClick={() => { setChatOptionsMenuAnchor(null); setChatOnlyReportDialog(true); }}
-                          sx={{ color: "#f44336", fontSize: "0.875rem", py: 1.25 }}
+                        <MenuItem
+                          key="report"
+                          onClick={() => {
+                            setChatOptionsMenuAnchor(null);
+                            setChatOnlyReportDialog(true);
+                          }}
+                          sx={{
+                            color: "#f44336",
+                            fontSize: "0.875rem",
+                            py: 1.25,
+                          }}
                         >
                           Reportar
                         </MenuItem>,
-                        <MenuItem key="block-report"
-                          onClick={() => { setChatOptionsMenuAnchor(null); setChatBlockReportDialog(true); }}
-                          sx={{ color: "#f44336", fontSize: "0.875rem", py: 1.25 }}
+                        <MenuItem
+                          key="block-report"
+                          onClick={() => {
+                            setChatOptionsMenuAnchor(null);
+                            setChatBlockReportDialog(true);
+                          }}
+                          sx={{
+                            color: "#f44336",
+                            fontSize: "0.875rem",
+                            py: 1.25,
+                          }}
                         >
                           Bloquear y reportar
                         </MenuItem>,
@@ -1216,7 +1302,8 @@ background: theme.name === "dark" ? "#2c2c2c" : sidebarBg,                flexSh
                   bottom: 80,
                   left: "50%",
                   transform: "translateX(-50%)",
-background: theme.name === "dark" ? "#2c2c2c" : sidebarBg,                  border: `1px solid ${dividerColor}`,
+                  background: theme.name === "dark" ? "#2c2c2c" : sidebarBg,
+                  border: `1px solid ${dividerColor}`,
                   borderRadius: "20px",
                   px: 2,
                   py: 0.75,
@@ -1292,7 +1379,8 @@ background: theme.name === "dark" ? "#2c2c2c" : sidebarBg,                  bord
                 sx={{
                   px: 2,
                   py: 0.75,
-background: theme.name === "dark" ? "#2c2c2c" : sidebarBg,                  borderTop: `1px solid ${dividerColor}`,
+                  background: theme.name === "dark" ? "#2c2c2c" : sidebarBg,
+                  borderTop: `1px solid ${dividerColor}`,
                   display: "flex",
                   alignItems: "center",
                   gap: 1,
@@ -1353,7 +1441,8 @@ background: theme.name === "dark" ? "#2c2c2c" : sidebarBg,                  bord
                 px: 2,
                 py: 1.25,
                 borderTop: `1px solid ${dividerColor}`,
-background: theme.name === "dark" ? "#2c2c2c" : sidebarBg,                display: "flex",
+                background: theme.name === "dark" ? "#2c2c2c" : sidebarBg,
+                display: "flex",
                 alignItems: "center",
                 gap: 1,
                 flexShrink: 0,
@@ -1494,7 +1583,8 @@ background: theme.name === "dark" ? "#2c2c2c" : sidebarBg,                displa
         PaperProps={{
           sx: {
             borderRadius: "16px",
-background: theme.name === "dark" ? "#2c2c2c" : sidebarBg,            border: `1px solid ${dividerColor}`,
+            background: theme.name === "dark" ? "#2c2c2c" : sidebarBg,
+            border: `1px solid ${dividerColor}`,
             minWidth: { xs: "90vw", sm: 360 },
           },
         }}
@@ -1576,7 +1666,8 @@ background: theme.name === "dark" ? "#2c2c2c" : sidebarBg,            border: `1
         PaperProps={{
           sx: {
             borderRadius: "16px",
-background: theme.name === "dark" ? "#2c2c2c" : sidebarBg,            border: `1px solid ${dividerColor}`,
+            background: theme.name === "dark" ? "#2c2c2c" : sidebarBg,
+            border: `1px solid ${dividerColor}`,
             minWidth: { xs: "90vw", sm: 360 },
           },
         }}
@@ -1706,7 +1797,10 @@ background: theme.name === "dark" ? "#2c2c2c" : sidebarBg,            border: `1
 
       <Dialog
         open={conversationFinishedDialog}
-        onClose={() => {navigate(location.pathname, { replace: true, state: null }); setConversationFinishedDialog(false)}}
+        onClose={() => {
+          navigate(location.pathname, { replace: true, state: null });
+          setConversationFinishedDialog(false);
+        }}
         PaperProps={{
           sx: {
             borderRadius: "16px",
@@ -1741,7 +1835,10 @@ background: theme.name === "dark" ? "#2c2c2c" : sidebarBg,            border: `1
         </DialogContent>
         <DialogActions sx={{ justifyContent: "center", pb: 2.5 }}>
           <Button
-            onClick={() => {navigate(location.pathname, { replace: true, state: null }); setConversationFinishedDialog(false)}}
+            onClick={() => {
+              navigate(location.pathname, { replace: true, state: null });
+              setConversationFinishedDialog(false);
+            }}
             variant="contained"
             sx={{
               background: `linear-gradient(135deg, ${accentColor}, ${theme.variantBack})`,

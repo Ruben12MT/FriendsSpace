@@ -1,14 +1,14 @@
 const { Sequelize } = require('sequelize');
 
 const sequelize = new Sequelize(
-  process.env.MYSQLDATABASE,
-  process.env.MYSQLUSER,
-  process.env.MYSQLPASSWORD,
+  process.env.MYSQLDATABASE || process.env.DB_NAME,
+  process.env.MYSQLUSER     || process.env.DB_USER,
+  process.env.MYSQLPASSWORD || process.env.DB_PASSWORD,
   {
-    host: process.env.MYSQLHOST,
-    port: process.env.MYSQLPORT || 3306,
+    host: process.env.MYSQLHOST || process.env.DB_HOST || 'localhost',
+    port: process.env.MYSQLPORT || process.env.DB_PORT || 3306,
     dialect: 'mysql',
-    logging: process.env.NODE_ENV === 'production' ? false : false,
+    logging: process.env.NODE_ENV === 'production' ? false : console.log,
   }
 );
 
