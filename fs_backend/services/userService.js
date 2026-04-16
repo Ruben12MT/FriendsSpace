@@ -21,7 +21,7 @@ class UserService {
     }];
 
     const { count, rows } = await user.findAndCountAll({
-      attributes: { exclude: ["password"] },
+      attributes: { exclude: ["password", "email"] },
       where: whereClause, include: includeClause,
       limit: LIMIT, offset, distinct: true,
     });
