@@ -43,7 +43,7 @@ class UserService {
     if (search) whereClause.name = { [Op.substring]: search };
 
     const { count, rows } = await user.findAndCountAll({
-      attributes: { exclude: ["password"] },
+      attributes: { exclude: ["password", "email"] },
       where: whereClause,
       include: [{ model: interest, as: "interests", through: { attributes: [] } }],
       limit: LIMIT, offset, distinct: true,
