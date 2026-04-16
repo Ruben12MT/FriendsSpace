@@ -15,14 +15,21 @@ class UserService {
     const whereClause = { role: "USER" };
     if (search) whereClause.name = { [Op.substring]: search };
 
-    const includeClause = [{
-      model: interest, as: "interests", through: { attributes: [] },
-      ...(interests.length > 0 && { where: { id: { [Op.in]: interests } } }),
-    }];
+    if (interests.length > 0) {
+      const usersWithInterests = await user_interest.findAll({
+        where: { interest_id: { [Op.in]: interests } },
+        attributes: ["user_id"],
+        group: ["user_id"],
+      });
+      const userIds = usersWithInterests.map((ui) => ui.user_id);
+      if (userIds.length === 0) return { datos: [], total: 0, hasMore: false };
+      whereClause.id = { [Op.in]: userIds };
+    }
 
     const { count, rows } = await user.findAndCountAll({
       attributes: { exclude: ["password", "email"] },
-      where: whereClause, include: includeClause,
+      where: whereClause,
+      include: [{ model: interest, as: "interests", through: { attributes: [] } }],
       limit: LIMIT, offset, distinct: true,
     });
 
@@ -60,10 +67,9 @@ class UserService {
     return { datos, total: count, hasMore: offset + rows.length < count };
   }
 
-  // Devuelve los roles que cuentan como "conexión real" para un rol dado
   _getPeerRoles(role) {
     if (role === "USER") return ["USER"];
-    return ["ADMIN", "DEVELOPER"]; // admin y dev se cuentan entre sí
+    return ["ADMIN", "DEVELOPER"];
   }
 
   async _countConnections(userId, userRole) {
@@ -130,7 +136,6 @@ class UserService {
 
     const hashedNewPassword = await bcrypt.hash(newPassword, 10);
 
-    // Incrementar token_version para invalidar todos los tokens existentes
     await user.update(
       { password: hashedNewPassword, token_version: foundUser.token_version + 1 },
       { where: { id: userId } }
