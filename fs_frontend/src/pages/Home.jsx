@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React from "react";
 import {
   Box, Container, Typography, Button,
   Grid, Card, Stack, Avatar,
@@ -10,7 +10,7 @@ import ForumIcon from "@mui/icons-material/Forum";
 import SearchIcon from "@mui/icons-material/Search";
 import ThemeToggler from "../components/ThemeToggler";
 import BackgroundVideo from "../components/BackgroundVideo";
-import { checkSession } from "../utils/checkSession";
+import useAuthStore from "../store/useAuthStore";
 
 export default function Home() {
   const theme = useAppTheme();
@@ -18,15 +18,8 @@ export default function Home() {
   const accent = theme.accent;
   const isDark = theme.name === "dark";
 
-  const [isAuth, setIsAuth] = useState(false);
-
-  useEffect(() => {
-    async function check() {
-      const res = await checkSession();
-      setIsAuth(res.isAuth);
-    }
-    check();
-  }, []);
+  const { loggedUser, isLoading } = useAuthStore();
+  const isAuth = !!loggedUser;
 
   return (
     <Box sx={{ position: "relative", minHeight: "100vh" }}>
@@ -58,7 +51,7 @@ export default function Home() {
           <Stack direction="row" alignItems="center" spacing={2}>
                 <ThemeToggler block={true} />
 
-            {isAuth ? (
+            {!isLoading && (isAuth ? (
               <Button
                 onClick={() => navigate("/app/searchnewfriends")}
                 variant="contained"
@@ -86,7 +79,7 @@ export default function Home() {
               >
                 Iniciar sesión
               </Button>
-            )}
+            ))}
           </Stack>
         </Stack>
 

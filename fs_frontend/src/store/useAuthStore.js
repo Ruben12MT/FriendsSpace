@@ -6,10 +6,11 @@ const useAuthStore = create(
     (set) => ({
       loggedUser: null,
       isLoading: true,
- 
+
       setLoggedUser: (user) => set({ loggedUser: user, isLoading: false }),
       clearAuth: () => set({ loggedUser: null, isLoading: false }),
- 
+      setIsLoading: (v) => set({ isLoading: v }),
+
       unreadCount: 0,
       setUnreadCount: (count) => set({ unreadCount: count }),
       incrementUnread: () => set((state) => ({ unreadCount: state.unreadCount + 1 })),

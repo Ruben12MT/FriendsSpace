@@ -3,10 +3,11 @@ import { checkSession } from "../utils/checkSession";
 import useAuthStore from "../store/useAuthStore";
 
 export function AuthProvider({ children }) {
-  const { setLoggedUser, clearAuth } = useAuthStore();
+  const { setLoggedUser, clearAuth, setIsLoading } = useAuthStore();
 
   useEffect(() => {
     async function verificarSesion() {
+      setIsLoading(true);
       try {
         const res = await checkSession();
         if (res.isAuth) {
@@ -20,7 +21,7 @@ export function AuthProvider({ children }) {
     }
 
     verificarSesion();
-  }, [setLoggedUser, clearAuth]);
+  }, []);
 
   return children;
 }
