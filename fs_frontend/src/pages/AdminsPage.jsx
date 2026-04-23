@@ -221,13 +221,38 @@ export default function AdminsPage() {
                 boxShadow: `0 4px 12px ${accent}40`,
                 "&:hover": { opacity: 0.9 },
                 fontSize: { xs: "0.75rem", md: "0.875rem" },
-                px: { xs: 1.5, md: 2 },
+                px: { xs: 1, md: 2 },
+                ml: { xs: 2},
+                display: { xs: "none", sm: "inline-flex" },
+              }}
+            >
+              Nuevo admin
+            </Button>
+            
+          )}
+        </Box>
+        {isDeveloper && (
+            <Button
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={() => setModalOpen(true)}
+              sx={{
+                background: `linear-gradient(135deg, ${accent}, ${theme.variantBack || accent})`,
+                color: isDark ? "#1a1200" : "#fff",
+                borderRadius: "10px",
+                textTransform: "none",
+                fontWeight: 600,
+                boxShadow: `0 4px 12px ${accent}40`,
+                "&:hover": { opacity: 0.9 },
+                fontSize: { xs: "0.75rem", md: "0.875rem" },
+                px: { xs: 1, md: 2 },
+                mb: { xs: 2},
+                display: { xs: "inline-flex", sm: "none"},
               }}
             >
               Nuevo admin
             </Button>
           )}
-        </Box>
 
         <MainSearchBar
           placeholder="Buscar administrador..."
