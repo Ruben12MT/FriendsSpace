@@ -66,7 +66,7 @@ export default function Home() {
               >
                 Ir a mi cuenta
               </Button>
-            ) : (
+            ) : ( 
               <Button
                 component={Link} to="/login"
                 sx={{
