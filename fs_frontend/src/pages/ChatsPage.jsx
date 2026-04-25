@@ -236,12 +236,6 @@ export default function ChatsPage() {
       }
     }
     if (loggedUser) loadConversationList();
-
-    return () => {
-      api.get("/messages/unread/total")
-        .then((res) => { if (res.data.ok) setUnreadMessages(res.data.count); })
-        .catch(console.error);
-    };
   }, [loggedUser]);
 
   const loadMessages = useCallback(
