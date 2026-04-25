@@ -568,6 +568,22 @@ export default function ChatsPage() {
   }, [socket, loggedUser]);
 
   useEffect(() => {
+    const currentId = openedConversation?.connectionId;
+    return () => {
+      if (currentId) {
+        api
+          .put(`/messages/${currentId}/read`)
+          .then(() => {
+            setUnreadMessages((prev) =>
+              Math.max(0, prev - (unreadByChat[currentId] || 0)),
+            );
+          })
+          .catch(console.error);
+      }
+    };
+  }, [openedConversation?.connectionId]);
+
+  useEffect(() => {
     return () => {
       if (socket && openedConversation?.connectionId) {
         socket.emit("leave_chat", openedConversation.connectionId);
