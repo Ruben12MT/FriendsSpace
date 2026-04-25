@@ -463,6 +463,11 @@ export default function ChatsPage() {
           if (prev.find((m) => m.id === newMessage.id)) return prev;
           return [...prev, newMessage];
         });
+        if (newMessage.user_id !== loggedUser?.id) {
+          markChatAsRead(connectionId).catch((error) => {
+            console.error("Error marcando mensajes como leídos:", error);
+          });
+        }
         if (isAtBottom()) {
           setTimeout(() => scrollToBottom("smooth"), 50);
         } else {
