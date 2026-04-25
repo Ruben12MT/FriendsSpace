@@ -65,14 +65,15 @@ export default function UserBar() {
       .get("/requests/withoutread")
       .then((res) => setUnreadCount(res.data.numRequests))
       .catch(console.error);
-  }, []);
+  }, [unreadCount, setUnreadCount]);
 
   useEffect(() => {
+    if (!loggedUser?.id) return;
     api
       .get("/messages/unread/total")
       .then((res) => { if (res.data.ok) setUnreadMessages(res.data.count); })
       .catch(console.error);
-  }, []);
+  }, [loggedUser?.id, setUnreadMessages]);
 
   useEffect(() => {
     if (!socket || !loggedUser?.id) return;
@@ -82,7 +83,13 @@ export default function UserBar() {
     const onNuevoMensaje = (payload) => {
       const msg = payload.data || payload;
       if (!isInChatsPage && msg.user_id !== loggedUser.id) {
-        setUnreadMessages((prev) => prev + 1);
+        api
+          .get("/messages/unread/total")
+          .then((res) => {
+            if (res.data.ok) setUnreadMessages(res.data.count);
+            else setUnreadMessages((prev) => prev + 1);
+          })
+          .catch(() => setUnreadMessages((prev) => prev + 1));
       }
     };
     const onLeidos = () => {
@@ -102,7 +109,7 @@ export default function UserBar() {
       socket.off("nuevo_mensaje", onNuevoMensaje);
       socket.off("mensajes_leidos", onLeidos);
     };
-  }, [socket, estaEnRequests, isInChatsPage, incrementUnread, loggedUser?.id]);
+  }, [socket, estaEnRequests, isInChatsPage, incrementUnread, loggedUser?.id, setUnreadMessages]);
 
   const chatsIcon = unreadMessages > 0 ? (
     <Badge

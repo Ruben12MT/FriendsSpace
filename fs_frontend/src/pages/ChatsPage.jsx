@@ -540,6 +540,14 @@ export default function ChatsPage() {
   }, [socket, loggedUser]);
 
   useEffect(() => {
+    return () => {
+      if (socket && openedConversation?.connectionId) {
+        socket.emit("leave_chat", openedConversation.connectionId);
+      }
+    };
+  }, [socket, openedConversation]);
+
+  useEffect(() => {
     const topElement = topSentinelRef.current;
     if (!topElement) return;
     const observer = new IntersectionObserver(
