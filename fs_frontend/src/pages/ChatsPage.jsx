@@ -422,7 +422,6 @@ export default function ChatsPage() {
         .catch(() => {});
     };
     const onIncomingMessage = (payload) => {
-      buildConversationList(payload.connections, loggedUser.id);
       const newMessage = payload.data || payload;
       const connectionId = newMessage.connection_id;
 
