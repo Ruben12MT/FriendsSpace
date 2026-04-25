@@ -216,9 +216,10 @@ export default function UserBar() {
             justifyContent: "center",
             borderRadius: "10px",
             background: active ? activeBg : "transparent",
+            fontSize: 22,
           }}
         >
-          {React.cloneElement(icon, { sx: { fontSize: 22 } })}
+          {icon}
         </Box>
         <Typography
           sx={{
