@@ -71,7 +71,9 @@ export default function UserBar() {
     if (!loggedUser?.id) return;
     api
       .get("/messages/unread/total")
-      .then((res) => { if (res.data.ok) setUnreadMessages(res.data.count); })
+      .then((res) => {
+        if (res.data.ok) setUnreadMessages(res.data.count);
+      })
       .catch(console.error);
   }, [loggedUser?.id, setUnreadMessages]);
 
@@ -92,9 +94,13 @@ export default function UserBar() {
           .catch(() => setUnreadMessages((prev) => prev + 1));
       }
     };
+
     const onLeidos = () => {
-      api.get("/messages/unread/total")
-        .then((res) => { if (res.data.ok) setUnreadMessages(res.data.count); })
+      api
+        .get("/messages/unread/total")
+        .then((res) => {
+          if (res.data.ok) setUnreadMessages(res.data.count);
+        })
         .catch(console.error);
     };
     socket.on("nueva_solicitud", inc);
@@ -109,17 +115,45 @@ export default function UserBar() {
       socket.off("nuevo_mensaje", onNuevoMensaje);
       socket.off("mensajes_leidos", onLeidos);
     };
-  }, [socket, estaEnRequests, isInChatsPage, incrementUnread, loggedUser?.id, setUnreadMessages]);
+  }, [
+    socket,
+    estaEnRequests,
+    isInChatsPage,
+    incrementUnread,
+    loggedUser?.id,
+    setUnreadMessages,
+  ]);
 
-  const chatsIcon = unreadMessages > 0 ? (
-    <Badge
-      badgeContent={unreadMessages > 99 ? "99+" : unreadMessages}
-      color="error"
-      sx={{ "& .MuiBadge-badge": { fontSize: "0.6rem", minWidth: 15, height: 15, padding: "0 3px" } }}
-    >
+  useEffect(() => {
+    if (!isInChatsPage) {
+      api
+        .get("/messages/unread/total")
+        .then((res) => {
+          if (res.data.ok) setUnreadMessages(res.data.count);
+        })
+        .catch(console.error);
+    }
+  }, [isInChatsPage, setUnreadMessages]);
+
+  const chatsIcon =
+    unreadMessages > 0 ? (
+      <Badge
+        badgeContent={unreadMessages > 99 ? "99+" : unreadMessages}
+        color="error"
+        sx={{
+          "& .MuiBadge-badge": {
+            fontSize: "0.6rem",
+            minWidth: 15,
+            height: 15,
+            padding: "0 3px",
+          },
+        }}
+      >
+        <ChatBubbleOutlineIcon />
+      </Badge>
+    ) : (
       <ChatBubbleOutlineIcon />
-    </Badge>
-  ) : <ChatBubbleOutlineIcon />;
+    );
 
   const navItems = [
     {

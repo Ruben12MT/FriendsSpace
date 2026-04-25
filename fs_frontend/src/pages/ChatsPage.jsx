@@ -455,7 +455,7 @@ export default function ChatsPage() {
               ...prev,
               [connectionId]: (prev[connectionId] || 0) + 1,
             }));
-            setUnreadMessages((prev) => prev + 1);
+            // setUnreadMessages((prev) => prev + 1);
           }
           return currentConv;
         }
@@ -548,6 +548,15 @@ export default function ChatsPage() {
     socket.on("conexion_activada", onConexionActivada);
 
     return () => {
+      setUnreadByChat((currentUnreadMap) => {
+        const total = Object.values(currentUnreadMap).reduce(
+          (a, b) => a + b,
+          0,
+        );
+        setUnreadMessages(total);
+        return currentUnreadMap;
+      });
+
       socket.off("nuevo_mensaje", onIncomingMessage);
       socket.off("mensaje_editado", onEditedMessage);
       socket.off("mensaje_borrado", onDeletedMessage);
