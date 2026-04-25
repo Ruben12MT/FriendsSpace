@@ -568,24 +568,20 @@ export default function ChatsPage() {
   }, [socket, loggedUser]);
 
   useEffect(() => {
-  const currentId = openedConversation?.connectionId;
-  const currentUnreadCount = unreadByChat[currentId] || 0;
-
-  useEffect(() => {
-  const currentId = openedConversation?.connectionId;
-  const currentUnreadCount = unreadByChat[currentId] || 0;
-
-  return () => {
-    if (currentId && currentUnreadCount > 0) {
-      try {
-        setUnreadMessages((prev) => Math.max(0, prev - currentUnreadCount));
-        api.put(`/messages/${currentId}/read`);
-      } catch (error) {
-        console.error(error);
+    const currentId = openedConversation?.connectionId;
+    return () => {
+      if (currentId) {
+        api
+          .put(`/messages/${currentId}/read`)
+          .then(() => {
+            setUnreadMessages((prev) =>
+              Math.max(0, prev - (unreadByChat[currentId] || 0)),
+            );
+          })
+          .catch(console.error);
       }
-    }
-  };
-}, [openedConversation?.connectionId]);
+    };
+  }, [openedConversation?.connectionId]);
 
   useEffect(() => {
     return () => {
