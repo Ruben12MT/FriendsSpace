@@ -67,7 +67,7 @@ class MessageService {
   async markAsRead(connectionId, userId) {
     await models.message.update(
       { is_read: true },
-      { where: { connection_id: connectionId, user_id: { [Op.ne]: userId }, is_read: false, deleted: false } },
+      { where: { connection_id: connectionId, user_id: { [Op.ne]: userId }, is_read: false} },
     );
   }
 
