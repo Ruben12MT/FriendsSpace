@@ -610,13 +610,15 @@ export default function UserBar() {
           ml: isMobile ? 0 : `${SIDEBAR_W}px`,
           mt: `${TOPBAR_H}px`,
           mb: isMobile ? `${BOTTOM_NAV_H}px` : 0,
-          minHeight: `calc(100vh - ${TOPBAR_H}px${isMobile ? ` - ${BOTTOM_NAV_H}px` : ""})`,
+          // Transición suave
+          opacity: isReady ? 1 : 0,
+          transition: "opacity 0.4s ease-in-out",
           display: "flex",
           flexDirection: "column",
           boxSizing: "border-box",
         }}
       >
-        <Outlet />
+        {isReady && <Outlet />}
       </Box>
     </Box>
   );
