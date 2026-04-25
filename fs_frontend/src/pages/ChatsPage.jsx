@@ -4,6 +4,7 @@ import React, {
   useRef,
   useContext,
   useCallback,
+  useMemo,
 } from "react";
 import {
   Box,
@@ -158,28 +159,36 @@ export default function ChatsPage() {
 
   const visibleConversations = (
     currentUserIsAdmin
-      ? conversationList.filter((c) =>
+      ? sortedConversationList.filter((c) =>
           selectedTab === "reportes" ? c.isReportChat : !c.isReportChat,
         )
-      : conversationList
+      : sortedConversationList
   ).filter((c) =>
     c.friendUser?.name.toLowerCase().includes(searchTerm.toLowerCase()),
   );
 
-  const reportChatsCount = conversationList.filter(
+  const reportChatsCount = sortedConversationList.filter(
     (c) => c.isReportChat,
   ).length;
-  const normalChatsCount = conversationList.filter(
+  const normalChatsCount = sortedConversationList.filter(
     (c) => !c.isReportChat,
   ).length;
   const isCurrentChatBlocked = openedConversation?.isBlocked;
 
-  const unreadChatsTotal = conversationList
+  const unreadChatsTotal = sortedConversationList
     .filter((c) => !c.isReportChat)
     .reduce((acc, c) => acc + (unreadByChat[c.connectionId] || 0), 0);
-  const unreadReportesTotal = conversationList
+  const unreadReportesTotal = sortedConversationList
     .filter((c) => c.isReportChat)
     .reduce((acc, c) => acc + (unreadByChat[c.connectionId] || 0), 0);
+
+  const sortedConversationList = useMemo(() => {
+    return [...conversationList].sort((a, b) => {
+      const aTime = a.lastMessage?.id || 0;
+      const bTime = b.lastMessage?.id || 0;
+      return bTime - aTime; // Más reciente primero
+    });
+  }, [conversationList]);
 
   useEffect(() => {
     async function loadConversationList() {
