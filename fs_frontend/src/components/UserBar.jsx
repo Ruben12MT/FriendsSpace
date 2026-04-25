@@ -75,13 +75,13 @@ export default function UserBar() {
   }, []);
 
   useEffect(() => {
-    if (!socket) return;
+    if (!socket || !loggedUser?.id) return;
     const inc = () => {
       if (!estaEnRequests) incrementUnread();
     };
     const onNuevoMensaje = (payload) => {
       const msg = payload.data || payload;
-      if (!isInChatsPage && msg.user_id !== loggedUser?.id) {
+      if (!isInChatsPage && msg.user_id !== loggedUser.id) {
         setUnreadMessages((prev) => prev + 1);
       }
     };
@@ -104,7 +104,7 @@ export default function UserBar() {
     };
   }, [socket, estaEnRequests, isInChatsPage, incrementUnread, loggedUser?.id]);
 
-  const chatsIcon = unreadMessages > 0 && !isInChatsPage ? (
+  const chatsIcon = unreadMessages > 0 ? (
     <Badge
       badgeContent={unreadMessages > 99 ? "99+" : unreadMessages}
       color="error"
