@@ -73,7 +73,7 @@ class MessageService {
 
   async getUnreadCountByConnection(connectionId, userId) {
     return await models.message.count({
-      where: { connection_id: connectionId, user_id: { [Op.ne]: userId }, is_read: false, deleted: false },
+      where: { connection_id: connectionId, user_id: { [Op.ne]: userId }, is_read: false },
     });
   }
 
@@ -85,7 +85,7 @@ class MessageService {
     const connectionIds = connections.map((c) => c.connection_id);
     if (connectionIds.length === 0) return 0;
     return await models.message.count({
-      where: { connection_id: { [Op.in]: connectionIds }, user_id: { [Op.ne]: userId }, is_read: false, deleted: false },
+      where: { connection_id: { [Op.in]: connectionIds }, user_id: { [Op.ne]: userId }, is_read: false,  },
     });
   }
 }
