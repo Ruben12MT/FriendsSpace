@@ -13,8 +13,8 @@ export default function ConversationListItem({ conversation, isActive, onSelect,
   const subtleColor = theme.mutedText || theme.secondaryText;
 
   const isBlocked = conversation.isBlocked;
-  const lastMessage = conversation.last_message;
-  const friendRole = conversation.friend?.role;
+  const lastMessage = conversation.lastMessage;
+  const friendRole = conversation.friendUser?.role;
   const isAdmin = friendRole === "ADMIN";
   const isDeveloper = friendRole === "DEVELOPER";
   const hasUnread = unreadCount > 0 && !isActive;
@@ -60,7 +60,7 @@ export default function ConversationListItem({ conversation, isActive, onSelect,
     >
       <Box sx={{ position: "relative", flexShrink: 0 }}>
         <Avatar
-          src={conversation.friend?.url_image || "/no_user_avatar_image.png"}
+          src={conversation.friendUser?.url_image || "/no_user_avatar_image.png"}
           sx={{ width: 42, height: 42, filter: isBlocked ? "grayscale(100%)" : "none" }}
         />
         {isBlocked && (
@@ -79,7 +79,7 @@ export default function ConversationListItem({ conversation, isActive, onSelect,
         <Box display="flex" justifyContent="space-between" alignItems="center">
           <Box display="flex" alignItems="center" gap={0.5}>
             <Typography sx={{ fontWeight: hasUnread ? 700 : 600, color: isBlocked ? subtleColor : textColor, fontSize: "0.875rem" }} noWrap>
-              {conversation.friend?.name}
+              {conversation.friendUser?.name}
             </Typography>
             {(isAdmin || isDeveloper) && (
               <GradeIcon sx={{ fontSize: 12, color: isDeveloper ? "#00bcd4" : "#FFD700", flexShrink: 0 }} />
