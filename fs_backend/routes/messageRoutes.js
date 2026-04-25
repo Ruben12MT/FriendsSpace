@@ -7,6 +7,9 @@ const multer = require("multer");
 
 router.get("/:connectionId", validarToken, messageController.getMessages);
 router.post("/:connectionId/text", validarToken, messageController.sendTextMessage);
+router.put("/:connectionId/read", validarToken, messageController.markAsRead);
+router.get("/:connectionId/unread", validarToken, messageController.getUnreadCount);
+router.get("/unread/total", validarToken, messageController.getUnreadTotal);
 router.get("/:messageId/download", validarToken, messageController.downloadFile);
 
 router.post(

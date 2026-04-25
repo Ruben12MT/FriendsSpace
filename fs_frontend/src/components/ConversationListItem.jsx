@@ -5,7 +5,7 @@ import GradeIcon from "@mui/icons-material/Grade";
 import { useAppTheme } from "../hooks/useAppTheme";
 import { useUser } from "../hooks/useUser";
 
-export default function ConversationListItem({ conversation, isActive, onSelect }) {
+export default function ConversationListItem({ conversation, isActive, onSelect, unreadCount = 0 }) {
   const theme = useAppTheme();
   const { loggedUser } = useUser();
   const accent = theme.accent || theme.primaryBack;
@@ -17,6 +17,7 @@ export default function ConversationListItem({ conversation, isActive, onSelect 
   const friendRole = conversation.friend?.role;
   const isAdmin = friendRole === "ADMIN";
   const isDeveloper = friendRole === "DEVELOPER";
+  const hasUnread = unreadCount > 0 && !isActive;
 
   const formatTime = (dateStr) => {
     if (!dateStr) return "";
@@ -77,18 +78,27 @@ export default function ConversationListItem({ conversation, isActive, onSelect 
       <Box sx={{ minWidth: 0, flex: 1 }}>
         <Box display="flex" justifyContent="space-between" alignItems="center">
           <Box display="flex" alignItems="center" gap={0.5}>
-            <Typography sx={{ fontWeight: 600, color: isBlocked ? subtleColor : textColor, fontSize: "0.875rem" }} noWrap>
+            <Typography sx={{ fontWeight: hasUnread ? 700 : 600, color: isBlocked ? subtleColor : textColor, fontSize: "0.875rem" }} noWrap>
               {conversation.friend?.name}
             </Typography>
             {(isAdmin || isDeveloper) && (
               <GradeIcon sx={{ fontSize: 12, color: isDeveloper ? "#00bcd4" : "#FFD700", flexShrink: 0 }} />
             )}
           </Box>
-          {lastMessage && (
-            <Typography sx={{ fontSize: "0.68rem", color: subtleColor, flexShrink: 0, ml: 1 }}>
-              {formatTime(lastMessage.created_at)}
-            </Typography>
-          )}
+          <Box display="flex" alignItems="center" gap={0.75} sx={{ flexShrink: 0, ml: 1 }}>
+            {lastMessage && (
+              <Typography sx={{ fontSize: "0.68rem", color: hasUnread ? accent : subtleColor }}>
+                {formatTime(lastMessage.created_at)}
+              </Typography>
+            )}
+            {hasUnread && (
+              <Box sx={{ minWidth: 18, height: 18, borderRadius: "9px", background: accent, display: "flex", alignItems: "center", justifyContent: "center", px: 0.5 }}>
+                <Typography sx={{ fontSize: "0.62rem", fontWeight: 700, color: "#fff", lineHeight: 1 }}>
+                  {unreadCount > 99 ? "99+" : unreadCount}
+                </Typography>
+              </Box>
+            )}
+          </Box>
         </Box>
 
         {isBlocked ? (
@@ -96,11 +106,10 @@ export default function ConversationListItem({ conversation, isActive, onSelect 
             {conversation.blockedByMe ? "Bloqueado" : "No disponible"}
           </Typography>
         ) : preview ? (
-          <Typography sx={{ fontSize: "0.75rem", color: subtleColor, opacity: 0.8 }} noWrap>
+          <Typography sx={{ fontSize: "0.75rem", color: hasUnread ? textColor : subtleColor, opacity: hasUnread ? 0.9 : 0.8, fontWeight: hasUnread ? 600 : 400 }} noWrap>
             {preview}
           </Typography>
         ) : (
-          
           <Typography sx={{ fontSize: "0.75rem", color: subtleColor, opacity: 0.5, fontStyle: "italic" }}>
             Sin mensajes aún
           </Typography>
