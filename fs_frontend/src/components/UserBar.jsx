@@ -97,17 +97,21 @@ export default function UserBar() {
       socket.off("mensajes_leidos");
     };
   }, [socket, estaEnRequests, isInChatsPage, incrementUnread]);
+
+  const chatsIcon = unreadMessages > 0 && !isInChatsPage ? (
+    <Badge badgeContent={unreadMessages > 99 ? "99+" : unreadMessages} color="error" sx={{ "& .MuiBadge-badge": { fontSize: "0.6rem", minWidth: 15, height: 15, padding: "0 3px" } }}>
+      <ChatBubbleOutlineIcon />
+    </Badge>
+  ) : <ChatBubbleOutlineIcon />;
+
+  const navItems = [
     {
       path: "/app/searchnewfriends",
       icon: <PersonSearchIcon />,
       label: isAdminOrDev ? "Buscar usuarios" : "Buscar amigos",
     },
     { path: "/app/ads", icon: <CampaignIcon />, label: "Anuncios" },
-    { path: "/app/chats", icon: unreadMessages > 0 && !isInChatsPage ? (
-      <Badge badgeContent={unreadMessages > 99 ? "99+" : unreadMessages} color="error" sx={{ "& .MuiBadge-badge": { fontSize: "0.6rem", minWidth: 15, height: 15, padding: "0 3px" } }}>
-        <ChatBubbleOutlineIcon />
-      </Badge>
-    ) : <ChatBubbleOutlineIcon />, label: "Chats" },
+    { path: "/app/chats", icon: chatsIcon, label: "Chats" },
     ...(isAdminOrDev
       ? [
           {
@@ -216,10 +220,9 @@ export default function UserBar() {
             justifyContent: "center",
             borderRadius: "10px",
             background: active ? activeBg : "transparent",
-            fontSize: 22,
           }}
         >
-          {icon}
+          {React.cloneElement(icon, { sx: { fontSize: 22 } })}
         </Box>
         <Typography
           sx={{
