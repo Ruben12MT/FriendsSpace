@@ -33,6 +33,7 @@ const TOPBAR_H = 52;
 const BOTTOM_NAV_H = 56;
 
 export default function UserBar() {
+  const [isReady, setIsReady] = useState(false);
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const { loggedUser } = useUser();
@@ -67,15 +68,31 @@ export default function UserBar() {
       .catch(console.error);
   }, [unreadCount, setUnreadCount]);
 
+  // Efecto combinado para carga inicial con delay
   useEffect(() => {
     if (!loggedUser?.id) return;
-    api
-      .get("/messages/unread/total")
-      .then((res) => {
-        if (res.data.ok) setUnreadMessages(res.data.count);
-      })
-      .catch(console.error);
-  }, [loggedUser?.id, setUnreadMessages]);
+
+    const loadInitialData = async () => {
+      try {
+        const [resRequests, resMessages] = await Promise.all([
+          api.get("/requests/withoutread"),
+          api.get("/messages/unread/total"),
+        ]);
+
+        if (resRequests.data) setUnreadCount(resRequests.data.numRequests);
+        if (resMessages.data.ok) setUnreadMessages(resMessages.data.count);
+
+        setTimeout(() => {
+          setIsReady(true);
+        }, 300);
+      } catch (error) {
+        console.error(error);
+        setIsReady(true);
+      }
+    };
+
+    loadInitialData();
+  }, [loggedUser?.id, setUnreadCount, setUnreadMessages]);
 
   useEffect(() => {
     if (!socket || !loggedUser?.id) return;
