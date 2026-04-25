@@ -198,6 +198,8 @@ export default function ChatsPage() {
             }),
           );
           setUnreadByChat(unreadMap);
+          const total = Object.values(unreadMap).reduce((a, b) => a + b, 0);
+          setUnreadMessages(total);
 
           const pendingConnectionId =
             sessionStorage.getItem("openConnectionId");
@@ -767,8 +769,6 @@ export default function ChatsPage() {
     message.user_id === loggedUser?.id || message.author?.id === loggedUser?.id;
 
   const handleBackToList = () => {
-    if (openedConversation && socket)
-      socket.emit("leave_chat", openedConversation.connectionId);
     setOpenedConversation(null);
     setMessageList([]);
   };

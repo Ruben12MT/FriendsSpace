@@ -70,15 +70,16 @@ export default function UserBar() {
       .get("/messages/unread/total")
       .then((res) => { if (res.data.ok) setUnreadMessages(res.data.count); })
       .catch(console.error);
-  }, [pathname]);
+  }, []);
 
   useEffect(() => {
     if (!socket) return;
     const inc = () => {
       if (!estaEnRequests) incrementUnread();
     };
-    const incMsg = () => {
-      if (!isInChatsPage) setUnreadMessages((prev) => prev + 1);
+    const incMsg = (payload) => {
+      const msg = payload.data || payload;
+      if (!isInChatsPage && msg.user_id !== loggedUser?.id) incrementUnreadMessages();
     };
     socket.on("nueva_solicitud", inc);
     socket.on("solicitud_respondida", inc);
@@ -97,25 +98,17 @@ export default function UserBar() {
       socket.off("mensajes_leidos");
     };
   }, [socket, estaEnRequests, isInChatsPage, incrementUnread]);
-
-  const chatsIcon = unreadMessages > 0 && !isInChatsPage ? (
-    <Badge
-      badgeContent={unreadMessages > 99 ? "99+" : unreadMessages}
-      color="error"
-      sx={{ "& .MuiBadge-badge": { fontSize: "0.6rem", minWidth: 15, height: 15, padding: "0 3px" } }}
-    >
-      <ChatBubbleOutlineIcon />
-    </Badge>
-  ) : <ChatBubbleOutlineIcon />;
-
-  const navItems = [
     {
       path: "/app/searchnewfriends",
       icon: <PersonSearchIcon />,
       label: isAdminOrDev ? "Buscar usuarios" : "Buscar amigos",
     },
     { path: "/app/ads", icon: <CampaignIcon />, label: "Anuncios" },
-    { path: "/app/chats", icon: chatsIcon, label: "Chats" },
+    { path: "/app/chats", icon: unreadMessages > 0 && !isInChatsPage ? (
+      <Badge badgeContent={unreadMessages > 99 ? "99+" : unreadMessages} color="error" sx={{ "& .MuiBadge-badge": { fontSize: "0.6rem", minWidth: 15, height: 15, padding: "0 3px" } }}>
+        <ChatBubbleOutlineIcon />
+      </Badge>
+    ) : <ChatBubbleOutlineIcon />, label: "Chats" },
     ...(isAdminOrDev
       ? [
           {
