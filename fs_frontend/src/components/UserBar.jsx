@@ -46,8 +46,10 @@ export default function UserBar() {
   const incrementUnread = useAuthStore((s) => s.incrementUnread);
   const clearAuth = useAuthStore((s) => s.clearAuth);
 
+  const unreadMessages = useAuthStore((s) => s.unreadMessages);
+  const setUnreadMessages = useAuthStore((s) => s.setUnreadMessages);
+
   const [anchorElUser, setAnchorElUser] = useState(null);
-  const [unreadMessages, setUnreadMessages] = useState(0);
 
   const isInChatsPage = pathname === "/app/chats";
 
@@ -77,27 +79,22 @@ export default function UserBar() {
     const inc = () => {
       if (!estaEnRequests) incrementUnread();
     };
-    const incMsg = (payload) => {
-      const msg = payload.data || payload;
-      if (!isInChatsPage && msg.user_id !== loggedUser?.id) incrementUnreadMessages();
+    const onLeidos = () => {
+      api.get("/messages/unread/total")
+        .then((res) => { if (res.data.ok) setUnreadMessages(res.data.count); })
+        .catch(console.error);
     };
     socket.on("nueva_solicitud", inc);
     socket.on("solicitud_respondida", inc);
     socket.on("nuevo_reporte", inc);
-    socket.on("nuevo_mensaje", incMsg);
-    socket.on("mensajes_leidos", () => {
-      api.get("/messages/unread/total")
-        .then((res) => { if (res.data.ok) setUnreadMessages(res.data.count); })
-        .catch(console.error);
-    });
+    socket.on("mensajes_leidos", onLeidos);
     return () => {
       socket.off("nueva_solicitud", inc);
       socket.off("solicitud_respondida", inc);
       socket.off("nuevo_reporte", inc);
-      socket.off("nuevo_mensaje", incMsg);
-      socket.off("mensajes_leidos");
+      socket.off("mensajes_leidos", onLeidos);
     };
-  }, [socket, estaEnRequests, isInChatsPage, incrementUnread]);
+  }, [socket, estaEnRequests, incrementUnread]);
 
   const chatsIcon = unreadMessages > 0 && !isInChatsPage ? (
     <Badge
@@ -225,9 +222,10 @@ export default function UserBar() {
             justifyContent: "center",
             borderRadius: "10px",
             background: active ? activeBg : "transparent",
+            fontSize: 22,
           }}
         >
-          {React.cloneElement(icon, { sx: { fontSize: 22 } })}
+          {icon}
         </Box>
         <Typography
           sx={{
