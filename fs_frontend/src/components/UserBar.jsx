@@ -45,9 +45,11 @@ export default function UserBar() {
   const setUnreadCount = useAuthStore((s) => s.setUnreadCount);
   const incrementUnread = useAuthStore((s) => s.incrementUnread);
   const clearAuth = useAuthStore((s) => s.clearAuth);
+  const unreadMessages = useAuthStore((s) => s.unreadMessages);
+  const setUnreadMessages = useAuthStore((s) => s.setUnreadMessages);
+  const incrementUnreadMessages = useAuthStore((s) => s.incrementUnreadMessages);
 
   const [anchorElUser, setAnchorElUser] = useState(null);
-  const [unreadMessages, setUnreadMessages] = useState(0);
 
   const isInChatsPage = pathname === "/app/chats";
 
@@ -78,7 +80,7 @@ export default function UserBar() {
       if (!estaEnRequests) incrementUnread();
     };
     const incMsg = () => {
-      if (!isInChatsPage) setUnreadMessages((prev) => prev + 1);
+      if (!isInChatsPage) incrementUnreadMessages();
     };
     socket.on("nueva_solicitud", inc);
     socket.on("solicitud_respondida", inc);
@@ -97,21 +99,17 @@ export default function UserBar() {
       socket.off("mensajes_leidos");
     };
   }, [socket, estaEnRequests, isInChatsPage, incrementUnread]);
-
-  const chatsIcon = unreadMessages > 0 && !isInChatsPage ? (
-    <Badge badgeContent={unreadMessages > 99 ? "99+" : unreadMessages} color="error" sx={{ "& .MuiBadge-badge": { fontSize: "0.6rem", minWidth: 15, height: 15, padding: "0 3px" } }}>
-      <ChatBubbleOutlineIcon />
-    </Badge>
-  ) : <ChatBubbleOutlineIcon />;
-
-  const navItems = [
     {
       path: "/app/searchnewfriends",
       icon: <PersonSearchIcon />,
       label: isAdminOrDev ? "Buscar usuarios" : "Buscar amigos",
     },
     { path: "/app/ads", icon: <CampaignIcon />, label: "Anuncios" },
-    { path: "/app/chats", icon: chatsIcon, label: "Chats" },
+    { path: "/app/chats", icon: unreadMessages > 0 && !isInChatsPage ? (
+      <Badge badgeContent={unreadMessages > 99 ? "99+" : unreadMessages} color="error" sx={{ "& .MuiBadge-badge": { fontSize: "0.6rem", minWidth: 15, height: 15, padding: "0 3px" } }}>
+        <ChatBubbleOutlineIcon />
+      </Badge>
+    ) : <ChatBubbleOutlineIcon />, label: "Chats" },
     ...(isAdminOrDev
       ? [
           {

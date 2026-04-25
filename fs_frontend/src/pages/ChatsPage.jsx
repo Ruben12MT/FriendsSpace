@@ -43,6 +43,7 @@ import { useError } from "../context/ErrorContext";
 import { SocketContext } from "../context/SocketContext";
 import { useLocation, useNavigate } from "react-router-dom";
 import api from "../utils/api";
+import useAuthStore from "../store/useAuthStore";
 import ConversationListItem from "../components/ConversationListItem";
 import ChatMessage from "../components/ChatMessage";
 import ChatContextMenu from "../components/ChatContextMenu";
@@ -54,6 +55,7 @@ const TOPBAR_HEIGHT = "52px";
 export default function ChatsPage() {
   const theme = useAppTheme();
   const { loggedUser } = useUser();
+  const setUnreadMessages = useAuthStore((s) => s.setUnreadMessages);
   const { showError } = useError();
   const { socket } = useContext(SocketContext);
   const { state: navigationState } = useLocation();
@@ -278,11 +280,18 @@ export default function ChatsPage() {
   const markChatAsRead = useCallback(async (connectionId) => {
     try {
       await api.put(`/messages/${connectionId}/read`);
-      setUnreadByChat((prev) => ({ ...prev, [connectionId]: 0 }));
+      setUnreadByChat((prev) => {
+        const prevCount = prev[connectionId] || 0;
+        const newMap = { ...prev, [connectionId]: 0 };
+        if (prevCount > 0) {
+          setUnreadMessages((globalPrev) => Math.max(0, globalPrev - prevCount));
+        }
+        return newMap;
+      });
     } catch (e) {
       console.error(e);
     }
-  }, []);
+  }, [setUnreadMessages]);
 
   const selectConversation = (conversation) => {
     if (openedConversation?.connectionId === conversation.connectionId) return;
@@ -409,6 +418,7 @@ export default function ChatsPage() {
               ...prev,
               [connectionId]: (prev[connectionId] || 0) + 1,
             }));
+            setUnreadMessages((prev) => prev + 1);
           }
           return currentConv;
         }
