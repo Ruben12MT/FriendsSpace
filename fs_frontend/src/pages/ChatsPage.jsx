@@ -451,10 +451,16 @@ export default function ChatsPage() {
       setOpenedConversation((currentConv) => {
         if (currentConv?.connectionId !== connectionId) {
           if (newMessage.user_id !== loggedUser?.id) {
-            setUnreadByChat((prev) => ({
-              ...prev,
-              [connectionId]: (prev[connectionId] || 0) + 1,
-            }));
+            setUnreadByChat((prev) => {
+              const updated = {
+                ...prev,
+                [connectionId]: (prev[connectionId] || 0) + 1,
+              };
+              setUnreadMessages(
+                Object.values(updated).reduce((acc, value) => acc + value, 0),
+              );
+              return updated;
+            });
             // setUnreadMessages((prev) => prev + 1);
           }
           return currentConv;
