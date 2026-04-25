@@ -165,8 +165,12 @@ export default function ChatsPage() {
     c.friendUser?.name.toLowerCase().includes(searchTerm.toLowerCase()),
   );
 
-  const reportChatsCount = conversationList.filter((c) => c.isReportChat).length;
-  const normalChatsCount = conversationList.filter((c) => !c.isReportChat).length;
+  const reportChatsCount = conversationList.filter(
+    (c) => c.isReportChat,
+  ).length;
+  const normalChatsCount = conversationList.filter(
+    (c) => !c.isReportChat,
+  ).length;
   const isCurrentChatBlocked = openedConversation?.isBlocked;
 
   const unreadChatsTotal = conversationList
@@ -194,7 +198,7 @@ export default function ChatsPage() {
               try {
                 const res = await api.get(`/messages/${c.connectionId}/unread`);
                 if (res.data.ok) unreadMap[c.connectionId] = res.data.count;
-              } catch (_) {}
+              } catch (error) {}
             }),
           );
           setUnreadByChat(unreadMap);
@@ -231,6 +235,12 @@ export default function ChatsPage() {
       }
     }
     if (loggedUser) loadConversationList();
+
+    return () => {
+      api.get("/messages/unread/total")
+        .then((res) => { if (res.data.ok) setUnreadMessages(res.data.count); })
+        .catch(console.error);
+    };
   }, [loggedUser]);
 
   const loadMessages = useCallback(
@@ -279,26 +289,33 @@ export default function ChatsPage() {
     }
   }, []);
 
-  const markChatAsRead = useCallback(async (connectionId) => {
-    try {
-      await api.put(`/messages/${connectionId}/read`);
-      setUnreadByChat((prev) => {
-        const prevCount = prev[connectionId] || 0;
-        const newMap = { ...prev, [connectionId]: 0 };
-        if (prevCount > 0) {
-          setUnreadMessages((globalPrev) => Math.max(0, globalPrev - prevCount));
-        }
-        return newMap;
-      });
-    } catch (e) {
-      console.error(e);
-    }
-  }, [setUnreadMessages]);
+  const markChatAsRead = useCallback(
+    async (connectionId) => {
+      try {
+        await api.put(`/messages/${connectionId}/read`);
+        setUnreadByChat((prev) => {
+          const prevCount = prev[connectionId] || 0;
+          const newMap = { ...prev, [connectionId]: 0 };
+          if (prevCount > 0) {
+            setUnreadMessages((globalPrev) =>
+              Math.max(0, globalPrev - prevCount),
+            );
+          }
+          return newMap;
+        });
+      } catch (e) {
+        console.error(e);
+      }
+    },
+    [setUnreadMessages],
+  );
 
   const selectConversation = (conversation) => {
     if (openedConversation?.connectionId === conversation.connectionId) return;
-    if (openedConversation && socket)
-      socket.emit("leave_chat", openedConversation.connectionId);
+    if (openedConversation) {
+      markChatAsRead(openedConversation.connectionId);
+      if (socket) socket.emit("leave_chat", openedConversation.connectionId);
+    }
     setOpenedConversation(conversation);
     setMessageList([]);
     setHasMoreMessagesToLoad(true);
@@ -769,6 +786,9 @@ export default function ChatsPage() {
     message.user_id === loggedUser?.id || message.author?.id === loggedUser?.id;
 
   const handleBackToList = () => {
+    if (openedConversation) {
+      markChatAsRead(openedConversation.connectionId);
+    }
     setOpenedConversation(null);
     setMessageList([]);
   };
@@ -830,12 +850,36 @@ export default function ChatsPage() {
               >
                 <ChatIcon sx={{ fontSize: 18, color: mainTextColor }} />
                 <Box display="flex" alignItems="center" gap={0.5}>
-                  <Typography sx={{ fontSize: "0.7rem", fontWeight: 600, color: mainTextColor }}>
+                  <Typography
+                    sx={{
+                      fontSize: "0.7rem",
+                      fontWeight: 600,
+                      color: mainTextColor,
+                    }}
+                  >
                     Chats
                   </Typography>
                   {unreadChatsTotal > 0 && (
-                    <Box sx={{ minWidth: 16, height: 16, borderRadius: "8px", background: accentColor, display: "flex", alignItems: "center", justifyContent: "center", px: 0.5 }}>
-                      <Typography sx={{ fontSize: "0.6rem", fontWeight: 700, color: "#fff", lineHeight: 1 }}>
+                    <Box
+                      sx={{
+                        minWidth: 16,
+                        height: 16,
+                        borderRadius: "8px",
+                        background: accentColor,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        px: 0.5,
+                      }}
+                    >
+                      <Typography
+                        sx={{
+                          fontSize: "0.6rem",
+                          fontWeight: 700,
+                          color: "#fff",
+                          lineHeight: 1,
+                        }}
+                      >
                         {unreadChatsTotal > 99 ? "99+" : unreadChatsTotal}
                       </Typography>
                     </Box>
@@ -852,20 +896,54 @@ export default function ChatsPage() {
                   alignItems: "center",
                   gap: 0.25,
                   cursor: "pointer",
-                  borderBottom: selectedTab === "reportes" ? "2px solid #f44336" : "2px solid transparent",
+                  borderBottom:
+                    selectedTab === "reportes"
+                      ? "2px solid #f44336"
+                      : "2px solid transparent",
                   opacity: selectedTab === "reportes" ? 1 : 0.5,
                   transition: "all 0.15s",
                   "&:hover": { opacity: 1 },
                 }}
               >
-                <ReportIcon sx={{ fontSize: 18, color: selectedTab === "reportes" ? "#f44336" : mainTextColor }} />
+                <ReportIcon
+                  sx={{
+                    fontSize: 18,
+                    color:
+                      selectedTab === "reportes" ? "#f44336" : mainTextColor,
+                  }}
+                />
                 <Box display="flex" alignItems="center" gap={0.5}>
-                  <Typography sx={{ fontSize: "0.7rem", fontWeight: 600, color: selectedTab === "reportes" ? "#f44336" : mainTextColor }}>
+                  <Typography
+                    sx={{
+                      fontSize: "0.7rem",
+                      fontWeight: 600,
+                      color:
+                        selectedTab === "reportes" ? "#f44336" : mainTextColor,
+                    }}
+                  >
                     Reportes
                   </Typography>
                   {unreadReportesTotal > 0 && (
-                    <Box sx={{ minWidth: 16, height: 16, borderRadius: "8px", background: "#f44336", display: "flex", alignItems: "center", justifyContent: "center", px: 0.5 }}>
-                      <Typography sx={{ fontSize: "0.6rem", fontWeight: 700, color: "#fff", lineHeight: 1 }}>
+                    <Box
+                      sx={{
+                        minWidth: 16,
+                        height: 16,
+                        borderRadius: "8px",
+                        background: "#f44336",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        px: 0.5,
+                      }}
+                    >
+                      <Typography
+                        sx={{
+                          fontSize: "0.6rem",
+                          fontWeight: 700,
+                          color: "#fff",
+                          lineHeight: 1,
+                        }}
+                      >
                         {unreadReportesTotal > 99 ? "99+" : unreadReportesTotal}
                       </Typography>
                     </Box>
@@ -958,7 +1036,10 @@ export default function ChatsPage() {
                     last_message: conversation.lastMessage,
                     blockedByMe: conversation.iBlockedThem,
                   }}
-                  isActive={openedConversation?.connectionId === conversation.connectionId}
+                  isActive={
+                    openedConversation?.connectionId ===
+                    conversation.connectionId
+                  }
                   onSelect={selectConversation}
                   unreadCount={unreadByChat[conversation.connectionId] || 0}
                 />
