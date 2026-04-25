@@ -68,7 +68,6 @@ export default function UserBar() {
       .catch(console.error);
   }, [unreadCount, setUnreadCount]);
 
-  // Efecto combinado para carga inicial con delay
   useEffect(() => {
     if (!loggedUser?.id) return;
 
@@ -84,7 +83,7 @@ export default function UserBar() {
 
         setTimeout(() => {
           setIsReady(true);
-        }, 300);
+        }, 1000);
       } catch (error) {
         console.error(error);
         setIsReady(true);
@@ -610,7 +609,6 @@ export default function UserBar() {
           ml: isMobile ? 0 : `${SIDEBAR_W}px`,
           mt: `${TOPBAR_H}px`,
           mb: isMobile ? `${BOTTOM_NAV_H}px` : 0,
-          // Transición suave
           opacity: isReady ? 1 : 0,
           transition: "opacity 0.4s ease-in-out",
           display: "flex",
