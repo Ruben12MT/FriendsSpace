@@ -143,7 +143,6 @@ export default function ChatsPage() {
         const iBlockedThem = isBlocked && myHalf?.blocked_by === currentUserId;
         const friendRole = friendHalf?.user?.role;
         const isReportChat = currentUserIsAdmin && friendRole === "USER";
-
         return {
           connectionId: connection.id,
           friendUser: friendHalf?.user,
@@ -154,12 +153,7 @@ export default function ChatsPage() {
           lastMessage: connection.messages?.[0] || null,
         };
       })
-      .filter((conv) => conv.friendUser)
-      .sort((a, b) => {
-        const dateA = new Date(a.lastMessage?.createdAt || 0);
-        const dateB = new Date(b.lastMessage?.createdAt || 0);
-        return dateB - dateA;
-      });
+      .filter((conv) => conv.friendUser);
   };
 
   const visibleConversations = (
@@ -168,9 +162,15 @@ export default function ChatsPage() {
           selectedTab === "reportes" ? c.isReportChat : !c.isReportChat,
         )
       : conversationList
-  ).filter((c) =>
-    c.friendUser?.name.toLowerCase().includes(searchTerm.toLowerCase()),
-  );
+  )
+    .filter((c) =>
+      c.friendUser?.name.toLowerCase().includes(searchTerm.toLowerCase()),
+    )
+    .sort((a, b) => {
+      const fechaA = a.lastMessage?.createdAt || a.lastMessage?.created_at || 0;
+      const fechaB = b.lastMessage?.createdAt || b.lastMessage?.created_at || 0;
+      return new Date(fechaB) - new Date(fechaA);
+    });
 
   const reportChatsCount = conversationList.filter(
     (c) => c.isReportChat,
@@ -426,42 +426,23 @@ export default function ChatsPage() {
       processedMessageIds.current.add(newMessage.id);
       setTimeout(() => processedMessageIds.current.delete(newMessage.id), 5000);
 
-      if (connectionId) {
-        setConversationList((prev) => {
-          const existingChat = prev.find(
-            (c) => c.connectionId === connectionId,
-          );
-
-          if (existingChat) {
-            const updatedChat = {
-              ...existingChat,
-              lastMessage: newMessage,
-            };
-
-            const otherChats = prev.filter(
-              (c) => c.connectionId !== connectionId,
-            );
-
-            return [updatedChat, ...otherChats];
-          }
-          return prev;
-        });
-      }
+      if (connectionId)
+        setConversationList((prev) =>
+          prev.map((c) =>
+            c.connectionId === connectionId
+              ? { ...c, lastMessage: newMessage }
+              : c,
+          ),
+        );
 
       setOpenedConversation((currentConv) => {
         if (currentConv?.connectionId !== connectionId) {
           if (newMessage.user_id !== loggedUser?.id) {
-            setUnreadByChat((prev) => {
-              const updated = {
-                ...prev,
-                [connectionId]: (prev[connectionId] || 0) + 1,
-              };
-              setUnreadMessages(
-                Object.values(updated).reduce((acc, value) => acc + value, 0),
-              );
-              return updated;
-            });
-            // setUnreadMessages((prev) => prev + 1);
+            setUnreadByChat((prev) => ({
+              ...prev,
+              [connectionId]: (prev[connectionId] || 0) + 1,
+            }));
+            setUnreadMessages((prev) => prev + 1);
           }
           return currentConv;
         }
@@ -469,11 +450,6 @@ export default function ChatsPage() {
           if (prev.find((m) => m.id === newMessage.id)) return prev;
           return [...prev, newMessage];
         });
-        if (newMessage.user_id !== loggedUser?.id) {
-          markChatAsRead(connectionId).catch((error) => {
-            console.error("Error marcando mensajes como leídos:", error);
-          });
-        }
         if (isAtBottom()) {
           setTimeout(() => scrollToBottom("smooth"), 50);
         } else {
@@ -570,28 +546,21 @@ export default function ChatsPage() {
   }, [socket, loggedUser]);
 
   useEffect(() => {
-    const currentId = openedConversation?.connectionId;
-    return () => {
-      if (currentId) {
-        api
-          .put(`/messages/${currentId}/read`)
-          .then(() => {
-            setUnreadMessages((prev) =>
-              Math.max(0, prev - (unreadByChat[currentId] || 0)),
-            );
-          })
-          .catch(console.error);
-      }
-    };
-  }, [openedConversation?.connectionId]);
-
-  useEffect(() => {
     return () => {
       if (socket && openedConversation?.connectionId) {
         socket.emit("leave_chat", openedConversation.connectionId);
       }
     };
   }, [socket, openedConversation]);
+
+  useEffect(() => {
+    const unreadByChatRef = { current: {} };
+    unreadByChatRef.current = unreadByChat;
+    return () => {
+      const total = Object.values(unreadByChatRef.current).reduce((a, b) => a + b, 0);
+      setUnreadMessages(total);
+    };
+  }, [unreadByChat]);
 
   useEffect(() => {
     const topElement = topSentinelRef.current;
