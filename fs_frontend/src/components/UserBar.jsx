@@ -140,17 +140,6 @@ export default function UserBar() {
     setUnreadMessages,
   ]);
 
-  useEffect(() => {
-    if (!isInChatsPage) {
-      api
-        .get("/messages/unread/total")
-        .then((res) => {
-          if (res.data.ok) setUnreadMessages(res.data.count);
-        })
-        .catch(console.error);
-    }
-  }, [isInChatsPage, setUnreadMessages]);
-
   const chatsIcon =
     unreadMessages > 0 ? (
       <Badge
