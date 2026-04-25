@@ -79,6 +79,12 @@ export default function UserBar() {
     const inc = () => {
       if (!estaEnRequests) incrementUnread();
     };
+    const onNuevoMensaje = (payload) => {
+      const msg = payload.data || payload;
+      if (!isInChatsPage && msg.user_id !== loggedUser?.id) {
+        setUnreadMessages((prev) => prev + 1);
+      }
+    };
     const onLeidos = () => {
       api.get("/messages/unread/total")
         .then((res) => { if (res.data.ok) setUnreadMessages(res.data.count); })
@@ -87,14 +93,16 @@ export default function UserBar() {
     socket.on("nueva_solicitud", inc);
     socket.on("solicitud_respondida", inc);
     socket.on("nuevo_reporte", inc);
+    socket.on("nuevo_mensaje", onNuevoMensaje);
     socket.on("mensajes_leidos", onLeidos);
     return () => {
       socket.off("nueva_solicitud", inc);
       socket.off("solicitud_respondida", inc);
       socket.off("nuevo_reporte", inc);
+      socket.off("nuevo_mensaje", onNuevoMensaje);
       socket.off("mensajes_leidos", onLeidos);
     };
-  }, [socket, estaEnRequests, incrementUnread]);
+  }, [socket, estaEnRequests, isInChatsPage, incrementUnread, loggedUser?.id]);
 
   const chatsIcon = unreadMessages > 0 && !isInChatsPage ? (
     <Badge

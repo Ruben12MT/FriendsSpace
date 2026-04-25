@@ -109,6 +109,7 @@ export default function ChatsPage() {
   const messageInputRef = useRef(null);
   const filePickerRef = useRef(null);
   const messagesContainerRef = useRef(null);
+  const processedMessageIds = useRef(new Set());
 
   const sidebarBg = theme.sidebarBg;
   const chatAreaBg = theme.name === "dark" ? "#1e1e1e" : "#f9f9f9";
@@ -420,6 +421,10 @@ export default function ChatsPage() {
     const onIncomingMessage = (payload) => {
       const newMessage = payload.data || payload;
       const connectionId = newMessage.connection_id;
+
+      if (processedMessageIds.current.has(newMessage.id)) return;
+      processedMessageIds.current.add(newMessage.id);
+      setTimeout(() => processedMessageIds.current.delete(newMessage.id), 5000);
 
       if (connectionId)
         setConversationList((prev) =>
