@@ -33,7 +33,6 @@ const TOPBAR_H = 52;
 const BOTTOM_NAV_H = 56;
 
 export default function UserBar() {
-  const [isReady, setIsReady] = useState(false);
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const { loggedUser } = useUser();
@@ -70,28 +69,11 @@ export default function UserBar() {
 
   useEffect(() => {
     if (!loggedUser?.id) return;
-
-    const loadInitialData = async () => {
-      try {
-        const [resRequests, resMessages] = await Promise.all([
-          api.get("/requests/withoutread"),
-          api.get("/messages/unread/total"),
-        ]);
-
-        if (resRequests.data) setUnreadCount(resRequests.data.numRequests);
-        if (resMessages.data.ok) setUnreadMessages(resMessages.data.count);
-
-        setTimeout(() => {
-          setIsReady(true);
-        }, 1000);
-      } catch (error) {
-        console.error(error);
-        setIsReady(true);
-      }
-    };
-
-    loadInitialData();
-  }, [loggedUser?.id, setUnreadCount, setUnreadMessages]);
+    api
+      .get("/messages/unread/total")
+      .then((res) => { if (res.data.ok) setUnreadMessages(res.data.count); })
+      .catch(console.error);
+  }, [loggedUser?.id, setUnreadMessages]);
 
   useEffect(() => {
     if (!socket || !loggedUser?.id) return;
@@ -110,13 +92,9 @@ export default function UserBar() {
           .catch(() => setUnreadMessages((prev) => prev + 1));
       }
     };
-
     const onLeidos = () => {
-      api
-        .get("/messages/unread/total")
-        .then((res) => {
-          if (res.data.ok) setUnreadMessages(res.data.count);
-        })
+      api.get("/messages/unread/total")
+        .then((res) => { if (res.data.ok) setUnreadMessages(res.data.count); })
         .catch(console.error);
     };
     socket.on("nueva_solicitud", inc);
@@ -131,34 +109,17 @@ export default function UserBar() {
       socket.off("nuevo_mensaje", onNuevoMensaje);
       socket.off("mensajes_leidos", onLeidos);
     };
-  }, [
-    socket,
-    estaEnRequests,
-    isInChatsPage,
-    incrementUnread,
-    loggedUser?.id,
-    setUnreadMessages,
-  ]);
+  }, [socket, estaEnRequests, isInChatsPage, incrementUnread, loggedUser?.id, setUnreadMessages]);
 
-  const chatsIcon =
-    unreadMessages > 0 ? (
-      <Badge
-        badgeContent={unreadMessages > 99 ? "99+" : unreadMessages}
-        color="error"
-        sx={{
-          "& .MuiBadge-badge": {
-            fontSize: "0.6rem",
-            minWidth: 15,
-            height: 15,
-            padding: "0 3px",
-          },
-        }}
-      >
-        <ChatBubbleOutlineIcon />
-      </Badge>
-    ) : (
+  const chatsIcon = unreadMessages > 0 && !isInChatsPage ? (
+    <Badge
+      badgeContent={unreadMessages > 99 ? "99+" : unreadMessages}
+      color="error"
+      sx={{ "& .MuiBadge-badge": { fontSize: "0.6rem", minWidth: 15, height: 15, padding: "0 3px" } }}
+    >
       <ChatBubbleOutlineIcon />
-    );
+    </Badge>
+  ) : <ChatBubbleOutlineIcon />;
 
   const navItems = [
     {
@@ -598,14 +559,13 @@ export default function UserBar() {
           ml: isMobile ? 0 : `${SIDEBAR_W}px`,
           mt: `${TOPBAR_H}px`,
           mb: isMobile ? `${BOTTOM_NAV_H}px` : 0,
-          opacity: isReady ? 1 : 0,
-          transition: "opacity 0.4s ease-in-out",
+          minHeight: `calc(100vh - ${TOPBAR_H}px${isMobile ? ` - ${BOTTOM_NAV_H}px` : ""})`,
           display: "flex",
           flexDirection: "column",
           boxSizing: "border-box",
         }}
       >
-        {isReady && <Outlet />}
+        <Outlet />
       </Box>
     </Box>
   );
