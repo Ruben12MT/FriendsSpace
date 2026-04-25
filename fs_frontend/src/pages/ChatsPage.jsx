@@ -131,38 +131,35 @@ export default function ChatsPage() {
   }, []);
 
   const buildConversationList = (rawConnections, currentUserId) => {
-    return (
-      rawConnections
-        .map((connection) => {
-          const myHalf = connection.user_connections?.find(
-            (uc) => uc.user?.id === currentUserId,
-          );
-          const friendHalf = connection.user_connections?.find(
-            (uc) => uc.user?.id !== currentUserId,
-          );
-          const isBlocked = connection.status === "BLOCKED";
-          const iBlockedThem =
-            isBlocked && myHalf?.blocked_by === currentUserId;
-          const friendRole = friendHalf?.user?.role;
-          const isReportChat = currentUserIsAdmin && friendRole === "USER";
+    return rawConnections
+      .map((connection) => {
+        const myHalf = connection.user_connections?.find(
+          (uc) => uc.user?.id === currentUserId,
+        );
+        const friendHalf = connection.user_connections?.find(
+          (uc) => uc.user?.id !== currentUserId,
+        );
+        const isBlocked = connection.status === "BLOCKED";
+        const iBlockedThem = isBlocked && myHalf?.blocked_by === currentUserId;
+        const friendRole = friendHalf?.user?.role;
+        const isReportChat = currentUserIsAdmin && friendRole === "USER";
 
-          return {
-            connectionId: connection.id,
-            friendUser: friendHalf?.user,
-            connectionStatus: connection.status,
-            isBlocked,
-            iBlockedThem,
-            isReportChat,
-            lastMessage: connection.messages?.[0] || null,
-          };
-        })
-        .filter((conv) => conv.friendUser)
-        .sort((a, b) => {
-          const dateA = new Date(a.lastMessage?.createdAt || 0);
-          const dateB = new Date(b.lastMessage?.createdAt || 0);
-          return dateB - dateA; 
-        })
-    );
+        return {
+          connectionId: connection.id,
+          friendUser: friendHalf?.user,
+          connectionStatus: connection.status,
+          isBlocked,
+          iBlockedThem,
+          isReportChat,
+          lastMessage: connection.messages?.[0] || null,
+        };
+      })
+      .filter((conv) => conv.friendUser)
+      .sort((a, b) => {
+        const dateA = new Date(a.lastMessage?.createdAt || 0);
+        const dateB = new Date(b.lastMessage?.createdAt || 0);
+        return dateB - dateA;
+      });
   };
 
   const visibleConversations = (
@@ -429,14 +426,27 @@ export default function ChatsPage() {
       processedMessageIds.current.add(newMessage.id);
       setTimeout(() => processedMessageIds.current.delete(newMessage.id), 5000);
 
-      if (connectionId)
-        setConversationList((prev) =>
-          prev.map((c) =>
-            c.connectionId === connectionId
-              ? { ...c, lastMessage: newMessage }
-              : c,
-          ),
-        );
+      if (connectionId) {
+        setConversationList((prev) => {
+          const existingChat = prev.find(
+            (c) => c.connectionId === connectionId,
+          );
+
+          if (existingChat) {
+            const updatedChat = {
+              ...existingChat,
+              lastMessage: newMessage,
+            };
+
+            const otherChats = prev.filter(
+              (c) => c.connectionId !== connectionId,
+            );
+
+            return [updatedChat, ...otherChats];
+          }
+          return prev;
+        });
+      }
 
       setOpenedConversation((currentConv) => {
         if (currentConv?.connectionId !== connectionId) {
