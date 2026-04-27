@@ -5,7 +5,12 @@ import GradeIcon from "@mui/icons-material/Grade";
 import { useAppTheme } from "../hooks/useAppTheme";
 import { useUser } from "../hooks/useUser";
 
-export default function ConversationListItem({ conversation, isActive, onSelect, unreadCount = 0 }) {
+export default function ConversationListItem({
+  conversation,
+  isActive,
+  onSelect,
+  unreadCount = 0,
+}) {
   const theme = useAppTheme();
   const { loggedUser } = useUser();
   const accent = theme.accent || theme.primaryBack;
@@ -24,10 +29,18 @@ export default function ConversationListItem({ conversation, isActive, onSelect,
     const date = new Date(dateStr);
     const now = new Date();
     const isToday = date.toDateString() === now.toDateString();
-    if (isToday) return date.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" });
+    if (isToday)
+      return date.toLocaleTimeString("es-ES", {
+        hour: "2-digit",
+        minute: "2-digit",
+      });
     const diffDays = Math.floor((now - date) / (1000 * 60 * 60 * 24));
-    if (diffDays < 7) return date.toLocaleDateString("es-ES", { weekday: "short" });
-    return date.toLocaleDateString("es-ES", { day: "2-digit", month: "2-digit" });
+    if (diffDays < 7)
+      return date.toLocaleDateString("es-ES", { weekday: "short" });
+    return date.toLocaleDateString("es-ES", {
+      day: "2-digit",
+      month: "2-digit",
+    });
   };
 
   const getLastMessagePreview = () => {
@@ -35,11 +48,16 @@ export default function ConversationListItem({ conversation, isActive, onSelect,
     const isMine = lastMessage.user_id === loggedUser?.id;
     const prefix = isMine ? "Tú: " : "";
     switch (lastMessage.type) {
-      case "IMAGE": return `${prefix}📷 Imagen`;
-      case "VIDEO": return `${prefix}🎥 Vídeo`;
-      case "AUDIO": return `${prefix}🎵 Audio`;
-      case "FILE": return `${prefix}📎 Archivo`;
-      default: return `${prefix}${lastMessage.body || ""}`;
+      case "IMAGE":
+        return `${prefix}📷 Imagen`;
+      case "VIDEO":
+        return `${prefix}🎥 Vídeo`;
+      case "AUDIO":
+        return `${prefix}🎵 Audio`;
+      case "FILE":
+        return `${prefix}📎 Archivo`;
+      default:
+        return `${prefix}${lastMessage.body || ""}`;
     }
   };
 
@@ -49,8 +67,12 @@ export default function ConversationListItem({ conversation, isActive, onSelect,
     <Box
       onClick={() => onSelect(conversation)}
       sx={{
-        display: "flex", alignItems: "center", gap: 1.5,
-        px: 2, py: 1.25, cursor: "pointer",
+        display: "flex",
+        alignItems: "center",
+        gap: 1.5,
+        px: 2,
+        py: 1.25,
+        cursor: "pointer",
         opacity: isBlocked ? 0.45 : 1,
         background: isActive ? `${accent}18` : "transparent",
         borderLeft: `3px solid ${isActive ? accent : "transparent"}`,
@@ -61,16 +83,48 @@ export default function ConversationListItem({ conversation, isActive, onSelect,
       <Box sx={{ position: "relative", flexShrink: 0 }}>
         <Avatar
           src={conversation.friend?.url_image || "/no_user_avatar_image.png"}
-          sx={{ width: 42, height: 42, filter: isBlocked ? "grayscale(100%)" : "none" }}
+          sx={{
+            width: 42,
+            height: 42,
+            filter: isBlocked ? "grayscale(100%)" : "none",
+          }}
         />
         {isBlocked && (
-          <Box sx={{ position: "absolute", bottom: -2, right: -2, width: 16, height: 16, borderRadius: "50%", background: "#f44336", display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <Box
+            sx={{
+              position: "absolute",
+              bottom: -2,
+              right: -2,
+              width: 16,
+              height: 16,
+              borderRadius: "50%",
+              background: "#f44336",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
             <BlockIcon sx={{ fontSize: 10, color: "#fff" }} />
           </Box>
         )}
         {(isAdmin || isDeveloper) && !isBlocked && (
-          <Box sx={{ position: "absolute", bottom: -2, right: -2, width: 16, height: 16, borderRadius: "50%", background: theme.secondaryBack, display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <GradeIcon sx={{ fontSize: 12, color: isDeveloper ? "#00bcd4" : "#FFD700" }} />
+          <Box
+            sx={{
+              position: "absolute",
+              bottom: -2,
+              right: -2,
+              width: 16,
+              height: 16,
+              borderRadius: "50%",
+              background: theme.secondaryBack,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <GradeIcon
+              sx={{ fontSize: 12, color: isDeveloper ? "#00bcd4" : "#FFD700" }}
+            />
           </Box>
         )}
       </Box>
@@ -78,22 +132,83 @@ export default function ConversationListItem({ conversation, isActive, onSelect,
       <Box sx={{ minWidth: 0, flex: 1 }}>
         <Box display="flex" justifyContent="space-between" alignItems="center">
           <Box display="flex" alignItems="center" gap={0.5}>
-            <Typography sx={{ fontWeight: hasUnread ? 700 : 600, color: isBlocked ? subtleColor : textColor, fontSize: "0.875rem" }} noWrap>
+            <Typography
+              sx={{
+                fontWeight: hasUnread ? 700 : 600,
+                color: isBlocked ? subtleColor : textColor,
+                fontSize: "0.875rem",
+              }}
+              noWrap
+            >
               {conversation.friend?.name}
             </Typography>
             {(isAdmin || isDeveloper) && (
-              <GradeIcon sx={{ fontSize: 12, color: isDeveloper ? "#00bcd4" : "#FFD700", flexShrink: 0 }} />
+              <GradeIcon
+                sx={{
+                  fontSize: 12,
+                  color: isDeveloper ? "#00bcd4" : "#FFD700",
+                  flexShrink: 0,
+                }}
+              />
             )}
           </Box>
-          <Box display="flex" alignItems="center" gap={0.75} sx={{ flexShrink: 0, ml: 1 }}>
+          {
+            conversation.friend?.banned && (
+              <Box
+                sx={{
+                  bgcolor: "#f4433620",
+                  color: "#f44336",
+                  px: 1,
+                  borderRadius: "6px",
+                  fontSize: "0.7rem",
+                  fontWeight: 700,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 0.5,
+                }}
+              >
+                <BlockIcon sx={{ fontSize: 11 }} />{" "}
+                {loggedUser.role === "USER" ? "NO DISPONIBLE" : "SUSPENDIDO"}
+              </Box>
+            )
+          }
+          <Box
+            display="flex"
+            alignItems="center"
+            gap={0.75}
+            sx={{ flexShrink: 0, ml: 1 }}
+          >
             {lastMessage && (
-              <Typography sx={{ fontSize: "0.68rem", color: hasUnread ? accent : subtleColor }}>
+              <Typography
+                sx={{
+                  fontSize: "0.68rem",
+                  color: hasUnread ? accent : subtleColor,
+                }}
+              >
                 {formatTime(lastMessage.created_at)}
               </Typography>
             )}
             {hasUnread && (
-              <Box sx={{ minWidth: 18, height: 18, borderRadius: "9px", background: accent, display: "flex", alignItems: "center", justifyContent: "center", px: 0.5 }}>
-                <Typography sx={{ fontSize: "0.62rem", fontWeight: 700, color: "#fff", lineHeight: 1 }}>
+              <Box
+                sx={{
+                  minWidth: 18,
+                  height: 18,
+                  borderRadius: "9px",
+                  background: accent,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  px: 0.5,
+                }}
+              >
+                <Typography
+                  sx={{
+                    fontSize: "0.62rem",
+                    fontWeight: 700,
+                    color: "#fff",
+                    lineHeight: 1,
+                  }}
+                >
                   {unreadCount > 99 ? "99+" : unreadCount}
                 </Typography>
               </Box>
@@ -102,15 +217,32 @@ export default function ConversationListItem({ conversation, isActive, onSelect,
         </Box>
 
         {isBlocked ? (
-          <Typography sx={{ fontSize: "0.72rem", color: "#f44336", opacity: 0.8 }}>
+          <Typography
+            sx={{ fontSize: "0.72rem", color: "#f44336", opacity: 0.8 }}
+          >
             {conversation.blockedByMe ? "Bloqueado" : "No disponible"}
           </Typography>
         ) : preview ? (
-          <Typography sx={{ fontSize: "0.75rem", color: hasUnread ? textColor : subtleColor, opacity: hasUnread ? 0.9 : 0.8, fontWeight: hasUnread ? 600 : 400 }} noWrap>
+          <Typography
+            sx={{
+              fontSize: "0.75rem",
+              color: hasUnread ? textColor : subtleColor,
+              opacity: hasUnread ? 0.9 : 0.8,
+              fontWeight: hasUnread ? 600 : 400,
+            }}
+            noWrap
+          >
             {preview}
           </Typography>
         ) : (
-          <Typography sx={{ fontSize: "0.75rem", color: subtleColor, opacity: 0.5, fontStyle: "italic" }}>
+          <Typography
+            sx={{
+              fontSize: "0.75rem",
+              color: subtleColor,
+              opacity: 0.5,
+              fontStyle: "italic",
+            }}
+          >
             Sin mensajes aún
           </Typography>
         )}

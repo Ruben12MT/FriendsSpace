@@ -42,17 +42,17 @@ export default function UserCard({ user, variant = "card" }) {
           borderRadius: "16px",
           overflow: "hidden",
           background: cardBg,
-          border: `1px solid ${roleColor}25`,
+          border: user.banned ? `2px solid ${ "#ff0000"}45`  : `1px solid ${ roleColor}25`,
           boxShadow: isDark
-            ? "0 4px 24px rgba(0,0,0,0.3)"
-            : `0 4px 24px rgba(0,0,0,0.06)`,
+            ? user.banned ? "0 4px 24px rgba(255,0,0,0.3)" : "0 4px 24px rgba(0,0,0,0.3)"
+            : user.banned ? `0 4px 24px rgba(255,0,0,0.1)` : `0 4px 24px rgba(0,0,0,0.06)`,
           cursor: "pointer",
           transition: "transform 0.2s, box-shadow 0.2s",
           "&:hover": {
             transform: "translateY(-3px)",
             boxShadow: isDark
-              ? "0 8px 32px rgba(0,0,0,0.45)"
-              : `0 8px 28px rgba(0,0,0,0.1)`,
+              ? user.banned ? "0 8px 32px rgba(255,0,0,0.45)" : "0 8px 32px rgba(0,0,0,0.45)"
+              : user.banned ? `0 8px 28px rgba(255,0,0,0.1)` : `0 8px 28px rgba(0,0,0,0.1)`,
           },
           display: "flex",
           flexDirection: "column",

@@ -70,19 +70,25 @@ export default function AdsPage() {
         const res = await api.get("/ads", { params: buildParams(pageNum) });
         if (res.data?.ok) {
           const nuevos = res.data.datos.filter((ad) => {
-            return (
-              selectedInterests.includes(-1) ||
-              ad.interests?.some((interesDelAnuncio) => {
-                const idAnuncio =
-                  interesDelAnuncio.id || interesDelAnuncio.interest_id;
-                if (selectedInterests.includes(0))
-                  return userInterests.some(
-                    (uInt) =>
-                      Number(uInt.id || uInt.interest_id) === Number(idAnuncio),
-                  );
-                return selectedInterests.includes(Number(idAnuncio));
-              })
-            );
+            // Filtrar por "Mis anuncios" (solo del usuario actual)
+            if (selectedInterests.includes(-2)) {
+              return loggedUser && ad.user_id === loggedUser.id;
+            }
+            // Mostrar todos los anuncios
+            if (selectedInterests.includes(-1)) {
+              return true;
+            }
+            // Filtrar por intereses del usuario o específicos
+            return ad.interests?.some((interesDelAnuncio) => {
+              const idAnuncio =
+                interesDelAnuncio.id || interesDelAnuncio.interest_id;
+              if (selectedInterests.includes(0))
+                return userInterests.some(
+                  (uInt) =>
+                    Number(uInt.id || uInt.interest_id) === Number(idAnuncio),
+                );
+              return selectedInterests.includes(Number(idAnuncio));
+            });
           });
           setAds((prev) => (reset ? nuevos : [...prev, ...nuevos]));
           setHasMore(res.data.hasMore);
@@ -95,7 +101,7 @@ export default function AdsPage() {
         setIsLoadingMore(false);
       }
     },
-    [buildParams, selectedInterests, userInterests],
+    [buildParams, selectedInterests, userInterests, loggedUser],
   );
 
   useEffect(() => {
@@ -125,7 +131,10 @@ export default function AdsPage() {
       setAds((prev) => prev.filter((a) => a.id !== confirmDelete.adId));
       setConfirmDelete({ open: false, adId: null });
     } catch (error) {
-      showError("No se pudo eliminar el anuncio.", "Inténtalo de nuevo más tarde.");
+      showError(
+        "No se pudo eliminar el anuncio.",
+        "Inténtalo de nuevo más tarde.",
+      );
       setConfirmDelete({ open: false, adId: null });
     }
   };
@@ -133,11 +142,14 @@ export default function AdsPage() {
   const handleSelectInterest = (e) => {
     const nuevosValores = e.target.value;
     const ultimaSeleccion = nuevosValores[nuevosValores.length - 1];
+    // Manejo de opciones exclusivas
     if (nuevosValores.length === 0 || ultimaSeleccion === -1)
-      setSelectedInterests([-1]);
-    else if (ultimaSeleccion === 0) setSelectedInterests([0]);
+      setSelectedInterests([-1]); // Mostrar todos
+    else if (ultimaSeleccion === 0) setSelectedInterests([0]); // Mis intereses
+    else if (ultimaSeleccion === -2) setSelectedInterests([-2]); // Mis anuncios
     else
-      setSelectedInterests(nuevosValores.filter((id) => id !== 0 && id !== -1));
+      // Filtrar intereses específicos (excluyendo las opciones especiales)
+      setSelectedInterests(nuevosValores.filter((id) => id !== 0 && id !== -1 && id !== -2));
   };
 
   const handleReset = () => {
@@ -146,9 +158,20 @@ export default function AdsPage() {
     fetchAds(1, true);
   };
 
+  /**
+   * Crea la lista extendida de intereses que incluye opciones especiales.
+   * Combina "Mis intereses", "Todos", "Mis anuncios" con los intereses reales.
+   */
+  const interestesExtendidos = [
+    { id: -2, name: "Mis anuncios" },
+    ...allInterests,
+  ];
+
   const getInterestText = () => {
     if (selectedInterests.includes(0)) return "Mis intereses";
     if (selectedInterests.includes(-1)) return "Todos";
+    if (selectedInterests.includes(-2)) return "Mis anuncios";
+
     const nombres = selectedInterests.map((id) => {
       const interest = allInterests.find((o) => o.id === id);
       return interest ? interest.name : id;
@@ -201,7 +224,7 @@ export default function AdsPage() {
             setOpenFormAd(true);
           }}
           showAdd={true}
-          interests={allInterests}
+          interests={interestesExtendidos}
           selectedInterests={selectedInterests}
           onInterestChange={handleSelectInterest}
         />

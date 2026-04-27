@@ -26,7 +26,7 @@ class ConnectionService {
             {
               model: models.user,
               as: "user",
-              attributes: ["id", "name", "url_image", "role"],
+              attributes: ["id", "name", "url_image", "role", "banned"],
             },
           ],
         },
