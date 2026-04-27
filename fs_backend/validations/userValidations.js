@@ -56,6 +56,13 @@ class UserValidations {
       return "El nombre de usuario solo puede contener letras, números y guiones bajos";
     }
 
+    // Pero si el nombre se constituye solo de numeros o solo de guiones bajos no lo aceptamos
+    const onlyNumbersOrUnderscores = /^[0-9_]+$/.test(cleanedUsername);
+
+    if (onlyNumbersOrUnderscores) {
+      return "El nombre de usuario no puede contener solo números o guiones bajos";
+    }
+
     // Comprobamos si el username ya está pillado en la base de datos
     const userFromDb =
       await userService.getUserByEmailOrUsername(cleanedUsername);

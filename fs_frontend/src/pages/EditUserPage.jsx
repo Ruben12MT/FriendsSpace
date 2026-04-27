@@ -37,7 +37,11 @@ export default function EditUserPage() {
   const [editedUser, setEditedUser] = useState(null);
   const [editedUserInterests, setEditedUserInterests] = useState([]);
   const limites = { name: 50, short_sentece: 50, bio: 500, goals: 500 };
-  const [ui, setUi] = useState({ editingName: false, avatarHovered: false, loading: false });
+  const [ui, setUi] = useState({
+    editingName: false,
+    avatarHovered: false,
+    loading: false,
+  });
   const [avatar, setAvatar] = useState({ file: null, preview: null });
 
   const inputStyle = {
@@ -101,7 +105,10 @@ export default function EditUserPage() {
         setAllInterests(resInterests.data.datos);
         setEditedUserInterests(resUserInterests.data.datos);
       } catch (e) {
-        setErrorState({ msg: "Error al obtener la información del servidor", open: true });
+        setErrorState({
+          msg: "Error al obtener la información del servidor",
+          open: true,
+        });
       } finally {
         setUi((prev) => ({ ...prev, loading: false }));
       }
@@ -111,9 +118,19 @@ export default function EditUserPage() {
 
   if (!editedUser) {
     return (
-      <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100vh", gap: 2 }}>
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          height: "100vh",
+          gap: 2,
+        }}
+      >
         <CircularProgress sx={{ color: accent }} />
-        <Typography sx={{ color: theme.mutedText }}>Cargando datos de perfil...</Typography>
+        <Typography sx={{ color: theme.mutedText }}>
+          Cargando datos de perfil...
+        </Typography>
       </Box>
     );
   }
@@ -128,17 +145,32 @@ export default function EditUserPage() {
 
   const handleUsernameExist = async () => {
     const name = editedUser.name?.trim();
-    if (!name) return setErrorState({ msg: "El nombre no puede estar vacío", open: true });
-    if (/[^a-zA-Z0-9_]/.test(name)) return setErrorState({ msg: "Solo letras, números y _", open: true });
+    if (!name)
+      return setErrorState({
+        msg: "El nombre no puede estar vacío",
+        open: true,
+      });
+    if (/[^a-zA-Z0-9_]/.test(name))
+      return setErrorState({ msg: "Solo letras, números y _", open: true });
     if (name.toLowerCase() === loggedUser.name.toLowerCase()) {
       setUi({ ...ui, editingName: false });
       setErrorState({ msg: "", open: false });
       return;
     }
     try {
+      // Si el nombre se constituye solo de numeros o solo de guiones bajos no lo aceptamos
+      if (/^[0-9_]+$/.test(name)) {
+        return setErrorState({
+          msg: "El nombre no puede contener solo números o guiones bajos",
+          open: true,
+        });
+      }
       const res = await api.get("/users/search/" + name);
       if (res.data.datos) {
-        return setErrorState({ msg: "Ese nombre de usuario ya está en uso", open: true });
+        return setErrorState({
+          msg: "Ese nombre de usuario ya está en uso",
+          open: true,
+        });
       } else {
         setUi({ ...ui, editingName: false });
       }
@@ -153,82 +185,225 @@ export default function EditUserPage() {
   };
 
   const editarUsuario = async () => {
-    if (ui.editingName) return setErrorState({ msg: "Confirma el nombre antes de guardar", open: true });
-    setUi({ ...ui, loading: true });
+    if (ui.editingName)
+      return setErrorState({
+        msg: "Confirma el nombre antes de guardar",
+        open: true,
+      });
+    setUi((prev) => ({ ...prev, loading: true }));
+
     try {
-      const { id, url_image, created_at, role, password, email, banned, ...dataToSend } = editedUser;
+      const {
+        id,
+        url_image,
+        created_at,
+        role,
+        password,
+        email,
+        banned,
+        ...dataToSend
+      } = editedUser;
+
       const cleanData = {};
       Object.keys(dataToSend).forEach((key) => {
-        cleanData[key] = typeof dataToSend[key] === "string" ? dataToSend[key].trim() : dataToSend[key];
+        cleanData[key] =
+          typeof dataToSend[key] === "string"
+            ? dataToSend[key].trim()
+            : dataToSend[key];
       });
+
       await api.put("/users/" + loggedUser.id, cleanData);
+
       let nuevaUrl = editedUser.url_image;
       if (avatar.file) {
         const form = new FormData();
         form.append("avatar", avatar.file);
         const resAvatar = await api.put(`/users/${loggedUser.id}/avatar`, form);
-        nuevaUrl = resAvatar.data.url || resAvatar.data.url_image || resAvatar.data.datos?.url_image;
+
+        const data = resAvatar.data;
+        nuevaUrl =
+          data.url ||
+          data.url_image ||
+          (data.datos && data.datos.url_image) ||
+          data.datos;
+
+        if (typeof nuevaUrl !== "string") nuevaUrl = editedUser.url_image;
       }
+
       await api.delete(`/users/${loggedUser.id}/interests`);
       if (editedUserInterests.length > 0) {
         await api.post(`/users/${loggedUser.id}/interests`, {
           interestIds: editedUserInterests.map((i) => i.id),
         });
       }
+
       setLoggedUser({
         ...loggedUser,
-        name: cleanData.name || loggedUser.name,
-        url_image: nuevaUrl,
+        name: String(cleanData.name || loggedUser.name),
+        url_image: String(nuevaUrl),
         first_login: 0,
-        bio: cleanData.bio,
-        goals: cleanData.goals,
-        short_sentece: cleanData.short_sentece,
+        bio: String(cleanData.bio || ""),
+        goals: String(cleanData.goals || ""),
+        short_sentece: String(cleanData.short_sentece || ""),
       });
+
       navigate("/app/" + loggedUser.id);
     } catch (e) {
-      if (e.response?.status === 401) { setLoggedUser(null); navigate("/login"); return; }
-      setErrorState({ msg: e.response?.data?.mensaje || "Error al guardar cambios", open: true });
-      setUi({ ...ui, loading: false });
+      console.error("Error completo:", e);
+      if (e.response?.status === 401) {
+        setLoggedUser(null);
+        navigate("/login");
+        return;
+      }
+
+      const errorMsg =
+        typeof e.response?.data?.mensaje === "object"
+          ? "Error en los datos enviados"
+          : e.response?.data?.mensaje || "Error al guardar cambios";
+
+      setErrorState({ msg: errorMsg, open: true });
+      setUi((prev) => ({ ...prev, loading: false }));
     }
   };
 
   return (
     <>
-      <Box sx={{ maxWidth: 960, mx: "auto", width: "100%", px: { xs: 2, md: 4, lg: 6 }, pt: 4, pb: 1 }}>
-        <Typography sx={{ fontWeight: 800, fontSize: { xs: "1.4rem", md: "1.8rem" }, color: theme.primaryText }}>
-          {loggedUser.first_login === 1 ? "Bienvenido a FriendsSpace" : "Editar perfil"}
+      <Box
+        sx={{
+          maxWidth: 960,
+          mx: "auto",
+          width: "100%",
+          px: { xs: 2, md: 4, lg: 6 },
+          pt: 4,
+          pb: 1,
+        }}
+      >
+        <Typography
+          sx={{
+            fontWeight: 800,
+            fontSize: { xs: "1.4rem", md: "1.8rem" },
+            color: theme.primaryText,
+          }}
+        >
+          {loggedUser.first_login === 1
+            ? "Bienvenido a FriendsSpace"
+            : "Editar perfil"}
         </Typography>
-        <Typography sx={{ color: theme.mutedText, fontSize: "0.9rem", mt: 0.5, mb: 2 }}>
+        <Typography
+          sx={{ color: theme.mutedText, fontSize: "0.9rem", mt: 0.5, mb: 2 }}
+        >
           {loggedUser.first_login === 1
             ? "Personaliza tu perfil para que otros usuarios puedan conocerte mejor."
             : "Actualiza tu información personal e intereses."}
         </Typography>
       </Box>
 
-      <Box sx={{ maxWidth: 960, mx: "auto", width: "100%", px: { xs: 2, md: 4, lg: 6 }, pb: 4 }}>
-
-        <Box sx={{ borderRadius: "20px", overflow: "hidden", background: theme.secondaryBack, border: `1px solid ${accent}20`, boxShadow: isDark ? "0 4px 24px rgba(0,0,0,0.3)" : `0 4px 24px ${accent}10`, mb: 2 }}>
-          <Box sx={{ height: { xs: 80, md: 100 }, background: isDark ? `linear-gradient(135deg, ${accent}25, ${accent}08)` : `linear-gradient(135deg, ${accent}20, ${accent}06)` }} />
+      <Box
+        sx={{
+          maxWidth: 960,
+          mx: "auto",
+          width: "100%",
+          px: { xs: 2, md: 4, lg: 6 },
+          pb: 4,
+        }}
+      >
+        <Box
+          sx={{
+            borderRadius: "20px",
+            overflow: "hidden",
+            background: theme.secondaryBack,
+            border: `1px solid ${accent}20`,
+            boxShadow: isDark
+              ? "0 4px 24px rgba(0,0,0,0.3)"
+              : `0 4px 24px ${accent}10`,
+            mb: 2,
+          }}
+        >
+          <Box
+            sx={{
+              height: { xs: 80, md: 100 },
+              background: isDark
+                ? `linear-gradient(135deg, ${accent}25, ${accent}08)`
+                : `linear-gradient(135deg, ${accent}20, ${accent}06)`,
+            }}
+          />
           <Box sx={{ px: 3, pb: 3 }}>
-            <Box sx={{ display: "flex", flexDirection: { xs: "column", md: "row" }, alignItems: { xs: "center", md: "flex-end" }, justifyContent: "space-between", gap: 2, mt: "-45px", mb: 2, textAlign: { xs: "center", md: "left" } }}>
-              <Box sx={{ display: "flex", flexDirection: { xs: "column", md: "row" }, alignItems: { xs: "center", md: "flex-end" }, gap: 2 }}>
+            <Box
+              sx={{
+                display: "flex",
+                flexDirection: { xs: "column", md: "row" },
+                alignItems: { xs: "center", md: "flex-end" },
+                justifyContent: "space-between",
+                gap: 2,
+                mt: "-45px",
+                mb: 2,
+                textAlign: { xs: "center", md: "left" },
+              }}
+            >
+              <Box
+                sx={{
+                  display: "flex",
+                  flexDirection: { xs: "column", md: "row" },
+                  alignItems: { xs: "center", md: "flex-end" },
+                  gap: 2,
+                }}
+              >
                 <Box
-                  sx={{ position: "relative", cursor: "pointer", flexShrink: 0 }}
+                  sx={{
+                    position: "relative",
+                    cursor: "pointer",
+                    flexShrink: 0,
+                  }}
                   onClick={() => fileInputRef.current.click()}
-                  onMouseEnter={() => setUi((prev) => ({ ...prev, avatarHovered: true }))}
-                  onMouseLeave={() => setUi((prev) => ({ ...prev, avatarHovered: false }))}
+                  onMouseEnter={() =>
+                    setUi((prev) => ({ ...prev, avatarHovered: true }))
+                  }
+                  onMouseLeave={() =>
+                    setUi((prev) => ({ ...prev, avatarHovered: false }))
+                  }
                 >
                   <Avatar
-                    src={avatar.preview || editedUser.url_image || "/no_user_avatar_image.png"}
-                    sx={{ width: 90, height: 90, border: `4px solid ${theme.secondaryBack}`, boxShadow: `0 4px 16px ${accent}30` }}
+                    src={
+                      avatar.preview ||
+                      editedUser.url_image ||
+                      "/no_user_avatar_image.png"
+                    }
+                    sx={{
+                      width: 90,
+                      height: 90,
+                      border: `4px solid ${theme.secondaryBack}`,
+                      boxShadow: `0 4px 16px ${accent}30`,
+                    }}
                   />
-                  <Box sx={{ position: "absolute", inset: 0, borderRadius: "50%", background: ui.avatarHovered ? "rgba(0,0,0,0.45)" : "transparent", display: "flex", alignItems: "center", justifyContent: "center", transition: "0.2s" }}>
-                    {ui.avatarHovered && <ImageIcon sx={{ color: "#fff", fontSize: 28 }} />}
+                  <Box
+                    sx={{
+                      position: "absolute",
+                      inset: 0,
+                      borderRadius: "50%",
+                      background: ui.avatarHovered
+                        ? "rgba(0,0,0,0.45)"
+                        : "transparent",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      transition: "0.2s",
+                    }}
+                  >
+                    {ui.avatarHovered && (
+                      <ImageIcon sx={{ color: "#fff", fontSize: 28 }} />
+                    )}
                   </Box>
-                  <input type="file" accept="image/*" ref={fileInputRef} style={{ display: "none" }}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    ref={fileInputRef}
+                    style={{ display: "none" }}
                     onChange={(e) => {
                       if (e.target.files[0]) {
-                        setAvatar({ file: e.target.files[0], preview: URL.createObjectURL(e.target.files[0]) });
+                        setAvatar({
+                          file: e.target.files[0],
+                          preview: URL.createObjectURL(e.target.files[0]),
+                        });
                         setEdited(true);
                       }
                     }}
@@ -237,66 +412,201 @@ export default function EditUserPage() {
 
                 <Box>
                   {ui.editingName ? (
-                    <Box sx={{ display: "flex", alignItems: "center", gap: 1, justifyContent: { xs: "center", md: "flex-start" } }}>
-                      <TextField name="name" value={editedUser.name} onChange={handleChange} size="small" placeholder="Nombre" sx={{ ...inputStyle, maxWidth: 200 }} />
-                      <IconButton onClick={handleUsernameExist} sx={{ background: accent, color: isDark ? "#1a1200" : "#fff", borderRadius: "10px", width: 36, height: 36, "&:hover": { opacity: 0.9 } }}>
+                    <Box
+                      sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 1,
+                        justifyContent: { xs: "center", md: "flex-start" },
+                      }}
+                    >
+                      <TextField
+                        name="name"
+                        value={editedUser.name}
+                        onChange={handleChange}
+                        size="small"
+                        placeholder="Nombre"
+                        sx={{ ...inputStyle, maxWidth: 200 }}
+                      />
+                      <IconButton
+                        onClick={handleUsernameExist}
+                        sx={{
+                          background: accent,
+                          color: isDark ? "#1a1200" : "#fff",
+                          borderRadius: "10px",
+                          width: 36,
+                          height: 36,
+                          "&:hover": { opacity: 0.9 },
+                        }}
+                      >
                         <CheckIcon fontSize="small" />
                       </IconButton>
                     </Box>
                   ) : (
-                    <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, justifyContent: { xs: "center", md: "flex-start" } }}>
-                      <Typography sx={{ fontWeight: 800, fontSize: "1.3rem", color: theme.primaryText, letterSpacing: "-0.02em" }}>
+                    <Box
+                      sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 0.5,
+                        justifyContent: { xs: "center", md: "flex-start" },
+                      }}
+                    >
+                      <Typography
+                        sx={{
+                          fontWeight: 800,
+                          fontSize: "1.3rem",
+                          color: theme.primaryText,
+                          letterSpacing: "-0.02em",
+                        }}
+                      >
                         @{editedUser.name}
                       </Typography>
-                      <IconButton onClick={() => setUi((prev) => ({ ...prev, editingName: true }))} size="small" sx={{ color: theme.mutedText, "&:hover": { color: accent } }}>
+                      <IconButton
+                        onClick={() =>
+                          setUi((prev) => ({ ...prev, editingName: true }))
+                        }
+                        size="small"
+                        sx={{
+                          color: theme.mutedText,
+                          "&:hover": { color: accent },
+                        }}
+                      >
                         <EditIcon fontSize="small" />
                       </IconButton>
                     </Box>
                   )}
-                  <Typography sx={{ fontSize: "0.82rem", color: theme.mutedText, mt: 0.25 }}>
+                  <Typography
+                    sx={{
+                      fontSize: "0.82rem",
+                      color: theme.mutedText,
+                      mt: 0.25,
+                    }}
+                  >
                     {editedUser.email}
                   </Typography>
                 </Box>
               </Box>
 
               {loggedUser.first_login !== 1 && (
-                <Button variant="outlined" startIcon={<LockIcon fontSize="small" />}
+                <Button
+                  variant="outlined"
+                  startIcon={<LockIcon fontSize="small" />}
                   onClick={() => navigate("/app/user/changePassword")}
-                  sx={{ borderColor: `${accent}40`, color: accent, borderRadius: "10px", textTransform: "none", fontWeight: 600, fontSize: "0.82rem", px: 2, mb: 0.5, "&:hover": { borderColor: accent, background: `${accent}10` } }}>
+                  sx={{
+                    borderColor: `${accent}40`,
+                    color: accent,
+                    borderRadius: "10px",
+                    textTransform: "none",
+                    fontWeight: 600,
+                    fontSize: "0.82rem",
+                    px: 2,
+                    mb: 0.5,
+                    "&:hover": {
+                      borderColor: accent,
+                      background: `${accent}10`,
+                    },
+                  }}
+                >
                   Cambiar contraseña
                 </Button>
               )}
             </Box>
-            <ErrorMessage message={errorState.msg} open={errorState.open} setOpen={(isOpen) => setErrorState({ ...errorState, open: isOpen })} />
+            <ErrorMessage
+              message={errorState.msg}
+              open={errorState.open}
+              setOpen={(isOpen) =>
+                setErrorState({ ...errorState, open: isOpen })
+              }
+            />
           </Box>
         </Box>
 
         <Box sx={sectionSx}>
-          <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1 }}>
-            <Typography component="span" sx={labelSx}>Descripción</Typography>
-            <Typography sx={counterSx}>{editedUser.bio?.length || 0}/{limites.bio}</Typography>
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              mb: 1,
+            }}
+          >
+            <Typography component="span" sx={labelSx}>
+              Descripción
+            </Typography>
+            <Typography sx={counterSx}>
+              {editedUser.bio?.length || 0}/{limites.bio}
+            </Typography>
           </Box>
-          <TextField name="bio" fullWidth multiline rows={3} placeholder="Cuéntanos algo sobre ti..." value={editedUser.bio || ""} onChange={handleChange} sx={inputStyle} />
+          <TextField
+            name="bio"
+            fullWidth
+            multiline
+            rows={3}
+            placeholder="Cuéntanos algo sobre ti..."
+            value={editedUser.bio || ""}
+            onChange={handleChange}
+            sx={inputStyle}
+          />
         </Box>
 
         <Box sx={sectionSx}>
-          <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1 }}>
-            <Typography component="span" sx={labelSx}>Frase pública</Typography>
-            <Typography sx={counterSx}>{editedUser.short_sentece?.length || 0}/{limites.short_sentece}</Typography>
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              mb: 1,
+            }}
+          >
+            <Typography component="span" sx={labelSx}>
+              Frase pública
+            </Typography>
+            <Typography sx={counterSx}>
+              {editedUser.short_sentece?.length || 0}/{limites.short_sentece}
+            </Typography>
           </Box>
-          <TextField name="short_sentece" fullWidth placeholder="Una frase..." value={editedUser.short_sentece || ""} onChange={handleChange} sx={inputStyle} />
+          <TextField
+            name="short_sentece"
+            fullWidth
+            placeholder="Una frase..."
+            value={editedUser.short_sentece || ""}
+            onChange={handleChange}
+            sx={inputStyle}
+          />
         </Box>
 
         <Box sx={sectionSx}>
-          <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1 }}>
-            <Typography component="span" sx={labelSx}>Objetivos personales</Typography>
-            <Typography sx={counterSx}>{editedUser.goals?.length || 0}/{limites.goals}</Typography>
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              mb: 1,
+            }}
+          >
+            <Typography component="span" sx={labelSx}>
+              Objetivos personales
+            </Typography>
+            <Typography sx={counterSx}>
+              {editedUser.goals?.length || 0}/{limites.goals}
+            </Typography>
           </Box>
-          <TextField name="goals" fullWidth multiline rows={3} placeholder="Objetivos..." value={editedUser.goals || ""} onChange={handleChange} sx={inputStyle} />
+          <TextField
+            name="goals"
+            fullWidth
+            multiline
+            rows={3}
+            placeholder="Objetivos..."
+            value={editedUser.goals || ""}
+            onChange={handleChange}
+            sx={inputStyle}
+          />
         </Box>
 
         <Box sx={{ ...sectionSx, mb: 3 }}>
-          <Typography component="span" sx={labelSx}>Intereses</Typography>
+          <Typography component="span" sx={labelSx}>
+            Intereses
+          </Typography>
           <Autocomplete
             fullWidth
             options={allInterests}
@@ -307,29 +617,86 @@ export default function EditUserPage() {
                 setEdited(true);
               }
             }}
-            renderInput={(p) => <TextField {...p} placeholder="Añadir intereses..." sx={inputStyle} />}
+            renderInput={(p) => (
+              <TextField
+                {...p}
+                placeholder="Añadir intereses..."
+                sx={inputStyle}
+              />
+            )}
           />
           {editedUserInterests.length > 0 && (
             <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.75, mt: 1.5 }}>
               {editedUserInterests.map((i) => (
-                <InterestItem key={i.id} title={i.name} color={i.color}
-                  onDelete={() => { setEditedUserInterests(editedUserInterests.filter((x) => x.id !== i.id)); setEdited(true); }}
+                <InterestItem
+                  key={i.id}
+                  title={i.name}
+                  color={i.color}
+                  onDelete={() => {
+                    setEditedUserInterests(
+                      editedUserInterests.filter((x) => x.id !== i.id),
+                    );
+                    setEdited(true);
+                  }}
                 />
               ))}
             </Box>
           )}
         </Box>
 
-        <Box sx={{ display: "flex", flexDirection: { xs: "column-reverse", sm: "row" }, justifyContent: loggedUser.first_login === 1 ? "flex-end" : "space-between", gap: 2 }}>
+        <Box
+          sx={{
+            display: "flex",
+            flexDirection: { xs: "column-reverse", sm: "row" },
+            justifyContent:
+              loggedUser.first_login === 1 ? "flex-end" : "space-between",
+            gap: 2,
+          }}
+        >
           {loggedUser.first_login !== 1 && (
-            <Button variant="outlined" onClick={() => navigate("/app/" + loggedUser.id)}
-              sx={{ borderColor: `${accent}50`, color: accent, borderRadius: "10px", textTransform: "none", fontWeight: 600, px: 3, "&:hover": { borderColor: accent, background: `${accent}10` } }}>
+            <Button
+              variant="outlined"
+              onClick={() => navigate("/app/" + loggedUser.id)}
+              sx={{
+                borderColor: `${accent}50`,
+                color: accent,
+                borderRadius: "10px",
+                textTransform: "none",
+                fontWeight: 600,
+                px: 3,
+                "&:hover": { borderColor: accent, background: `${accent}10` },
+              }}
+            >
               Volver
             </Button>
           )}
-          <Button disabled={ui.loading} variant="contained" onClick={editarUsuario}
-            sx={{ background: `linear-gradient(135deg, ${accent}, ${theme.variantBack || accent})`, color: isDark ? "#1a1200" : "#fff", borderRadius: "10px", textTransform: "none", fontWeight: 700, px: 4, minWidth: 160, boxShadow: `0 4px 12px ${accent}40`, "&:hover": { opacity: 0.9 }, "&.Mui-disabled": { background: theme.tertiaryBack, color: theme.mutedText } }}>
-            {ui.loading ? <CircularProgress size={22} color="inherit" /> : (loggedUser.first_login === 1 && !edited ? "Saltar" : "Aplicar cambios")}
+          <Button
+            disabled={ui.loading}
+            variant="contained"
+            onClick={editarUsuario}
+            sx={{
+              background: `linear-gradient(135deg, ${accent}, ${theme.variantBack || accent})`,
+              color: isDark ? "#1a1200" : "#fff",
+              borderRadius: "10px",
+              textTransform: "none",
+              fontWeight: 700,
+              px: 4,
+              minWidth: 160,
+              boxShadow: `0 4px 12px ${accent}40`,
+              "&:hover": { opacity: 0.9 },
+              "&.Mui-disabled": {
+                background: theme.tertiaryBack,
+                color: theme.mutedText,
+              },
+            }}
+          >
+            {ui.loading ? (
+              <CircularProgress size={22} color="inherit" />
+            ) : loggedUser.first_login === 1 && !edited ? (
+              "Saltar"
+            ) : (
+              "Aplicar cambios"
+            )}
           </Button>
         </Box>
       </Box>
