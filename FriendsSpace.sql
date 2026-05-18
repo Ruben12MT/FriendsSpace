@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Servidor: db
--- Tiempo de generación: 04-05-2026 a las 21:27:27
+-- Tiempo de generación: 18-05-2026 a las 11:08:23
 -- Versión del servidor: 8.0.44
 -- Versión de PHP: 8.3.26
 
@@ -57,6 +57,14 @@ CREATE TABLE `connection` (
   `status` enum('ACTIVE','BLOCKED','FINISHED') DEFAULT 'ACTIVE',
   `created_at` datetime NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+--
+-- Volcado de datos para la tabla `connection`
+--
+
+INSERT INTO `connection` (`id`, `status`, `created_at`) VALUES
+(109, 'ACTIVE', '2026-05-12 07:48:28'),
+(110, 'ACTIVE', '2026-05-18 11:06:10');
 
 -- --------------------------------------------------------
 
@@ -166,7 +174,9 @@ CREATE TABLE `user` (
 --
 
 INSERT INTO `user` (`id`, `name`, `email`, `password`, `url_image`, `bio`, `role`, `banned`, `created_at`, `goals`, `short_sentece`, `first_login`, `token_version`) VALUES
-(121, 'RuRu', 'ruru12@gmail.com', '$2b$10$7O6eVVt5/jvHhqDa1aK.T.VMhKxxm.Q91HgtYivdF1TpK0nDDIwSq', 'https://res.cloudinary.com/duf0dqxsd/image/upload/v1777290929/friendsspace/avatars/opbkkz6xm8kixpt53fjw.png', 'Creador de la app.', 'DEVELOPER', 0, '2026-04-14 08:23:12', NULL, 'Programar también puede ser arte.', 0, 1);
+(121, 'fs_developer', 'fsdev@gmail.com', '$2b$10$B7H7uKN4v..VQfYqh5V8VOGBWfimEYAIKczil2/cxrJVi161gy3T6', NULL, 'Creador de la app.', 'DEVELOPER', 0, '2026-04-14 08:23:12', NULL, 'Programar también puede ser arte.', 0, 1),
+(130, 'fs_user', 'fsuser@gmail.com', '$2b$10$B7H7uKN4v..VQfYqh5V8VOGBWfimEYAIKczil2/cxrJVi161gy3T6', NULL, NULL, 'USER', 0, '2026-05-16 19:57:30', NULL, NULL, 0, 0),
+(131, 'fs_admin', 'fs_admin@gmail.com', '$2b$10$a7p9Hs74Yd988ESSMvoybOsICYLkHvj5KodEbDl9fkgqTRAImJMOC', NULL, NULL, 'ADMIN', 0, '2026-05-18 11:06:10', NULL, NULL, 0, 0);
 
 -- --------------------------------------------------------
 
@@ -179,6 +189,16 @@ CREATE TABLE `user_connection` (
   `connection_id` int NOT NULL,
   `blocked_by` int DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+--
+-- Volcado de datos para la tabla `user_connection`
+--
+
+INSERT INTO `user_connection` (`user_id`, `connection_id`, `blocked_by`) VALUES
+(121, 109, NULL),
+(121, 110, NULL),
+(129, 109, NULL),
+(131, 110, NULL);
 
 -- --------------------------------------------------------
 
@@ -196,6 +216,7 @@ CREATE TABLE `user_interest` (
 --
 
 INSERT INTO `user_interest` (`user_id`, `interest_id`) VALUES
+(121, 76),
 (121, 80);
 
 --
@@ -278,13 +299,13 @@ ALTER TABLE `user_interest`
 -- AUTO_INCREMENT de la tabla `ad`
 --
 ALTER TABLE `ad`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=70;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=71;
 
 --
 -- AUTO_INCREMENT de la tabla `connection`
 --
 ALTER TABLE `connection`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=109;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=111;
 
 --
 -- AUTO_INCREMENT de la tabla `interest`
@@ -296,7 +317,7 @@ ALTER TABLE `interest`
 -- AUTO_INCREMENT de la tabla `message`
 --
 ALTER TABLE `message`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=92;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=94;
 
 --
 -- AUTO_INCREMENT de la tabla `request`
@@ -308,7 +329,7 @@ ALTER TABLE `request`
 -- AUTO_INCREMENT de la tabla `user`
 --
 ALTER TABLE `user`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=129;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=132;
 
 --
 -- Restricciones para tablas volcadas
